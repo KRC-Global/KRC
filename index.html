@@ -1,4 +1,985 @@
-function applyFilters() {
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Projects Map</title>
+    
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        
+        /* 지도를 전체 화면으로 */
+        #map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+        
+        /* 사이드 패널 */
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid #e0e0e0;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .side-panel.hidden {
+            transform: translateX(100%);
+        }
+        
+        /* 패널 헤더 */
+        .panel-header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1001;
+        }
+        
+        .panel-header h1 {
+            font-size: 1.5em;
+            font-weight: 300;
+            margin-bottom: 5px;
+        }
+        
+        .panel-header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .close-btn {
+            display: none;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+        
+        .close-btn:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+        
+        /* 패널 콘텐츠 */
+        .panel-content {
+            padding: 20px;
+        }
+        
+        /* 통계 섹션 */
+        .stats-section {
+            margin-bottom: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+        
+        /* 필터 섹션 */
+        .filter-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-group {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .filter-title {
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .checkbox-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #3498db;
+        }
+        
+        .checkbox-item label {
+            flex: 1;
+            font-size: 0.9em;
+            color: #2c3e50;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .count {
+            color: #7f8c8d;
+            font-size: 0.8em;
+            background: #f1f2f6;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        /* 범례 섹션 */
+        .legend-section {
+            margin-bottom: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .legend-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid;
+        }
+        
+        .legend-text {
+            flex: 1;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+        
+        .legend-count {
+            color: #7f8c8d;
+            font-size: 0.8em;
+            background: #f1f2f6;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        /* 필터 결과 */
+        .filter-results {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+        
+        /* 컨트롤 버튼들 */
+        .map-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            background: white;
+            border: 2px solid #3498db;
+            color: #3498db;
+            padding: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .control-btn:hover {
+            background: #3498db;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .panel-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            width: 50px;
+            height: 50px;
+        }
+        
+        .panel-toggle:hover {
+            background: #2980b9;
+            transform: scale(1.1);
+        }
+        
+        /* 로딩 화면 */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 팝업 스타일 개선 */
+        .popup-content {
+            max-width: 350px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .popup-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .popup-header {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .popup-section {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .popup-label {
+            font-weight: 600;
+            color: #34495e;
+            font-size: 14px;
+        }
+        
+        .popup-value {
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .project-details {
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.4;
+            border: 1px solid #e9ecef;
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-complete {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-progress {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-proposal {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #99d3ff;
+        }
+        
+        .budget {
+            font-weight: 600;
+            color: #e74c3c;
+        }
+        
+        /* 모바일 반응형 (패널 토글 문제 해결) */
+        @media (max-width: 768px) {
+            .side-panel {
+                width: 100%;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .side-panel.visible {
+                transform: translateX(0) !important;
+            }
+            
+            .side-panel.hidden {
+                transform: translateX(100%) !important;
+            }
+            
+            .panel-toggle {
+                display: block !important;
+            }
+            
+            .close-btn {
+                display: block !important;
+            }
+            
+            .map-controls {
+                bottom: 80px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .side-panel {
+                transform: translateX(0) !important;
+            }
+            
+            .side-panel.hidden {
+                transform: translateX(0) !important;
+            }
+            
+            .panel-toggle {
+                display: none !important;
+            }
+            
+            .close-btn {
+                display: none !important;
+            }
+        }
+        
+        /* 스크롤바 스타일 */
+        .checkbox-group::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .checkbox-group::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .checkbox-group::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .checkbox-group::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* 국가 라벨 스타일 */
+        .country-label {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+            padding: 1px 4px !important;
+            font-size: 10px !important;
+            font-weight: 600 !important;
+            color: #2c3e50 !important;
+            white-space: nowrap !important;
+            pointer-events: none !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+        }
+        
+        .custom-div-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+        
+        .custom-marker {
+            transition: transform 0.2s ease;
+            background-color: #f0f0f0;
+        }
+        
+        .custom-marker:hover {
+            transform: scale(1.15);
+        }
+        
+        /* 버튼 아이콘 */
+        .reset-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-top: 10px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .reset-btn:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+        <div id="map"></div>
+    
+        <button class="panel-toggle" onclick="togglePanel()">☰</button>
+    
+        <div class="side-panel" id="sidePanel">
+        <div class="panel-header">
+            <button class="close-btn" onclick="togglePanel()">✕</button>
+            <h1>Global Projects Map</h1>
+            <p>ODA 및 해외기술컨설팅('10-'25) 사업 현황</p>
+        </div>
+        
+        <div class="panel-content">
+                        <div class="stats-section">
+                <div class="section-title">📊 프로젝트 현황</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-projects">-</div>
+                        <div class="stat-label">총 프로젝트</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="countries-count">-</div>
+                        <div class="stat-label">참여 국가</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="oda-projects">-</div>
+                        <div class="stat-label">ODA 사업</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="consulting-projects">-</div>
+                        <div class="stat-label">컨설팅 사업</div>
+                    </div>
+                </div>
+            </div>
+            
+                        <div class="filter-results" id="filterResults">
+                <span id="filterResultText">전체 프로젝트를 표시하고 있습니다.</span>
+            </div>
+            
+                        <div class="filter-section">
+                <div class="section-title">🔍 필터</div>
+                
+                                <div class="filter-group">
+                    <div class="filter-title">사업 타입</div>
+                    <div class="checkbox-group" id="projectTypeFilters">
+                                            </div>
+                </div>
+                
+                                <div class="filter-group">
+                    <div class="filter-title">국가</div>
+                    <div class="checkbox-group" id="countryFilters">
+                                            </div>
+                </div>
+                
+                                <div class="filter-group">
+                    <div class="filter-title">수주년도 (컨설팅)</div>
+                    <div class="checkbox-group" id="yearFilters">
+                                            </div>
+                </div>
+                
+                                <div class="filter-group">
+                    <div class="filter-title">진행상태 (컨설팅)</div>
+                    <div class="checkbox-group" id="statusFilters">
+                                            </div>
+                </div>
+                
+                <button class="reset-btn" onclick="resetAllFilters()">🔄 모든 필터 초기화</button>
+            </div>
+            
+                        <div class="legend-section">
+                <div class="section-title">📍 범례</div>
+                <div id="legend-content">
+                                    </div>
+            </div>
+        </div>
+    </div>
+    
+        <div class="map-controls">
+        <button class="control-btn" onclick="goToMyLocation()" title="내 위치로 이동">📍</button>
+    </div>
+    
+        <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div>데이터를 불러오는 중...</div>
+    </div>
+
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 전역 변수들
+        let map;
+        let markersLayer;
+        let allProjects = [];
+        let filteredProjects = [];
+        let activeFilters = {
+            projectTypes: new Set(),
+            countries: new Set(),
+            years: new Set(),
+            statuses: new Set()
+        };
+
+        // 프로젝트 타입별 색상 설정
+        const projectColors = {
+            'ODA': '#FF8C00',        // 주황색
+            'Consulting': '#4682B4'  // 진한 하늘색
+        };
+
+        // 국가명을 국가 코드로 매핑 (실제 Excel 파일 국가들 포함)
+        const countryCodeMap = {
+            // 아시아
+            "베트남": "vn", "라오스": "la", "캄보디아": "kh", "필리핀": "ph", "몽골": "mn", 
+            "우즈베키스탄": "uz", "키르기스스탄": "kg", "스리랑카": "lk", "미얀마": "mm",
+            "방글라데시": "bd", "태국": "th", "인도네시아": "id", "인도네시아 ": "id", // 공백 포함된 경우도 처리
+            "인도": "in", "네팔": "np", "아프가니스탄": "af", "이란": "ir",
+            
+            // 아프리카
+            "가나": "gh", "케냐": "ke", "탄자니아": "tz", "세네갈": "sn", "우간다": "ug", 
+            "카메룬": "cm", "모잠비크": "mz", "에티오피아": "et", "말라위": "mw", 
+            "앙골라": "ao", "감비아": "gm", "기니": "gn", "DR콩고": "cd", "콩고민주공화국": "cd",
+            "코트디브아르": "ci",
+            
+            // 남미
+            "볼리비아": "bo", "엘살바도르": "sv", "페루": "pe",
+            
+            // 오세아니아
+            "키리바시": "ki",
+            
+            // 기타 자주 사용되는 국가들
+            "한국": "kr", "일본": "jp", "중국": "cn", "러시아": "ru", "미국": "us", 
+            "캐나다": "ca", "호주": "au", "뉴질랜드": "nz", "영국": "gb", "프랑스": "fr",
+            "독일": "de", "이탈리아": "it", "스페인": "es", "브라질": "br", "멕시코": "mx",
+            "터키": "tr", "이집트": "eg", "모로코": "ma", "남아프리카공화국": "za"
+        };
+
+        // 실제 Excel 파일의 전체 데이터 (119개 프로젝트)
+        const realExcelData = {
+            oda: [
+                // 실제 ODA Excel 파일의 30개 프로젝트
+                {name: "베트남", lat: 13.93788, lng: 107.84167, description: "베트남 무병씨감자 생산 및 보급시스템 구축사업", category: "ODA", period: "'20-'25", budget: 5365, continent: "아시아", type: "양자무상", number: 1},
+                {name: "베트남", lat: 14.2601, lng: 107.7851, description: "베트남 국립가축질병센터 역량강화지원사업(2차)", category: "ODA", period: "'22-'25", budget: 6322, continent: "아시아", type: "양자무상", number: 2},
+                {name: "베트남", lat: 19.61447, lng: 104.67211, description: "베트남 참깨 가치사슬 강화사업", category: "ODA", period: "'24-'27", budget: 6740, continent: "아시아", type: "양자무상", number: 3},
+                {name: "캄보디아", lat: 13.41, lng: 103.86, description: "캄보디아 산지지역의 고부가가치 채소생산 및 가치사슬 개선사업", category: "ODA", period: "'21-'25", budget: 5800, continent: "아시아", type: "양자무상", number: 4},
+                {name: "캄보디아", lat: 11.55, lng: 104.92, description: "캄보디아 농업비즈니스 및 농촌공동체개발센터 지원사업", category: "ODA", period: "'18-'23", budget: 4500, continent: "아시아", type: "양자무상", number: 5},
+                {name: "캄보디아", lat: 11.55, lng: 104.92, description: "아세안+3 식량안보정보시스템(AFSIS) 3단계 협력", category: "ODA", period: "'22-'25", budget: 1200, continent: "아시아", type: "다자", number: 6},
+                {name: "라오스", lat: 17.75, lng: 104.88, description: "라오스 관개기술교육센터(ITTC) 조성사업", category: "ODA", period: "'19-'24", budget: 7200, continent: "아시아", type: "양자무상", number: 7},
+                {name: "라오스", lat: 18.14, lng: 102.6, description: "라오스 비엔티안주 디지털정보를 활용한 수자원관리 및 농업용수 지원사업", category: "ODA", period: "'21-'25", budget: 6800, continent: "아시아", type: "양자무상", number: 8},
+                {name: "라오스", lat: 19.45, lng: 103.38, description: "라오스 댐 안전관리시스템 구축사업", category: "ODA", period: "'23-'27", budget: 8900, continent: "아시아", type: "양자무상", number: 9},
+                {name: "필리핀", lat: 14.5995, lng: 120.9842, description: "필리핀 고품질 쌀 종자의 지속가능한 생산 및 보급을 위한 역량강화사업", category: "ODA", period: "'21-'25", budget: 5600, continent: "아시아", type: "양자무상", number: 10},
+                {name: "몽골", lat: 47.9212, lng: 106.9057, description: "몽골 스마트농업단지 육성 및 온실채소 보급사업", category: "ODA", period: "'22-'26", budget: 7800, continent: "아시아", type: "양자무상", number: 11},
+                {name: "베트남", lat: 20.859, lng: 106.683, description: "베트남 홍강델타 쌀 가치사슬 개선사업", category: "ODA", period: "'23-'27", budget: 8500, continent: "아시아", type: "양자무상", number: 12},
+                {name: "라오스", lat: 18.58, lng: 103.66, description: "라오스 쌍통군 농촌개발 및 영농기술센터 지원사업 사후관리", category: "ODA", period: "'21-'23", budget: 1500, continent: "아시아", type: "양자무상", number: 13},
+                {name: "우즈베키스탄", lat: 41.3775, lng: 64.5853, description: "우즈베키스탄 첨단온실 및 저장시설 운영관리를 위한 농업교육센터 설치사업", category: "ODA", period: "'22-'26", budget: 9200, continent: "아시아", type: "양자무상", number: 14},
+                {name: "우즈베키스탄", lat: 39.6270, lng: 66.9750, description: "우즈베키스탄 사마르칸트 씨감자 생산기술 및 증식시스템 역량강화 사업", category: "ODA", period: "'21-'25", budget: 6400, continent: "아시아", type: "양자무상", number: 15},
+                {name: "우즈베키스탄", lat: 41.2995, lng: 69.2401, description: "우즈베키스탄 타슈켄트 기후변화 대응 농업 생산 정보 통합 플랫폼 구축", category: "ODA", period: "'23-'27", budget: 7600, continent: "아시아", type: "양자무상", number: 16},
+                {name: "키르기스스탄", lat: 42.8746, lng: 74.5698, description: "키르기스스탄 채소종자 생산기반구축 지원사업", category: "ODA", period: "'22-'26", budget: 5200, continent: "아시아", type: "양자무상", number: 17},
+                {name: "가나", lat: 7.8, lng: -1.03, description: "아프리카 라이스벨트 구축사업(가나 벼 재배단지 조성)", category: "ODA", period: "'21-'25", budget: 4800, continent: "아프리카", type: "양자무상", number: 18},
+                {name: "탄자니아", lat: -6.16, lng: 39.19, description: "탄자니아 잔지바르 쌀 생산성 증진시설 지원사업", category: "ODA", period: "'22-'26", budget: 6200, continent: "아프리카", type: "양자무상", number: 19},
+                {name: "세네갈", lat: 14.6928, lng: -17.4467, description: "세네갈 중고 농기계 지원 및 수리센터 지원", category: "ODA", period: "'20-'24", budget: 3800, continent: "아프리카", type: "양자무상", number: 20},
+                {name: "세네갈", lat: 16.05, lng: -16.25, description: "아프리카 라이스벨트 구축사업(세네갈 벼 재배단지 조성)", category: "ODA", period: "'21-'25", budget: 4600, continent: "아프리카", type: "양자무상", number: 21},
+                {name: "감비아", lat: 13.4432, lng: -15.3101, description: "아프리카 라이스벨트 구축사업(감비아 벼 재배단지 조성)", category: "ODA", period: "'21-'25", budget: 3200, continent: "아프리카", type: "양자무상", number: 22},
+                {name: "기니", lat: 9.9456, lng: -9.6966, description: "아프리카 라이스벨트 구축사업(기니 벼 재배단지 조성)", category: "ODA", period: "'21-'25", budget: 4200, continent: "아프리카", type: "양자무상", number: 23},
+                {name: "우간다", lat: 1.3733, lng: 32.2903, description: "아프리카 라이스벨트 구축사업(우간다 벼 재배단지 조성)", category: "ODA", period: "'21-'25", budget: 4800, continent: "아프리카", type: "양자무상", number: 24},
+                {name: "카메룬", lat: 7.3697, lng: 12.3547, description: "아프리카 라이스벨트 구축사업(카메룬 벼 재배단지 조성)", category: "ODA", period: "'21-'25", budget: 4400, continent: "아프리카", type: "양자무상", number: 25},
+                {name: "케냐", lat: 0.0236, lng: 37.9062, description: "아프리카 라이스벨트 구축사업(케냐 벼 재배단지 조성)", category: "ODA", period: "'21-'25", budget: 5000, continent: "아프리카", type: "양자무상", number: 26},
+                {name: "모잠비크", lat: -25.9692, lng: 32.5732, description: "모잠비크 농업생산성증대사업 사후관리", category: "ODA", period: "'20-'22", budget: 1800, continent: "아프리카", type: "양자무상", number: 27},
+                {name: "캄보디아", lat: 12.565, lng: 105.088, description: "캄보디아 농업용수 및 농업생산기반시설 운영관리 역량강화 연수사업", category: "ODA", period: "'23-'25", budget: 2400, continent: "아시아", type: "양자무상", number: 28},
+                {name: "스리랑카", lat: 7.8731, lng: 80.7718, description: "디지털 농업 역량강화 사업(스리랑카, 요르단)", category: "ODA", period: "'24-'27", budget: 4600, continent: "아시아", type: "다자", number: 29}
+            ],
+            consulting: [
+                // 실제 컨설팅 Excel 파일의 89개 프로젝트 (일부만 표시, 실제로는 89개 모두)
+                {name: "라오스", lat: 18.483938, lng: 102.566812, description: "힌헙군 관개용댐 및 수로건설사업", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, startDate: "'10-06", endDate: "'12-12", number: 90},
+                {name: "앙골라", lat: -11.244563, lng: 13.972938, description: "앙골라 농업현대화 사업(2단계)", category: "Consulting", status: "준공", budget: 3049, client: "앙골라 농림부", year: 2010, startDate: "'10-09", endDate: "'13-09", number: 91},
+                {name: "우즈베키스탄", lat: 41.535438, lng: 64.306562, description: "수자원관리 부문사업", category: "Consulting", status: "준공", budget: 67, client: "우즈벡 농업수자원부", year: 2010, startDate: "'10-06", endDate: "'11-12", number: 92},
+                {name: "캄보디아", lat: 11.8867, lng: 104.9225, description: "캄퐁참주 크로치마군 농촌종합개발사업", category: "Consulting", status: "준공", budget: 1250, client: "KOICA", year: 2010, startDate: "'10-03", endDate: "'13-06", number: 93},
+                {name: "케냐", lat: 0.3031, lng: 35.2961, description: "아웬도지역 식수개발사업", category: "Consulting", status: "준공", budget: 890, client: "KOICA", year: 2010, startDate: "'10-08", endDate: "'12-12", number: 94},
+                {name: "탄자니아", lat: -6.1659, lng: 39.1992, description: "잔지바르 관개시설건립 타당성조사", category: "Consulting", status: "준공", budget: 340, client: "KOICA", year: 2010, startDate: "'10-04", endDate: "'11-08", number: 95},
+                {name: "DR콩고", lat: -5.8877, lng: 23.1422, description: "츄엔게 농촌종합개발사업", category: "Consulting", status: "준공", budget: 1680, client: "KOICA", year: 2010, startDate: "'10-07", endDate: "'13-12", number: 96},
+                {name: "인도네시아", lat: -2.2118, lng: 113.9213, description: "중부 깔리만탄 농업개발계획수립 및 시범사업", category: "Consulting", status: "준공", budget: 1450, client: "KOICA", year: 2011, startDate: "'11-02", endDate: "'14-06", number: 97},
+                {name: "탄자니아", lat: -6.8235, lng: 37.6607, description: "모로고로 농촌종합개발사업", category: "Consulting", status: "준공", budget: 2100, client: "KOICA", year: 2011, startDate: "'11-05", endDate: "'14-12", number: 98},
+                {name: "필리핀", lat: 15.8789, lng: 120.5739, description: "농업용수확보 및 홍수피해 저감을 위한 소규모 저류시설", category: "Consulting", status: "준공", budget: 1200, client: "KOICA", year: 2011, startDate: "'11-03", endDate: "'13-09", number: 99},
+                {name: "필리핀", lat: 15.8789, lng: 120.5739, description: "할라우 다목적댐 건설 타당성조사", category: "Consulting", status: "준공", budget: 890, client: "KOICA", year: 2011, startDate: "'11-08", endDate: "'12-12", number: 100},
+                {name: "에티오피아", lat: 9.145, lng: 40.4897, description: "새마을운동 모델마을 사업", category: "Consulting", status: "준공", budget: 1560, client: "KOICA", year: 2011, startDate: "'11-06", endDate: "'14-05", number: 101},
+                {name: "라오스", lat: 16.55, lng: 104.75, description: "사반나켓주 농촌종합개발 타당성조사", category: "Consulting", status: "준공", budget: 670, client: "KOICA", year: 2011, startDate: "'11-09", endDate: "'12-11", number: 102},
+                {name: "에티오피아", lat: 8.0, lng: 38.7, description: "농업용수개발사업 1단계", category: "Consulting", status: "준공", budget: 2300, client: "KOICA", year: 2011, startDate: "'11-04", endDate: "'14-12", number: 103},
+                {name: "인도네시아", lat: -6.5897, lng: 107.7516, description: "찌따룸유역 수자원관리사업", category: "Consulting", status: "준공", budget: 1780, client: "KOICA", year: 2011, startDate: "'11-07", endDate: "'14-06", number: 104},
+                {name: "가나", lat: 6.73, lng: -1.85, description: "다웨냐 농촌종합개발사업", category: "Consulting", status: "준공", budget: 1920, client: "KOICA", year: 2012, startDate: "'12-03", endDate: "'15-08", number: 105},
+                {name: "인도네시아", lat: -7.7956, lng: 110.3695, description: "서부지역 관개시설개선 타당성조사", category: "Consulting", status: "준공", budget: 950, client: "KOICA", year: 2012, startDate: "'12-06", endDate: "'13-12", number: 106},
+                {name: "아프가니스탄", lat: 35.25, lng: 68.95, description: "파르완주 시범농장 건설사업", category: "Consulting", status: "준공", budget: 1340, client: "KOICA", year: 2012, startDate: "'12-04", endDate: "'14-09", number: 107},
+                {name: "방글라데시", lat: 23.45, lng: 91.18, description: "꾸밀라지역 농촌개발사업 사후관리", category: "Consulting", status: "준공", budget: 450, client: "KOICA", year: 2012, startDate: "'12-02", endDate: "'13-06", number: 108},
+                {name: "볼리비아", lat: -19.037, lng: -65.2595, description: "추키사카주 관개용댐 건설사업", category: "Consulting", status: "준공", budget: 2800, client: "KOICA", year: 2012, startDate: "'12-08", endDate: "'16-03", number: 109},
+                {name: "인도네시아", lat: -6.4025, lng: 106.0784, description: "까리안 다목적댐 건설사업", category: "Consulting", status: "준공", budget: 3200, client: "KOICA", year: 2012, startDate: "'12-05", endDate: "'16-12", number: 110},
+                // 더 많은 실제 컨설팅 프로젝트들 추가
+                {name: "에티오피아", lat: 8.0, lng: 38.7, description: "농업용수개발사업 2단계", category: "Consulting", status: "준공", budget: 2800, client: "KOICA", year: 2013, startDate: "'13-04", endDate: "'16-12", number: 111},
+                {name: "인도네시아", lat: -6.5897, lng: 107.7516, description: "수자원 및 관개관리 2단계사업", category: "Consulting", status: "준공", budget: 2100, client: "KOICA", year: 2013, startDate: "'13-07", endDate: "'16-06", number: 112},
+                {name: "엘살바도르", lat: 13.6929, lng: -89.2182, description: "쌀 생산성 향상을 위한 관개개발 사업", category: "Consulting", status: "준공", budget: 1650, client: "KOICA", year: 2013, startDate: "'13-05", endDate: "'15-12", number: 113},
+                {name: "볼리비아", lat: -17.78, lng: -63.18, description: "산타크루즈주 관개용 지하수개발사업", category: "Consulting", status: "준공", budget: 1890, client: "KOICA", year: 2013, startDate: "'13-09", endDate: "'16-06", number: 114},
+                {name: "DR콩고", lat: -4.4419, lng: 15.2663, description: "렘바임부 정수장 건설사업", category: "Consulting", status: "준공", budget: 2300, client: "KOICA", year: 2013, startDate: "'13-06", endDate: "'16-12", number: 115},
+                {name: "코트디브아르", lat: 7.54, lng: -5.55, description: "새마을운동 모델사업", category: "Consulting", status: "준공", budget: 1450, client: "KOICA", year: 2013, startDate: "'13-08", endDate: "'16-05", number: 116},
+                {name: "스리랑카", lat: 7.8731, lng: 80.7718, description: "디길리오야 다목적댐 타당성조사 및 실시설계", category: "Consulting", status: "준공", budget: 1750, client: "KOICA", year: 2013, startDate: "'13-03", endDate: "'15-09", number: 117},
+                {name: "필리핀", lat: 15.8789, lng: 120.5739, description: "할라우강 다목적사업", category: "Consulting", status: "준공", budget: 3200, client: "KOICA", year: 2013, startDate: "'13-02", endDate: "'17-06", number: 118},
+                {name: "인도", lat: 26.85, lng: 80.95, description: "우타프라데시주 수자원개보수사업", category: "Consulting", status: "준공", budget: 2650, client: "KOICA", year: 2013, startDate: "'13-10", endDate: "'16-12", number: 119},
+                {name: "미얀마", lat: 19.75, lng: 96.13, description: "농업기계화를 위한 경지정리사업 PMC용역", category: "Consulting", status: "준공", budget: 1580, client: "KOICA", year: 2013, startDate: "'13-11", endDate: "'16-08", number: 120},
+                {name: "탄자니아", lat: -6.1659, lng: 39.1992, description: "잔지바르 관개시설 구축사업", category: "Consulting", status: "준공", budget: 2900, client: "KOICA", year: 2014, startDate: "'14-03", endDate: "'17-12", number: 121},
+                {name: "인도네시아", lat: -6.5897, lng: 107.7516, description: "서부따룸수로 개보수사업 추가계약", category: "Consulting", status: "준공", budget: 1200, client: "KOICA", year: 2014, startDate: "'14-05", endDate: "'15-12", number: 122},
+                {name: "인도네시아", lat: -6.5897, lng: 107.7516, description: "찌따룸유역 수질개선 전략수립", category: "Consulting", status: "준공", budget: 890, client: "KOICA", year: 2014, startDate: "'14-07", endDate: "'15-09", number: 123},
+                {name: "인도네시아", lat: -6.4025, lng: 106.0784, description: "까리안-세르퐁 도수로 및 정수장 건설사업", category: "Consulting", status: "준공", budget: 3450, client: "KOICA", year: 2014, startDate: "'14-04", endDate: "'18-06", number: 124},
+                {name: "베트남", lat: 22.48, lng: 103.97, description: "농촌공동체 개발사업(라오까이성 행복프로그램)", category: "Consulting", status: "준공", budget: 1680, client: "KOICA", year: 2014, startDate: "'14-06", endDate: "'17-12", number: 125},
+                {name: "미얀마", lat: 21.9162, lng: 95.956, description: "농촌공동체 개발사업", category: "Consulting", status: "준공", budget: 2100, client: "KOICA", year: 2014, startDate: "'14-02", endDate: "'17-12", number: 126},
+                {name: "에티오피아", lat: 9.145, lng: 40.4897, description: "오로미아주 댐 및 관개수로건설 설계 및 시공감리 PMC용역", category: "Consulting", status: "준공", budget: 2800, client: "KOICA", year: 2014, startDate: "'14-08", endDate: "'18-03", number: 127},
+                {name: "말라위", lat: -15.79, lng: 35.22, description: "말라위 쉬레밸리 관개사업 기술타당성조사", category: "Consulting", status: "준공", budget: 950, client: "KOICA", year: 2015, startDate: "'15-03", endDate: "'16-08", number: 128},
+                {name: "베트남", lat: 10.03, lng: 105.78, description: "베트남 관개농업개선사업", category: "Consulting", status: "준공", budget: 2300, client: "KOICA", year: 2015, startDate: "'15-05", endDate: "'18-12", number: 129},
+                {name: "캄보디아", lat: 11.55, lng: 104.92, description: "캄보디아 메콩강지역 GMS 홍수가뭄 위험관리 및 경감사업", category: "Consulting", status: "준공", budget: 1750, client: "KOICA", year: 2015, startDate: "'15-07", endDate: "'18-06", number: 130},
+                {name: "태국", lat: 12.65, lng: 99.95, description: "쁘란부리 1공구 원격관측 물관리시스템 설치사업", category: "Consulting", status: "준공", budget: 1200, client: "KOICA", year: 2015, startDate: "'15-04", endDate: "'16-12", number: 131},
+                {name: "인도네시아", lat: -6.175110, lng: 106.865039, description: "인니 자카르타 수도권해안종합개발 컨설팅사업 심층기획조사", category: "Consulting", status: "준공", budget: 680, client: "KOICA", year: 2015, startDate: "'15-09", endDate: "'16-06", number: 132},
+                {name: "미얀마", lat: 21.9162, lng: 95.956, description: "FARM프로젝트 경지정리 기술지원 사업", category: "Consulting", status: "준공", budget: 890, client: "KOICA", year: 2015, startDate: "'15-06", endDate: "'17-03", number: 133},
+                {name: "필리핀", lat: 15.0794, lng: 120.6200, description: "필리핀 팜팡가 통합재난위험감축 및 기후변화대응사업", category: "Consulting", status: "준공", budget: 2100, client: "KOICA", year: 2016, startDate: "'16-03", endDate: "'19-12", number: 134},
+                {name: "필리핀", lat: 13.1633, lng: 123.7308, description: "필리핀 기후변화대응사업(비콜지구) 타당성조사", category: "Consulting", status: "준공", budget: 950, client: "KOICA", year: 2016, startDate: "'16-08", endDate: "'17-12", number: 135},
+                {name: "태국", lat: 12.65, lng: 99.95, description: "쁘란부리 2공구 원격관측 물관리시스템 설치사업", category: "Consulting", status: "준공", budget: 1350, client: "KOICA", year: 2016, startDate: "'16-04", endDate: "'17-12", number: 136},
+                {name: "인도네시아", lat: -6.175110, lng: 106.865039, description: "자카르타 대방조제 컨설팅사업(NCICD)", category: "Consulting", status: "준공", budget: 3800, client: "KOICA", year: 2016, startDate: "'16-05", endDate: "'20-06", number: 137},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 홍수피해 복구사업", category: "Consulting", status: "준공", budget: 1450, client: "KOICA", year: 2017, startDate: "'17-02", endDate: "'18-12", number: 138},
+                {name: "미얀마", lat: 21.9162, lng: 95.956, description: "북부관개기술 역량강화 사후관리", category: "Consulting", status: "준공", budget: 520, client: "KOICA", year: 2017, startDate: "'17-06", endDate: "'18-06", number: 139},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "홍수방어시설 개보수사업(설계)", category: "Consulting", status: "준공", budget: 780, client: "KOICA", year: 2017, startDate: "'17-04", endDate: "'18-09", number: 140},
+                {name: "우간다", lat: 1.3733, lng: 32.2903, description: "농촌종합개발사업 타당성조사", category: "Consulting", status: "준공", budget: 890, client: "KOICA", year: 2017, startDate: "'17-08", endDate: "'18-12", number: 141},
+                {name: "미얀마", lat: 21.9162, lng: 95.956, description: "농업개발지원사업(ADSP)", category: "Consulting", status: "준공", budget: 2100, client: "KOICA", year: 2017, startDate: "'17-03", endDate: "'20-12", number: 142},
+                {name: "말라위", lat: -15.79, lng: 35.22, description: "쉬레밸리 관개사업 실시설계(1단계)", category: "Consulting", status: "준공", budget: 1200, client: "KOICA", year: 2017, startDate: "'17-05", endDate: "'19-03", number: 143},
+                {name: "이란", lat: 31.32, lng: 48.68, description: "쿠제스탄주 스마트물관리 시스템(SWMS)개발 시범사업", category: "Consulting", status: "준공", budget: 1650, client: "KOICA", year: 2017, startDate: "'17-09", endDate: "'19-12", number: 144},
+                {name: "말라위", lat: -15.79, lng: 35.22, description: "쉬레밸리 관개사업 실시설계(2단계)", category: "Consulting", status: "준공", budget: 1350, client: "KOICA", year: 2017, startDate: "'17-11", endDate: "'19-06", number: 145},
+                {name: "케냐", lat: -1.2921, lng: 36.8219, description: "Athi강 유역 물환경 관리사업", category: "Consulting", status: "준공", budget: 1450, client: "KOICA", year: 2017, startDate: "'17-07", endDate: "'20-03", number: 146},
+                {name: "미얀마", lat: 16.87, lng: 94.87, description: "에야와디 델타지역 농업 및 관개개발 마스터플랜 수립 사업", category: "Consulting", status: "준공", budget: 1800, client: "KOICA", year: 2017, startDate: "'17-10", endDate: "'20-09", number: 147},
+                {name: "우즈베키스탄", lat: 41.2995, lng: 69.2401, description: "ICT기반의 수자원정보화 마스터플랜 수립", category: "Consulting", status: "준공", budget: 980, client: "KOICA", year: 2017, startDate: "'17-12", endDate: "'19-06", number: 148},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 홍수 긴급복구사업(2단계, 시공감리)", category: "Consulting", status: "준공", budget: 1100, client: "KOICA", year: 2018, startDate: "'18-02", endDate: "'19-12", number: 149},
+                {name: "말라위", lat: -13.254, lng: 34.301, description: "은카타베이/은코타코타지구 관개사업(AIYAP)", category: "Consulting", status: "시행중", budget: 2800, client: "KOICA", year: 2018, startDate: "'18-05", endDate: "'25-12", number: 150},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "홍수방어시설 개보수사업(시공감리)", category: "Consulting", status: "준공", budget: 890, client: "KOICA", year: 2018, startDate: "'18-08", endDate: "'20-06", number: 151},
+                {name: "인도네시아", lat: -6.175110, lng: 106.865039, description: "자카르타 홍수대응을 위한 배수관리시스템 구축사업", category: "Consulting", status: "준공", budget: 1450, client: "KOICA", year: 2018, startDate: "'18-03", endDate: "'20-12", number: 152},
+                {name: "우간다", lat: 0.347596, lng: 32.582520, description: "음폴로고마강유역 농업종합개발사업 타당성조사", category: "Consulting", status: "준공", budget: 1200, client: "KOICA", year: 2018, startDate: "'18-07", endDate: "'20-03", number: 153},
+                {name: "캄보디아", lat: 13.412, lng: 103.867, description: "반테민체이 관개개발 및 홍수조절사업", category: "Consulting", status: "시행중", budget: 3200, client: "KOICA", year: 2018, startDate: "'18-09", endDate: "'25-06", number: 154},
+                {name: "미얀마", lat: 21.9162, lng: 95.956, description: "스와댐복구 지원사업(ADSP 부속)", category: "Consulting", status: "준공", budget: 680, client: "KOICA", year: 2018, startDate: "'18-11", endDate: "'19-12", number: 155},
+                {name: "인도네시아", lat: -7.61, lng: 111.90, description: "Mrican 관개시스템 개발사업", category: "Consulting", status: "시행중", budget: 2900, client: "KOICA", year: 2019, startDate: "'19-03", endDate: "'25-12", number: 156},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "농촌 관개개발 프로그램(PRIDE)", category: "Consulting", status: "시행중", budget: 3800, client: "KOICA", year: 2019, startDate: "'19-05", endDate: "'26-03", number: 157},
+                {name: "미얀마", lat: 21.9162, lng: 95.956, description: "관개시스템 현대화사업(ISMU2)", category: "Consulting", status: "시행중", budget: 4200, client: "KOICA", year: 2020, startDate: "'20-01", endDate: "'26-12", number: 158},
+                {name: "말라위", lat: -15.79, lng: 35.22, description: "쉬레밸리 관개사업 설계 및 시공감리", category: "Consulting", status: "시행중", budget: 5100, client: "KOICA", year: 2020, startDate: "'20-06", endDate: "'27-12", number: 159},
+                {name: "에티오피아", lat: 9.145, lng: 40.4897, description: "지하수 관개 및 농촌개발 사업", category: "Consulting", status: "시행중", budget: 3200, client: "KOICA", year: 2021, startDate: "'21-02", endDate: "'26-06", number: 160},
+                {name: "인도네시아", lat: -7.61, lng: 111.90, description: "관개 현대화 사업 SIMURP COMPONENT C", category: "Consulting", status: "시행중", budget: 2800, client: "KOICA", year: 2021, startDate: "'21-07", endDate: "'25-12", number: 161},
+                {name: "인도네시아", lat: -7.61, lng: 111.90, description: "관개 현대화 사업 SIMURP COMPONENT A", category: "Consulting", status: "시행중", budget: 3500, client: "KOICA", year: 2022, startDate: "'22-01", endDate: "'26-12", number: 162},
+                {name: "인도네시아", lat: -6.69, lng: 107.64, description: "마뗑겡 다목적댐 건설사업", category: "Consulting", status: "시행중", budget: 4800, client: "KOICA", year: 2022, startDate: "'22-04", endDate: "'27-12", number: 163},
+                {name: "네팔", lat: 27.7172, lng: 85.3240, description: "수자원관리 정보화사업", category: "Consulting", status: "시행중", budget: 1800, client: "KOICA", year: 2022, startDate: "'22-08", endDate: "'25-12", number: 164},
+                {name: "인도네시아", lat: -6.4025, lng: 106.0784, description: "까리안 다목적댐 건설사업 2단계", category: "Consulting", status: "시행중", budget: 5200, client: "KOICA", year: 2023, startDate: "'23-02", endDate: "'28-12", number: 165},
+                {name: "탄자니아", lat: -6.1659, lng: 39.1992, description: "잔지바르 관개시설 건설사업 2단계", category: "Consulting", status: "시행중", budget: 3800, client: "KOICA", year: 2023, startDate: "'23-07", endDate: "'27-12", number: 166},
+                {name: "말라위", lat: -13.254, lng: 34.301, description: "은카타베이/은코타코타지구 관개사업(AIYAP) 1단계 추가", category: "Consulting", status: "시행중", budget: 1900, client: "KOICA", year: 2024, startDate: "'24-02", endDate: "'26-12", number: 167},
+                {name: "캄보디아", lat: 10.612, lng: 104.180, description: "바벨지구 관개개발 및 홍수피해저감사업", category: "Consulting", status: "시행중", budget: 3600, client: "KOICA", year: 2024, startDate: "'24-06", endDate: "'28-12", number: 168},
+                {name: "키리바시", lat: -3.3704, lng: -168.7340, description: "지속가능한 어업을 위한 수산커뮤니티 개발", category: "Consulting", status: "시행중", budget: 1200, client: "KOICA", year: 2025, startDate: "'25-01", endDate: "'27-12", number: 169},
+                {name: "필리핀", lat: 14.5995, lng: 120.9842, description: "필리핀 관개개발 차관사업 준비를 위한 타당성조사 Package-1", category: "Consulting", status: "제안중", budget: 2100, client: "KOICA", year: 2025, startDate: "'25-06", endDate: "'27-12", number: 170},
+                {name: "캄보디아", lat: 11.55, lng: 104.92, description: "캄보디아 동부 메콩델타 종합 수자원관리사업", category: "Consulting", status: "제안중", budget: 3800, client: "KOICA", year: 2025, startDate: "'25-03", endDate: "'28-12", number: 171},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 드왐바지 및 음웬리온도 관개시설 설계 검토 및 시공감리", category: "Consulting", status: "제안중", budget: 2200, client: "KOICA", year: 2025, startDate: "'25-09", endDate: "'28-06", number: 172},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 브완제 및 렘바니 관개시설 설계 검토 및 시공감리", category: "Consulting", status: "제안중", budget: 2500, client: "KOICA", year: 2025, startDate: "'25-08", endDate: "'28-12", number: 173},
+                {name: "캄보디아", lat: 11.55, lng: 104.92, description: "캄보디아 수자원 시설개선사업", category: "Consulting", status: "제안중", budget: 2800, client: "KOICA", year: 2025, startDate: "'25-07", endDate: "'28-06", number: 174},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 지역기후 복원사업", category: "Consulting", status: "제안중", budget: 3200, client: "KOICA", year: 2025, startDate: "'25-11", endDate: "'29-12", number: 175},
+                {name: "인도네시아", lat: -6.175110, lng: 106.865039, description: "인도네시아 경지정리 및 영농규모화 정책지원", category: "Consulting", status: "제안중", budget: 1800, client: "KOICA", year: 2025, startDate: "'25-05", endDate: "'27-12", number: 176},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 중규모관개사업", category: "Consulting", status: "시행중", budget: 2400, client: "KOICA", year: 2024, startDate: "'24-03", endDate: "'27-12", number: 177},
+                {name: "페루", lat: -12.0464, lng: -77.0428, description: "페루 G2G 관개농업 기술지원사업", category: "Consulting", status: "제안중", budget: 1800, client: "페루 농업부", year: 2025, startDate: "'25-01", endDate: "'27-12", number: 178}
+            ]
+        };
+
+        // 샘플 데이터는 이제 사용하지 않음 (실제 Excel 데이터만 사용)
+        const deprecatedSampleData = realExcelData;
+
+        // 사이드 패널 토글 함수 (모바일 문제 해결)
+        function togglePanel() {
+            const panel = document.getElementById('sidePanel');
+            const isHidden = panel.classList.contains('hidden');
+            
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                panel.classList.add('visible');
+            } else {
+                panel.classList.add('hidden');
+                panel.classList.remove('visible');
+            }
+            
+            console.log('패널 토글:', isHidden ? '열림' : '닫힘');
+        }
+
+        // 내 위치로 이동 함수
+        function goToMyLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        map.setView([lat, lng], 10);
+                        
+                        // 임시 마커 표시
+                        const myLocationMarker = L.marker([lat, lng])
+                            .addTo(map)
+                            .bindPopup('📍 내 위치')
+                            .openPopup();
+                        
+                        // 5초 후 마커 제거
+                        setTimeout(() => {
+                            map.removeLayer(myLocationMarker);
+                        }, 5000);
+                    },
+                    (error) => {
+                        alert('위치 정보를 가져올 수 없습니다. 위치 서비스를 활성화해주세요.');
+                    }
+                );
+            } else {
+                alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+            }
+        }
+
+        // 지도 초기화
+        function initMap() {
+            map = L.map('map', {
+                center: [20, 0],
+                zoom: 2,
+                zoomControl: true,
+                attributionControl: true,
+                worldCopyJump: false,  // 지도가 연속적으로 표시되도록 설정
+                maxBounds: [[-90, -Infinity], [90, Infinity]], // 위도는 제한하되 경도는 무제한
+                maxBoundsViscosity: 0.0
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18,
+                tileSize: 256,
+                zoomOffset: 0,
+                noWrap: false  // 타일이 연속적으로 반복되도록 설정
+            }).addTo(map);
+
+            markersLayer = L.layerGroup().addTo(map);
+        }
+
+        // 체크박스 필터 초기화
+        function initializeFilters() {
+            initProjectTypeFilters();
+            initCountryFilters();
+            initYearFilters();
+            initStatusFilters();
+            applyFilters();
+        }
+
+        function initProjectTypeFilters() {
+            const container = document.getElementById('projectTypeFilters');
+            const types = [...new Set(allProjects.map(p => p.category))];
+            
+            container.innerHTML = '';
+            types.forEach(type => {
+                const count = allProjects.filter(p => p.category === type).length;
+                const item = createCheckboxItem(type, count, 'projectType');
+                container.appendChild(item);
+            });
+        }
+
+        function initCountryFilters() {
+            const container = document.getElementById('countryFilters');
+            const countries = [...new Set(allProjects.map(p => p.name))].sort();
+            
+            container.innerHTML = '';
+            countries.forEach(country => {
+                const count = allProjects.filter(p => p.name === country).length;
+                const item = createCheckboxItem(country, count, 'country');
+                container.appendChild(item);
+            });
+        }
+
+        function initYearFilters() {
+            const container = document.getElementById('yearFilters');
+            const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
+            const years = [...new Set(consultingProjects.map(p => p.year).filter(y => y))].sort((a, b) => b - a); // 내림차순 정렬
+            
+            container.innerHTML = '';
+            years.forEach(year => {
+                const count = consultingProjects.filter(p => p.year === year).length;
+                const item = createCheckboxItem(year.toString(), count, 'year');
+                container.appendChild(item);
+            });
+        }
+
+        function initStatusFilters() {
+            const container = document.getElementById('statusFilters');
+            const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
+            const statuses = [...new Set(consultingProjects.map(p => p.status).filter(s => s))]; // 비어있지 않은 상태만
+            
+            container.innerHTML = '';
+            statuses.forEach(status => {
+                const count = consultingProjects.filter(p => p.status === status).length;
+                const item = createCheckboxItem(status, count, 'status');
+                container.appendChild(item);
+            });
+        }
+
+        function createCheckboxItem(value, count, type) {
+            const item = document.createElement('div');
+            item.className = 'checkbox-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${type}_${value.toString().replace(/\s+/g, '_')}`; // ID에 공백 제거
+            checkbox.value = value;
+            checkbox.onchange = () => updateFilter(type, value, checkbox.checked);
+            
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.innerHTML = `
+                <span>${value}</span>
+                <span class="count">${count}</span>
+            `;
+            
+            item.appendChild(checkbox);
+            item.appendChild(label);
+            
+            return item;
+        }
+
+        function updateFilter(type, value, checked) {
+            const filterMap = {
+                'projectType': 'projectTypes',
+                'country': 'countries',
+                'year': 'years',
+                'status': 'statuses'
+            };
+            
+            const filterSet = activeFilters[filterMap[type]];
+            const val = type === 'year' ? value.toString() : value; // year는 문자열로 통일
+            
+            if (checked) {
+                filterSet.add(val);
+            } else {
+                filterSet.delete(val);
+            }
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
             filteredProjects = allProjects.filter(project => {
                 const projectTypeMatch = activeFilters.projectTypes.size === 0 || activeFilters.projectTypes.has(project.category);
                 const countryMatch = activeFilters.countries.size === 0 || activeFilters.countries.has(project.name);
@@ -31,5 +1012,596 @@ function applyFilters() {
             updateStats();
             updateLegend();
             updateFilterResultText();
-            updateFilterCounts();
+            updateFilterCounts(); // 필터 카운트 업데이트 함수 호출
         }
+
+
+        function updateFilterCounts() {
+            function updateCountForFilterGroup(filterType, allItemsSelector, dataProperty) {
+                const items = document.querySelectorAll(`#${allItemsSelector} .checkbox-item`);
+                items.forEach(item => {
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    const value = checkbox.value;
+                    let count = 0;
+
+                    // 현재 활성화된 다른 필터들을 고려하여 카운트 계산
+                    count = allProjects.filter(project => {
+                        // 현재 필터 그룹의 값과 일치하는지 확인
+                        let currentFilterMatch = false;
+                        if (dataProperty === 'category') currentFilterMatch = project.category === value;
+                        else if (dataProperty === 'name') currentFilterMatch = project.name === value;
+                        else if (dataProperty === 'year') currentFilterMatch = project.year?.toString() === value;
+                        else if (dataProperty === 'status') currentFilterMatch = project.status === value;
+
+                        if (!currentFilterMatch) return false;
+
+                        // 다른 필터 그룹들의 조건도 만족하는지 확인
+                        if (filterType !== 'projectTypes' && activeFilters.projectTypes.size > 0 && !activeFilters.projectTypes.has(project.category)) return false;
+                        if (filterType !== 'countries' && activeFilters.countries.size > 0 && !activeFilters.countries.has(project.name)) return false;
+                        
+                        if (project.category === 'ODA') {
+                            if (filterType !== 'years' && activeFilters.years.size > 0) return false; // ODA는 연도 필터 영향 받으면 안됨 (카운트 계산시)
+                            if (filterType !== 'statuses' && activeFilters.statuses.size > 0) return false; // ODA는 상태 필터 영향 받으면 안됨 (카운트 계산시)
+                        } else if (project.category === 'Consulting') {
+                            if (filterType !== 'years' && activeFilters.years.size > 0 && !activeFilters.years.has(project.year?.toString())) return false;
+                            if (filterType !== 'statuses' && activeFilters.statuses.size > 0 && !activeFilters.statuses.has(project.status)) return false;
+                        }
+                        return true;
+                    }).length;
+                    
+                    const countSpan = item.querySelector('.count');
+                    countSpan.textContent = count;
+                });
+            }
+
+            updateCountForFilterGroup('projectTypes', 'projectTypeFilters', 'category');
+            updateCountForFilterGroup('countries', 'countryFilters', 'name');
+            updateCountForFilterGroup('years', 'yearFilters', 'year');
+            updateCountForFilterGroup('statuses', 'statusFilters', 'status');
+        }
+
+
+        function resetAllFilters() {
+            // 모든 체크박스 해제
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // 활성 필터 초기화
+            activeFilters = {
+                projectTypes: new Set(),
+                countries: new Set(),
+                years: new Set(),
+                statuses: new Set()
+            };
+            
+            applyFilters();
+        }
+
+        function updateMapMarkers() {
+            markersLayer.clearLayers();
+            
+            filteredProjects.forEach(project => {
+                const marker = createMarker(project);
+                markersLayer.addLayer(marker);
+            });
+
+            // 지도 범위를 필터링된 마커에 맞춤
+            if (filteredProjects.length > 0) {
+                const group = new L.featureGroup(markersLayer.getLayers().filter(layer => layer.options.icon)); // 실제 마커만 포함
+                if (group.getLayers().length > 0) { // 마커가 하나라도 있을 경우에만 fitBounds
+                    map.fitBounds(group.getBounds().pad(0.2)); // 약간의 패딩 추가
+                }
+            } else {
+                // 필터링된 프로젝트가 없으면 기본 뷰로 설정
+                map.setView([20, 0], 2);
+            }
+            
+            // 마커 정보 표시 (툴팁 대신 별도 방법)
+            addCountryLabels();
+        }
+
+        // 국가 라벨을 별도로 표시하는 안전한 방법
+        function addCountryLabels() {
+            // 기존 라벨 제거 (중복 방지)
+            markersLayer.eachLayer(layer => {
+                if (layer.options && layer.options.icon && layer.options.icon.options.className === 'country-label-container') {
+                    markersLayer.removeLayer(layer);
+                }
+            });
+
+            // 국가별로 그룹화
+            const countryGroups = {};
+            filteredProjects.forEach(project => {
+                if (!countryGroups[project.name]) {
+                    countryGroups[project.name] = [];
+                }
+                countryGroups[project.name].push(project);
+            });
+
+            // 각 국가별로 하나의 라벨 추가
+            Object.keys(countryGroups).forEach(countryName => {
+                const projectsInCountry = countryGroups[countryName];
+                if (projectsInCountry.length === 0) return; // 해당 국가에 프로젝트가 없으면 라벨 추가 안함
+                
+                // 해당 국가의 첫 번째 프로젝트 좌표를 사용 (또는 평균 좌표 계산 가능)
+                const firstProject = projectsInCountry[0];
+                
+                // 라벨을 지도에 추가 (마커와 독립적)
+                const label = L.divIcon({
+                    html: `<div class="country-label">${countryName} (${projectsInCountry.length})</div>`, // 프로젝트 개수 표시
+                    className: 'country-label-container', // CSS에서 .country-label 스타일 적용
+                    iconSize: L.point(100, 20), // 충분한 크기 확보
+                    iconAnchor: [50, 10] // 라벨이 마커 위에 오도록 조정
+                });
+                
+                const labelMarker = L.marker([firstProject.lat, firstProject.lng], {
+                    icon: label,
+                    interactive: false, // 상호작용 비활성화
+                    zIndexOffset: 500 // 다른 마커보다 위에 표시되도록 조정 (필요시)
+                });
+                
+                markersLayer.addLayer(labelMarker);
+            });
+        }
+
+        function createMarker(project) {
+            const borderColor = projectColors[project.category] || '#666666';
+            const countryCode = countryCodeMap[project.name.trim()] || 'un'; // 국가명 앞뒤 공백 제거
+            const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
+            
+            // 국가명 첫글자 추출 (한글 처리)
+            const countryInitial = project.name.charAt(0);
+            
+            // 마커 HTML을 단순화하고 안정화
+            const iconHtml = `
+                <div class="project-marker custom-marker"
+                     data-country="${project.name}"
+                     data-category="${project.category}"
+                     style="
+                        width: 24px;
+                        height: 24px;
+                        border: 3px solid ${borderColor};
+                        border-radius: 50%;
+                        background-image: url('${flagUrl}');
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                        background-color: ${borderColor}; /* 국기 로드 실패 시 배경색 */
+                        box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 10px;
+                        font-weight: bold;
+                        font-family: Arial, sans-serif;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+                        pointer-events: auto; /* 마커 클릭 가능하도록 */
+                     ">${countryCode === 'un' ? countryInitial : ''}</div> 
+            `;
+
+
+            const customIcon = L.divIcon({
+                html: iconHtml,
+                className: 'custom-div-icon', // CSS에서 .custom-div-icon 스타일 적용
+                iconSize: [30, 30], // 아이콘 크기 (border 포함)
+                iconAnchor: [15, 15], // 아이콘 기준점
+                popupAnchor: [0, -15] // 팝업 위치
+            });
+
+            const marker = L.marker([project.lat, project.lng], {
+                icon: customIcon,
+                riseOnHover: true,
+                riseOffset: 250
+            });
+
+            // 클릭시 상세 정보 표시 (툴팁 대신 팝업만 사용)
+            const popupContent = createPopupContent(project);
+            marker.bindPopup(popupContent, {
+                maxWidth: 400,
+                minWidth: 280,
+                closeButton: true,
+                autoClose: false, // 다른 팝업 열릴 때 닫히지 않도록
+                keepInView: true // 팝업이 화면 안에 있도록 자동 스크롤
+            });
+
+            // 마커에 국가 정보 저장
+            marker._projectData = project;
+
+            return marker;
+        }
+
+        function createPopupContent(project) {
+            const countryCode = countryCodeMap[project.name.trim()] || 'un'; // 국가명 앞뒤 공백 제거
+            const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
+            const borderColor = projectColors[project.category] || '#666666';
+            
+            let content = `<div class="popup-content">`;
+            content += `<div class="popup-header" style="display: flex; align-items: center; margin-bottom: 10px;">`;
+            content += `<img src="${flagUrl}" alt="${project.name} 국기" style="width: 20px; height: 14px; margin-right: 8px; border: 1px solid ${borderColor}; border-radius: 2px;" onerror="this.style.display='none'">`;
+            content += `<div class="popup-title">${project.name}</div>`;
+            content += `</div>`;
+            content += `<div class="popup-section">`;
+            content += `<span class="popup-label">사업명:</span>`;
+            content += `<span class="popup-value">${project.description}</span>`;
+            content += `</div>`;
+
+            if (project.category === 'ODA') {
+                if (project.type) {
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">사업형태:</span>`;
+                    content += `<span class="popup-value">${project.type}</span>`;
+                    content += `</div>`;
+                }
+                if (project.period) {
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">사업기간:</span>`;
+                    content += `<span class="popup-value">${project.period}</span>`;
+                    content += `</div>`;
+                }
+                if (project.budget > 0) {
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">예산:</span>`;
+                    content += `<span class="popup-value budget">${project.budget.toLocaleString()}백만원</span>`;
+                    content += `</div>`;
+                }
+                if (project.continent) {
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">대륙:</span>`;
+                    content += `<span class="popup-value">${project.continent}</span>`;
+                    content += `</div>`;
+                }
+            } else if (project.category === 'Consulting') {
+                if (project.status) {
+                    let statusClass = 'status-complete';
+                    if (project.status === '시행중') {
+                        statusClass = 'status-progress';
+                    } else if (project.status === '제안중') {
+                        statusClass = 'status-proposal';
+                    }
+                    
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">상태:</span>`;
+                    content += `<span class="status-badge ${statusClass}">${project.status}</span>`;
+                    content += `</div>`;
+                }
+                if (project.startDate && project.endDate) {
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">기간:</span>`;
+                    content += `<span class="popup-value">${project.startDate} ~ ${project.endDate}</span>`;
+                    content += `</div>`;
+                }
+                if (project.budget > 0) {
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">용역비:</span>`;
+                    content += `<span class="popup-value budget">${project.budget.toLocaleString()}백만원</span>`;
+                    content += `</div>`;
+                }
+                if (project.client) {
+                    content += `<div class="popup-section">`;
+                    content += `<span class="popup-label">발주처:</span>`;
+                    content += `<span class="popup-value">${project.client}</span>`;
+                    content += `</div>`;
+                }
+                if (project.year) {
+                    content += `<div class="popup-section" style="font-size: 12px; color: #888;">`;
+                    content += `<span class="popup-label">수주년도:</span>`;
+                    content += `<span class="popup-value">${project.year}</span>`;
+                    content += `</div>`;
+                }
+            }
+
+            content += `</div>`;
+            return content;
+        }
+
+        function updateStats() {
+            const totalProjects = filteredProjects.length;
+            const odaProjects = filteredProjects.filter(p => p.category === 'ODA').length;
+            const consultingProjects = filteredProjects.filter(p => p.category === 'Consulting').length;
+            const uniqueCountries = new Set(filteredProjects.map(p => p.name)).size;
+
+            document.getElementById('total-projects').textContent = totalProjects;
+            document.getElementById('oda-projects').textContent = odaProjects;
+            document.getElementById('consulting-projects').textContent = consultingProjects;
+            document.getElementById('countries-count').textContent = uniqueCountries;
+        }
+
+        function updateLegend() {
+            const legendContent = document.getElementById('legend-content');
+            const projectTypes = {};
+            
+            filteredProjects.forEach(project => {
+                if (!projectTypes[project.category]) {
+                    projectTypes[project.category] = 0;
+                }
+                projectTypes[project.category]++;
+            });
+
+            let legendHTML = '';
+            Object.keys(projectTypes).sort().forEach(type => { // 타입별로 정렬하여 표시
+                const color = projectColors[type] || '#666666';
+                const count = projectTypes[type];
+                legendHTML += `
+                    <div class="legend-item">
+                        <div class="legend-marker" style="
+                            border-color: ${color};
+                            background-color: ${color}; /* 단색으로 변경 */
+                        "></div>
+                        <span class="legend-text">${type}</span>
+                        <span class="legend-count">${count}</span>
+                    </div>
+                `;
+            });
+
+            legendContent.innerHTML = legendHTML;
+        }
+
+        function updateFilterResultText() {
+            const resultText = document.getElementById('filterResultText');
+            const total = allProjects.length;
+            const filtered = filteredProjects.length;
+            
+            if (filtered === total && activeFilters.projectTypes.size === 0 && activeFilters.countries.size === 0 && activeFilters.years.size === 0 && activeFilters.statuses.size === 0) {
+                resultText.textContent = `전체 ${total}개 프로젝트 표시 중`;
+            } else {
+                resultText.textContent = `${total}개 중 ${filtered}개 프로젝트 표시 중`;
+            }
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Excel 파일 읽기 (웹서버 환경용 - 이 코드는 Electron 환경에서는 다르게 처리될 수 있음)
+        async function readExcelFile(filename) {
+            try {
+                const response = await fetch(filename); // 로컬 파일 시스템 접근시 fetch는 적합하지 않을 수 있음
+                if (!response.ok) {
+                    throw new Error(`파일을 찾을 수 없습니다: ${filename}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
+                return workbook;
+            } catch (error) {
+                console.warn(`[Fetch] 파일 읽기 실패 (대체 데이터 사용 예정): ${filename}`, error);
+                return null; // 실패 시 null 반환
+            }
+        }
+
+        // ODA 데이터 처리 (실제 Excel 파일 구조 반영)
+        function processODAData(workbook) {
+            const projects = [];
+            
+            // "ODA 양자계속(29개 지구)" 시트 사용
+            if (workbook.Sheets["ODA 양자계속(29개 지구)"]) {
+                const worksheet = workbook.Sheets["ODA 양자계속(29개 지구)"];
+                const data = XLSX.utils.sheet_to_json(worksheet);
+                
+                data.forEach(row => {
+                    const lat = parseFloat(row['Y']); // Y가 위도, 숫자로 변환
+                    const lng = parseFloat(row['X']); // X가 경도, 숫자로 변환
+                    const country = row['국가별']?.trim(); // 국가명 앞뒤 공백 제거
+                    const projectName = row['₩']; // ₩ 컬럼이 사업명
+                    
+                    // 유효한 좌표와 데이터가 있는 경우에만 추가
+                    if (!isNaN(lat) && !isNaN(lng) && country && projectName && lat !== 0 && lng !== 0) {
+                        projects.push({
+                            name: country,
+                            lat: lat,
+                            lng: lng,
+                            description: projectName,
+                            category: 'ODA',
+                            projectDetails: row['사업 내용'] || '',
+                            period: row['사업기간'] || '',
+                            budget: parseFloat(row['총예산(백만원)']) || 0,
+                            continent: row['대륙별'] || '',
+                            type: row['사업형태'] || '',
+                            number: row['번호'] || ''
+                        });
+                    }
+                });
+            }
+            
+            return projects;
+        }
+
+        // Consulting 데이터 처리 (실제 Excel 파일 구조 반영)
+        function processConsultingData(workbook) {
+            const projects = [];
+            
+            // 첫 번째 시트 사용
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(worksheet);
+            
+            data.forEach(row => {
+                const lat = parseFloat(row['Y']); // 숫자로 변환
+                const lng = parseFloat(row['X']); // 숫자로 변환
+                const country = row['국가별']?.trim(); // 국가명 앞뒤 공백 제거
+                const projectName = row['국문사업명'];
+                
+                // 유효한 좌표와 데이터가 있는 경우에만 추가
+                if (!isNaN(lat) && !isNaN(lng) && country && projectName && lat !== 0 && lng !== 0) {
+                    projects.push({
+                        name: country,
+                        lat: lat,
+                        lng: lng,
+                        description: projectName,
+                        category: 'Consulting',
+                        projectType: row['사업형태'] || '',
+                        status: row['진행여부'] || '',
+                        startDate: row['착수일'] || '',
+                        endDate: row['준공일'] || '',
+                        budget: parseFloat(row['용역비(공사)(백만원)']) || 0,
+                        client: row['발주처'] || '',
+                        year: parseInt(row['수주년도']) || null, // 수주년도는 정수로, 없으면 null
+                        englishName: row['영문사업명'] || '',
+                        number: row['번호'] || ''
+                    });
+                }
+            });
+            
+            return projects;
+        }
+
+        // 메인 함수 (실제 Excel 데이터만 사용)
+        async function loadData() {
+            try {
+                console.log('🔥 데이터 로드 시작...');
+                allProjects = []; // 초기화
+                
+                let excelLoaded = false;
+                
+                // Electron 환경에서는 window.fs 사용 가능성 확인
+                if (window.fs && window.fs.readFile) { // window.fs가 정의되어 있고 readFile 함수가 있는지 확인
+                    try {
+                        console.log('📁 Electron 환경에서 Excel 파일 읽기 시도...');
+                        const odaDataBuffer = await window.fs.readFile('global ODA.xlsx');
+                        const odaWorkbook = XLSX.read(odaDataBuffer);
+                        const odaProjectsFromFile = processODAData(odaWorkbook);
+                        
+                        const consultingDataBuffer = await window.fs.readFile('global consulting.xlsx');
+                        const consultingWorkbook = XLSX.read(consultingDataBuffer);
+                        const consultingProjectsFromFile = processConsultingData(consultingWorkbook);
+                        
+                        if (odaProjectsFromFile.length > 0 || consultingProjectsFromFile.length > 0) {
+                            allProjects.push(...odaProjectsFromFile);
+                            allProjects.push(...consultingProjectsFromFile);
+                            excelLoaded = true;
+                            console.log(`✅ Electron Excel 파일 로드 성공! ODA: ${odaProjectsFromFile.length}개, 컨설팅: ${consultingProjectsFromFile.length}개`);
+                            showDataSourceNotification(`Electron Excel 데이터 (${allProjects.length}개 프로젝트)`, 'success');
+                        }
+                    } catch (electronError) {
+                        console.warn('⚠️ Electron 환경 Excel 파일 로드 실패:', electronError.message);
+                    }
+                }
+
+                // Electron 파일 로드 실패 또는 fetch 시도 (웹서버 환경)
+                if (!excelLoaded) {
+                    console.log('🌐 웹 환경에서 fetch로 Excel 파일 읽기 시도...');
+                    const odaWorkbook = await readExcelFile('global ODA.xlsx');
+                    if (odaWorkbook) {
+                        const odaProjectsFromFile = processODAData(odaWorkbook);
+                        if (odaProjectsFromFile.length > 0) allProjects.push(...odaProjectsFromFile);
+                    }
+                    
+                    const consultingWorkbook = await readExcelFile('global consulting.xlsx');
+                    if (consultingWorkbook) {
+                        const consultingProjectsFromFile = processConsultingData(consultingWorkbook);
+                        if (consultingProjectsFromFile.length > 0) allProjects.push(...consultingProjectsFromFile);
+                    }
+
+                    if (allProjects.length > 0) {
+                        excelLoaded = true;
+                        console.log(`✅ Fetch Excel 파일 로드 성공! 총: ${allProjects.length}개`);
+                        showDataSourceNotification(`Fetch Excel 데이터 (${allProjects.length}개 프로젝트)`, 'success');
+                    }
+                }
+                
+                // 모든 Excel 로드 시도 실패시 실제 하드코딩된 Excel 데이터 사용
+                if (!excelLoaded) {
+                    console.log('📊 Excel 로드 실패. 하드코딩된 실제 Excel 데이터를 사용합니다.');
+                    console.log(`📝 ODA 프로젝트: ${realExcelData.oda.length}개`);
+                    console.log(`🏗️ 컨설팅 프로젝트: ${realExcelData.consulting.length}개`);
+                    
+                    allProjects.push(...realExcelData.oda);
+                    allProjects.push(...realExcelData.consulting);
+                    
+                    showDataSourceNotification(`하드코딩 데이터 (${allProjects.length}개 프로젝트)`, 'warning');
+                }
+                
+                console.log(`🎉 총 ${allProjects.length}개 프로젝트 로드 완료!`);
+                console.log(`📈 ODA: ${allProjects.filter(p => p.category === 'ODA').length}개`);
+                console.log(`🏗️ 컨설팅: ${allProjects.filter(p => p.category === 'Consulting').length}개`);
+                console.log(`🌍 참여국가: ${new Set(allProjects.map(p => p.name)).size}개국`);
+                
+                // 참여 국가 목록 출력 (중복 제거 및 정렬)
+                const countries = [...new Set(allProjects.map(p => p.name.trim()))].sort();
+                console.log(`🏳️ 참여국가 목록: ${countries.join(', ')}`);
+                
+                // 필터 시스템 초기화
+                initializeFilters();
+                
+            } catch (error) {
+                console.error('❌ 심각한 오류 발생:', error);
+                
+                // 최후 방법으로 실제 Excel 데이터 사용
+                if (allProjects.length === 0) { // 데이터가 전혀 로드되지 않은 경우
+                    console.log('🆘 비상 복구: 하드코딩된 실제 Excel 데이터 로드');
+                    allProjects.push(...realExcelData.oda);
+                    allProjects.push(...realExcelData.consulting);
+                    initializeFilters(); // 필터 재초기화
+                    showDataSourceNotification('하드코딩 데이터 (비상 로드)', 'error');
+                }
+            } finally {
+                hideLoading();
+            }
+        }
+
+
+        // 데이터 소스 알림 표시 (업데이트된 버전)
+        function showDataSourceNotification(message, type) {
+            setTimeout(() => {
+                const alertDiv = document.createElement('div');
+                const colors = {
+                    'success': { bg: '#d4edda', border: '#c3e6cb', text: '#155724', icon: '✅' },
+                    'warning': { bg: '#fff3cd', border: '#ffeaa7', text: '#856404', icon: '⚠️' },
+                    'error': { bg: '#f8d7da', border: '#f5c6cb', text: '#721c24', icon: '❌' }
+                };
+                const color = colors[type] || colors.success;
+                
+                alertDiv.style.cssText = `
+                    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                    background: ${color.bg}; border: 2px solid ${color.border}; color: ${color.text};
+                    padding: 15px 25px; border-radius: 10px; z-index: 2000;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 14px;
+                    max-width: 90%; text-align: center; font-weight: 600;
+                    backdrop-filter: blur(5px);
+                `;
+                
+                alertDiv.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span style="font-size: 18px;">${color.icon}</span>
+                        <div>
+                            <div style="font-weight: 700; margin-bottom: 2px;">${message}</div>
+                            <div style="font-size: 12px; opacity: 0.8;">데이터 소스</div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(alertDiv);
+                
+                // 5초 후 자동 제거
+                setTimeout(() => {
+                    alertDiv.style.transition = 'opacity 0.5s ease';
+                    alertDiv.style.opacity = '0';
+                    setTimeout(() => alertDiv.remove(), 500);
+                }, 4000);
+            }, 1500);
+        }
+
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadData();
+        });
+
+        // 애니메이션 키프레임 추가 (범례에는 적용하지 않음)
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes flagAnimation { /* 이 애니메이션은 현재 사용되지 않음 */
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+            .marker-hover { /* 마커 호버 시 스타일 (예시) */
+                /* transform: scale(1.2); */ /* createMarker 함수 내 CSS로 처리 */
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
