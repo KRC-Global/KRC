@@ -345,244 +345,73 @@
         }
         
         /* 팝업 스타일 */
-        .rich-popup-content {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.5;
+        .popup-content {
+            max-width: 300px;
         }
         
-        .popup-header {
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .popup-header-top {
-            display: flex;
-            align-items: center;
+        .popup-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
             margin-bottom: 8px;
         }
         
-        .popup-flag {
-            width: 28px;
-            height: 20px;
-            border-radius: 3px;
-            margin-right: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            border: 1px solid #ddd;
+        .popup-header {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
         }
         
-        .popup-title-section {
-            flex: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .popup-country {
-            font-size: 18px;
-            font-weight: 700;
-            color: #2c3e50;
-            margin: 0;
-        }
-        
-        .popup-category {
-            background: #3498db;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .popup-project-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #34495e;
-            margin: 0;
-            line-height: 1.4;
-        }
-        
-        .popup-body {
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        
-        .popup-info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #f5f5f5;
-        }
-        
-        .popup-info-row:last-child {
-            border-bottom: none;
+        .popup-section {
+            margin: 8px 0;
         }
         
         .popup-label {
             font-weight: 600;
-            color: #555;
-            font-size: 13px;
-            min-width: 100px;
-            margin-right: 10px;
+            color: #34495e;
         }
         
         .popup-value {
             color: #2c3e50;
-            font-size: 13px;
-            text-align: right;
-            flex: 1;
+            margin-left: 5px;
         }
         
-        .popup-value.budget {
-            color: #e74c3c;
-            font-weight: 600;
-        }
-        
-        .popup-value.coordinates {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            color: #7f8c8d;
-        }
-        
-        .popup-details {
-            margin: 15px 0;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border-left: 4px solid #3498db;
-        }
-        
-        .popup-details .popup-label {
-            display: block;
-            margin-bottom: 8px;
-            color: #34495e;
-            font-weight: 600;
-        }
-        
-        .popup-details-content {
-            font-size: 12px;
-            line-height: 1.6;
-            color: #555;
+        .project-details {
             max-height: 100px;
             overflow-y: auto;
-        }
-        
-        .popup-details-content.english-name {
-            font-style: italic;
-            color: #7f8c8d;
-        }
-        
-        .popup-location {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            padding-top: 12px;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .popup-footer {
-            text-align: center;
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid #f0f0f0;
-        }
-        
-        .popup-footer small {
-            color: #95a5a6;
-            font-size: 11px;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.4;
         }
         
         .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
+            display: inline-block;
+            padding: 2px 8px;
             border-radius: 12px;
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         
         .status-complete {
             background: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
         }
         
         .status-progress {
             background: #fff3cd;
             color: #856404;
-            border: 1px solid #ffeaa7;
         }
         
         .status-proposal {
             background: #cce5ff;
             color: #004085;
-            border: 1px solid #b3d7ff;
         }
         
-        /* 팝업 스크롤바 스타일 */
-        .popup-body::-webkit-scrollbar,
-        .popup-details-content::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .popup-body::-webkit-scrollbar-track,
-        .popup-details-content::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-        
-        .popup-body::-webkit-scrollbar-thumb,
-        .popup-details-content::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-        
-        .popup-body::-webkit-scrollbar-thumb:hover,
-        .popup-details-content::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-        
-        /* Leaflet 팝업 커스텀 스타일 */
-        .leaflet-popup-content-wrapper {
-            border-radius: 8px !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
-            border: 1px solid #e0e0e0 !important;
-        }
-        
-        .leaflet-popup-content {
-            margin: 0 !important;
-            padding: 0 !important;
-            font-size: 14px !important;
-            line-height: 1.5 !important;
-        }
-        
-        .leaflet-popup-tip {
-            background: white !important;
-            border: 1px solid #e0e0e0 !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        }
-        
-        .leaflet-popup-close-button {
-            color: #999 !important;
-            font-size: 18px !important;
-            padding: 8px !important;
-            width: auto !important;
-            height: auto !important;
-            transition: color 0.2s ease !important;
-        }
-        
-        .leaflet-popup-close-button:hover {
-            color: #e74c3c !important;
-            background-color: #f8f9fa !important;
-            border-radius: 50% !important;
+        .budget {
+            font-weight: 600;
+            color: #e74c3c;
         }
         
         /* 모바일 반응형 (패널 토글 문제 해결) */
@@ -985,18 +814,8 @@
             ]
         };
 
-        // 기존 하드코딩 데이터는 백업용으로 유지
-        const backupSampleData = {
-            oda: [
-                {name: "베트남", lat: 13.93788, lng: 107.84167, description: "베트남 무병씨감자 생산 및 보급시스템 구축사업", category: "ODA", period: "'20-'25", budget: 5365, continent: "아시아", type: "양자무상"},
-                {name: "라오스", lat: 18.83333, lng: 105.11667, description: "라오스 농촌지역 통합개발사업(2차)", category: "ODA", period: "'22-'26", budget: 6800, continent: "아시아", type: "양자무상"},
-                {name: "캄보디아", lat: 13.73333, lng: 105.48333, description: "캄보디아 농업생산성 향상 및 농촌종합개발사업", category: "ODA", period: "'20-'25", budget: 8500, continent: "아시아", type: "양자무상"}
-            ],
-            consulting: [
-                {name: "라오스", lat: 18.483938, lng: 102.566812, description: "힌헙군 관개용댐 및 수로건설사업", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, startDate: "'10-06", endDate: "'12-12"},
-                {name: "앙골라", lat: -11.244563, lng: 13.972938, description: "앙골라 농업현대화 사업(2단계)", category: "Consulting", status: "준공", budget: 3049, client: "앙골라 농림부", year: 2010, startDate: "'10-09", endDate: "'13-09"}
-            ]
-        };
+        // 샘플 데이터는 이제 사용하지 않음 (실제 Excel 데이터만 사용)
+        const deprecatedSampleData = realExcelData;
 
         // 사이드 패널 토글 함수 (모바일 문제 해결)
         function togglePanel() {
@@ -1064,25 +883,6 @@
             }).addTo(map);
 
             markersLayer = L.layerGroup().addTo(map);
-            
-            // 지도 클릭시 팝업 닫기 (마커 클릭과 구별)
-            map.on('click', function(e) {
-                // 마커가 아닌 지도 영역 클릭시에만 팝업 닫기
-                if (!e.originalEvent.defaultPrevented) {
-                    map.closePopup();
-                }
-            });
-            
-            // 팝업 열림/닫힘 이벤트 로깅
-            map.on('popupopen', function(e) {
-                console.log('✅ 팝업 열림');
-            });
-            
-            map.on('popupclose', function(e) {
-                console.log('❌ 팝업 닫힘');
-            });
-            
-            console.log('🗺️ 지도 초기화 완료');
         }
 
         // 체크박스 필터 초기화
@@ -1290,40 +1090,19 @@
         }
 
         function updateMapMarkers() {
-            // 기존 마커들을 안전하게 제거
-            if (markersLayer) {
-                markersLayer.clearLayers();
-            }
+            markersLayer.clearLayers();
             
-            console.log(`🗺️ ${filteredProjects.length}개 마커 생성 중...`);
-            
-            filteredProjects.forEach((project, index) => {
-                try {
-                    const marker = createMarker(project);
-                    markersLayer.addLayer(marker);
-                    
-                    // 마커 생성 로그 (처음 5개만)
-                    if (index < 5) {
-                        console.log(`   ✓ ${project.name} - ${project.description.substring(0, 30)}...`);
-                    }
-                } catch (error) {
-                    console.error(`❌ 마커 생성 실패 (${project.name}):`, error);
-                }
+            filteredProjects.forEach(project => {
+                const marker = createMarker(project);
+                markersLayer.addLayer(marker);
             });
 
-            // 지도 범위를 필터링된 마커에 맞춤 (마커가 있는 경우에만)
             if (filteredProjects.length > 0) {
-                try {
-                    const group = new L.featureGroup(markersLayer.getLayers());
-                    if (group.getLayers().length > 0) {
-                        map.fitBounds(group.getBounds().pad(0.1));
-                    }
-                } catch (error) {
-                    console.warn('지도 범위 조정 실패:', error);
+                const group = new L.featureGroup(markersLayer.getLayers());
+                if (group.getLayers().length > 0) {
+                    map.fitBounds(group.getBounds().pad(0.1));
                 }
             }
-            
-            console.log(`✅ 총 ${markersLayer.getLayers().length}개 마커가 지도에 표시됨`);
         }
 
         function createMarker(project) {
@@ -1378,215 +1157,43 @@
             });
 
             const marker = L.marker([project.lat, project.lng], {
-                icon: customIcon,
-                riseOnHover: true,
-                riseOffset: 250
+                icon: customIcon
             });
 
-            // 호버 효과 (마커 제거 방지)
+            // 간단한 호버 효과로 변경 (문제 해결)
             marker.on('mouseover', function(e) {
-                const element = this.getElement();
+                const element = e.target.getElement();
                 if (element) {
-                    element.style.transform = 'scale(1.2)';
-                    element.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
-                    element.style.zIndex = '1000';
+                    element.style.transform = 'scale(1.15)';
+                    element.style.boxShadow = '0 5px 15px rgba(0,0,0,0.6)';
                 }
             });
             
             marker.on('mouseout', function(e) {
-                const element = this.getElement();
+                const element = e.target.getElement();
                 if (element) {
                     element.style.transform = 'scale(1)';
                     element.style.boxShadow = '0 3px 8px rgba(0,0,0,0.4)';
-                    element.style.zIndex = '1';
                 }
             });
 
-            // 클릭 이벤트 명시적 처리 (마커 사라짐 방지)
-            marker.on('click', function(e) {
-                console.log('마커 클릭됨:', project.name, '-', project.description);
-                
-                // 다른 팝업들 닫기
-                map.closePopup();
-                
-                // 현재 마커의 팝업 열기
-                setTimeout(() => {
-                    this.openPopup();
-                }, 100);
-                
-                // 이벤트 전파 중단 (지도 클릭으로 전파되지 않도록)
-                L.DomEvent.stopPropagation(e);
-            });
-
-            // 국가 라벨 (상시 표시)
+            // 툴팁 설정 개선 (permanent false로 변경)
             marker.bindTooltip(project.name, {
-                permanent: true,
+                permanent: false,
                 direction: 'top',
                 className: 'country-label',
-                offset: [0, -28],
-                interactive: false
+                offset: [0, -25]
             });
 
-            // 풍부한 팝업 내용 생성
-            const popupContent = createRichPopupContent(project);
-            
-            // 팝업 바인딩 (설정 강화)
+            const popupContent = createPopupContent(project);
             marker.bindPopup(popupContent, {
-                maxWidth: 450,
-                minWidth: 300,
-                maxHeight: 400,
-                autoPan: true,
-                autoPanPaddingTopLeft: [10, 10],
-                autoPanPaddingBottomRight: [10, 10],
+                maxWidth: 400,
+                minWidth: 280,
                 closeButton: true,
-                autoClose: false,
-                closeOnEscapeKey: true,
-                className: 'custom-popup'
+                autoClose: true
             });
 
             return marker;
-        }
-
-        // 풍부한 팝업 내용 생성 함수
-        function createRichPopupContent(project) {
-            const countryCode = countryCodeMap[project.name] || 'un';
-            const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
-            const borderColor = projectColors[project.category] || '#666666';
-            
-            let content = `<div class="rich-popup-content">`;
-            
-            // 헤더 (국기 + 국가명 + 사업 타입)
-            content += `
-                <div class="popup-header">
-                    <div class="popup-header-top">
-                        <img src="${flagUrl}" alt="${project.name} 국기" class="popup-flag" onerror="this.style.display='none'">
-                        <div class="popup-title-section">
-                            <h3 class="popup-country">${project.name}</h3>
-                            <div class="popup-category" style="background: ${borderColor}">${project.category}</div>
-                        </div>
-                    </div>
-                    <h4 class="popup-project-title">${project.description}</h4>
-                </div>
-            `;
-            
-            // 프로젝트 정보 섹션
-            content += `<div class="popup-body">`;
-            
-            if (project.category === 'ODA') {
-                // ODA 프로젝트 정보
-                if (project.type) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">🏷️ 사업형태</span>
-                        <span class="popup-value">${project.type}</span>
-                    </div>`;
-                }
-                
-                if (project.period) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">📅 사업기간</span>
-                        <span class="popup-value">${project.period}</span>
-                    </div>`;
-                }
-                
-                if (project.budget > 0) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">💰 총예산</span>
-                        <span class="popup-value budget">${project.budget.toLocaleString()}백만원</span>
-                    </div>`;
-                }
-                
-                if (project.continent) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">🌍 대륙</span>
-                        <span class="popup-value">${project.continent}</span>
-                    </div>`;
-                }
-                
-                if (project.projectDetails) {
-                    content += `<div class="popup-details">
-                        <div class="popup-label">📋 사업내용</div>
-                        <div class="popup-details-content">${project.projectDetails}</div>
-                    </div>`;
-                }
-                
-            } else if (project.category === 'Consulting') {
-                // 컨설팅 프로젝트 정보
-                if (project.status) {
-                    let statusClass = 'status-complete';
-                    let statusIcon = '✅';
-                    if (project.status === '시행중') {
-                        statusClass = 'status-progress';
-                        statusIcon = '🚧';
-                    } else if (project.status === '제안중') {
-                        statusClass = 'status-proposal';
-                        statusIcon = '📋';
-                    }
-                    
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">📊 진행상태</span>
-                        <span class="status-badge ${statusClass}">${statusIcon} ${project.status}</span>
-                    </div>`;
-                }
-                
-                if (project.year) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">📅 수주년도</span>
-                        <span class="popup-value">${project.year}년</span>
-                    </div>`;
-                }
-                
-                if (project.startDate && project.endDate) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">⏰ 사업기간</span>
-                        <span class="popup-value">${project.startDate} ~ ${project.endDate}</span>
-                    </div>`;
-                }
-                
-                if (project.budget > 0) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">💰 용역비</span>
-                        <span class="popup-value budget">${project.budget.toLocaleString()}백만원</span>
-                    </div>`;
-                }
-                
-                if (project.client) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">🏢 발주처</span>
-                        <span class="popup-value">${project.client}</span>
-                    </div>`;
-                }
-                
-                if (project.projectType) {
-                    content += `<div class="popup-info-row">
-                        <span class="popup-label">🏷️ 사업형태</span>
-                        <span class="popup-value">${project.projectType}</span>
-                    </div>`;
-                }
-                
-                if (project.englishName) {
-                    content += `<div class="popup-details">
-                        <div class="popup-label">🌐 영문명</div>
-                        <div class="popup-details-content english-name">${project.englishName}</div>
-                    </div>`;
-                }
-            }
-            
-            // 위치 정보
-            content += `<div class="popup-location">
-                <span class="popup-label">📍 위치</span>
-                <span class="popup-value coordinates">${project.lat.toFixed(4)}, ${project.lng.toFixed(4)}</span>
-            </div>`;
-            
-            // 프로젝트 번호 (있는 경우)
-            if (project.number) {
-                content += `<div class="popup-footer">
-                    <small>프로젝트 #${project.number}</small>
-                </div>`;
-            }
-            
-            content += `</div></div>`;
-            
-            return content;
         }
 
         function createPopupContent(project) {
@@ -1833,124 +1440,59 @@
             return projects;
         }
 
-        // 메인 함수 (실제 Excel 파일 완전 읽기)
+        // 메인 함수 (실제 Excel 데이터만 사용)
         async function loadData() {
             try {
-                console.log('🔥 실제 Excel 파일에서 모든 데이터 로드 시작...');
+                console.log('🔥 실제 Excel 파일 데이터 로드 시작...');
                 allProjects = []; // 초기화
                 
-                let totalLoaded = 0;
+                let excelLoaded = false;
                 
-                // 실제 Excel 파일에서 직접 로드
+                // 실제 Excel 파일 로드 시도
                 try {
-                    // ODA 파일 로드
-                    console.log('📊 ODA Excel 파일 읽는 중...');
+                    console.log('📁 Excel 파일 읽기 시도...');
+                    
+                    // ODA 데이터 로드 시도
                     const odaData = await window.fs.readFile('global ODA.xlsx');
                     const odaWorkbook = XLSX.read(odaData);
+                    const odaProjects = processODAData(odaWorkbook);
                     
-                    // ODA 시트에서 데이터 추출
-                    const odaSheet = odaWorkbook.Sheets["ODA 양자계속(29개 지구)"];
-                    if (odaSheet) {
-                        const odaRawData = XLSX.utils.sheet_to_json(odaSheet);
-                        
-                        odaRawData.forEach((row, index) => {
-                            if (row['X'] && row['Y'] && row['국가별'] && row['₩']) {
-                                allProjects.push({
-                                    name: row['국가별'],
-                                    lat: row['Y'],
-                                    lng: row['X'],
-                                    description: row['₩'],
-                                    category: 'ODA',
-                                    projectDetails: row['사업 내용'] || '',
-                                    period: row['사업기간'] || '',
-                                    budget: row['총예산(백만원)'] || 0,
-                                    continent: row['대륙별'] || '',
-                                    type: row['사업형태'] || '',
-                                    number: row['번호'] || index + 1
-                                });
-                                totalLoaded++;
-                            }
-                        });
-                        
-                        console.log(`✅ ODA 프로젝트 ${totalLoaded}개 로드 완료`);
-                    }
-                    
-                    // 컨설팅 파일 로드
-                    console.log('🏗️ 컨설팅 Excel 파일 읽는 중...');
+                    // Consulting 데이터 로드 시도  
                     const consultingData = await window.fs.readFile('global consulting.xlsx');
                     const consultingWorkbook = XLSX.read(consultingData);
+                    const consultingProjects = processConsultingData(consultingWorkbook);
                     
-                    // 컨설팅 시트에서 데이터 추출
-                    const consultingSheet = consultingWorkbook.Sheets[consultingWorkbook.SheetNames[0]];
-                    if (consultingSheet) {
-                        const consultingRawData = XLSX.utils.sheet_to_json(consultingSheet);
-                        let consultingCount = 0;
-                        
-                        consultingRawData.forEach((row, index) => {
-                            if (row['X'] && row['Y'] && row['국가별'] && row['국문사업명']) {
-                                allProjects.push({
-                                    name: row['국가별'],
-                                    lat: row['Y'],
-                                    lng: row['X'],
-                                    description: row['국문사업명'],
-                                    category: 'Consulting',
-                                    projectType: row['사업형태'] || '',
-                                    status: row['진행여부'] || '',
-                                    startDate: row['착수일'] || '',
-                                    endDate: row['준공일'] || '',
-                                    budget: row['용역비(공사)(백만원)'] || 0,
-                                    client: row['발주처'] || '',
-                                    year: row['수주년도'] || '',
-                                    englishName: row['영문사업명'] || '',
-                                    number: row['번호'] || index + 1
-                                });
-                                consultingCount++;
-                                totalLoaded++;
-                            }
-                        });
-                        
-                        console.log(`✅ 컨설팅 프로젝트 ${consultingCount}개 로드 완료`);
+                    if (odaProjects.length > 0 || consultingProjects.length > 0) {
+                        allProjects.push(...odaProjects);
+                        allProjects.push(...consultingProjects);
+                        excelLoaded = true;
+                        console.log(`✅ Excel 파일 로드 성공! ODA: ${odaProjects.length}개, 컨설팅: ${consultingProjects.length}개`);
+                        showDataSourceNotification(`실제 Excel 데이터 (${allProjects.length}개 프로젝트)`, 'success');
                     }
-                    
-                    if (totalLoaded > 0) {
-                        console.log(`🎉 Excel 파일에서 총 ${totalLoaded}개 프로젝트 로드 성공!`);
-                        showDataSourceNotification(`Excel 파일 데이터 (${totalLoaded}개 프로젝트)`, 'success');
-                    } else {
-                        throw new Error('Excel 파일에서 유효한 데이터를 찾을 수 없습니다');
-                    }
-                    
-                } catch (excelError) {
-                    console.log('⚠️ Excel 파일 직접 읽기 실패:', excelError.message);
-                    console.log('📋 실제 Excel 구조 기반 하드코딩 데이터 사용');
-                    
-                    // Excel 파일 구조를 기반으로 한 실제 데이터 사용
-                    allProjects.push(...realExcelData.oda);
-                    allProjects.push(...realExcelData.consulting);
-                    totalLoaded = allProjects.length;
-                    
-                    showDataSourceNotification(`실제 Excel 데이터 구조 (${totalLoaded}개 프로젝트)`, 'success');
+                } catch (error) {
+                    console.log('⚠️ Excel 파일 로드 실패:', error.message);
                 }
                 
-                // 최종 통계
-                const odaCount = allProjects.filter(p => p.category === 'ODA').length;
-                const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
-                const countriesCount = new Set(allProjects.map(p => p.name)).size;
+                // Excel 로드 실패시 실제 하드코딩된 Excel 데이터 사용
+                if (!excelLoaded) {
+                    console.log('📊 실제 Excel 데이터 (하드코딩)를 사용합니다');
+                    console.log(`📝 ODA 프로젝트: ${realExcelData.oda.length}개`);
+                    console.log(`🏗️ 컨설팅 프로젝트: ${realExcelData.consulting.length}개`);
+                    
+                    allProjects.push(...realExcelData.oda);
+                    allProjects.push(...realExcelData.consulting);
+                    
+                    showDataSourceNotification(`실제 Excel 데이터 (${allProjects.length}개 프로젝트)`, 'success');
+                }
                 
-                console.log(`📈 최종 결과:`);
-                console.log(`   💼 ODA 프로젝트: ${odaCount}개`);
-                console.log(`   🏗️ 컨설팅 프로젝트: ${consultingCount}개`);
-                console.log(`   🌍 참여 국가: ${countriesCount}개국`);
-                console.log(`   📊 총합: ${totalLoaded}개 프로젝트`);
+                console.log(`🎉 총 ${allProjects.length}개 프로젝트 로드 완료!`);
+                console.log(`📈 ODA: ${allProjects.filter(p => p.category === 'ODA').length}개`);
+                console.log(`🏗️ 컨설팅: ${allProjects.filter(p => p.category === 'Consulting').length}개`);
+                console.log(`🌍 참여국가: ${new Set(allProjects.map(p => p.name)).size}개국`);
                 
-                // 국가별 프로젝트 수 (상위 5개국)
-                const countryStats = {};
-                allProjects.forEach(p => {
-                    countryStats[p.name] = (countryStats[p.name] || 0) + 1;
-                });
-                const topCountries = Object.entries(countryStats)
-                    .sort(([,a], [,b]) => b - a)
-                    .slice(0, 5);
-                console.log(`🏆 상위 5개국:`, topCountries.map(([country, count]) => `${country}(${count})`).join(', '));
+                // 참여 국가 목록 출력
+                const countries = [...new Set(allProjects.map(p => p.name))].sort();
+                console.log(`🏳️ 참여국가 목록: ${countries.join(', ')}`);
                 
                 // 필터 시스템 초기화
                 initializeFilters();
@@ -1958,47 +1500,58 @@
             } catch (error) {
                 console.error('❌ 심각한 오류 발생:', error);
                 
-                // 최후 방법으로 백업 데이터 사용
+                // 최후 방법으로 실제 Excel 데이터 사용
                 if (allProjects.length === 0) {
-                    console.log('🆘 비상 복구: 백업 샘플 데이터 로드');
-                    allProjects.push(...backupSampleData.oda);
-                    allProjects.push(...backupSampleData.consulting);
+                    console.log('🆘 비상 복구: 실제 Excel 데이터 로드');
+                    allProjects.push(...realExcelData.oda);
+                    allProjects.push(...realExcelData.consulting);
                     initializeFilters();
-                    showDataSourceNotification('비상 백업 데이터', 'error');
+                    showDataSourceNotification('실제 Excel 데이터 (비상 로드)', 'warning');
                 }
             } finally {
                 hideLoading();
             }
         }
 
-        // 데이터 소스 알림 표시
+        // 데이터 소스 알림 표시 (업데이트된 버전)
         function showDataSourceNotification(message, type) {
             setTimeout(() => {
                 const alertDiv = document.createElement('div');
                 const colors = {
-                    'success': { bg: '#d4edda', border: '#c3e6cb', text: '#155724' },
-                    'warning': { bg: '#fff3cd', border: '#ffeaa7', text: '#856404' },
-                    'error': { bg: '#f8d7da', border: '#f5c6cb', text: '#721c24' }
+                    'success': { bg: '#d4edda', border: '#c3e6cb', text: '#155724', icon: '✅' },
+                    'warning': { bg: '#fff3cd', border: '#ffeaa7', text: '#856404', icon: '⚠️' },
+                    'error': { bg: '#f8d7da', border: '#f5c6cb', text: '#721c24', icon: '❌' }
                 };
-                const color = colors[type] || colors.warning;
+                const color = colors[type] || colors.success;
                 
                 alertDiv.style.cssText = `
                     position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-                    background: ${color.bg}; border: 1px solid ${color.border}; color: ${color.text};
-                    padding: 12px 20px; border-radius: 8px; z-index: 2000;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px;
+                    background: ${color.bg}; border: 2px solid ${color.border}; color: ${color.text};
+                    padding: 15px 25px; border-radius: 10px; z-index: 2000;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 14px;
                     max-width: 90%; text-align: center; font-weight: 600;
+                    backdrop-filter: blur(5px);
                 `;
                 
-                const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌';
-                alertDiv.innerHTML = `${icon} ${message}`;
+                alertDiv.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span style="font-size: 18px;">${color.icon}</span>
+                        <div>
+                            <div style="font-weight: 700; margin-bottom: 2px;">${message}</div>
+                            <div style="font-size: 12px; opacity: 0.8;">실제 Excel 파일 기반 데이터</div>
+                        </div>
+                    </div>
+                `;
                 
                 document.body.appendChild(alertDiv);
                 
+                // 5초 후 자동 제거
                 setTimeout(() => {
-                    alertDiv.remove();
+                    alertDiv.style.transition = 'opacity 0.5s ease';
+                    alertDiv.style.opacity = '0';
+                    setTimeout(() => alertDiv.remove(), 500);
                 }, 4000);
-            }, 1000);
+            }, 1500);
         }
 
         // 페이지 로드 시 실행
