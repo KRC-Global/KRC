@@ -110,8 +110,15 @@
         }
         .control-btn:hover { background: #3498db; color: white; transform: scale(1.1); }
 
-        .loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 2000; text-align: center; }
-        .loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+        .loading { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; padding: 30px; border-radius: 10px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 2000; text-align: center; 
+        }
+        .loading-spinner { 
+            border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
+            width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; 
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .popup-content { max-width: 350px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .popup-title { font-size: 18px; font-weight: 700; color: #2c3e50; margin: 0; }
@@ -219,7 +226,7 @@
             </div>
             <div class="stat-card" id="stat-total-budget">
                 <div class="stat-number" id="total-budget">-</div>
-                <div class="stat-label">총 사업비</div>
+                <div class="stat-label">총 사업비 (억원)</div>
             </div>
         </div>
     </div>
@@ -235,8 +242,9 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        let map;
-        let markersLayer;
+        // 전역 변수 초기화
+        let map = null;
+        let markersLayer = null;
         let allProjects = [];
         let filteredProjects = [];
         let activeFilters = {
@@ -246,6 +254,8 @@
             statuses: new Set(),
             clients: new Set()
         };
+        let isDataLoaded = false;
+        let isMapInitialized = false;
 
         const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
         
@@ -319,6 +329,126 @@
             ]
         };
 
+        // 안전한 로딩 화면 숨김 함수
+        function hideLoading() {
+            console.log('🎯 로딩 화면 숨김 시도');
+            try {
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) {
+                    loadingEl.style.display = 'none';
+                    console.log('✅ 로딩 화면 숨김 완료');
+                } else {
+                    console.warn('⚠️ 로딩 요소를 찾을 수 없음');
+                }
+            } catch (error) {
+                console.error('❌ 로딩 화면 숨김 오류:', error);
+            }
+        }
+
+        // 데이터 로드 함수
+        function loadData() {
+            return new Promise((resolve, reject) => {
+                try {
+                    console.log('🔥 데이터 로드 시작...');
+                    
+                    // 데이터 초기화
+                    allProjects = [];
+                    allProjects.push(...realExcelData.oda);
+                    allProjects.push(...realExcelData.consulting);
+                    
+                    console.log(`🎉 총 ${allProjects.length}개 프로젝트 로드 완료!`);
+                    console.log('📊 ODA 프로젝트:', allProjects.filter(p => p.category === 'ODA').length);
+                    console.log('📊 Consulting 프로젝트:', allProjects.filter(p => p.category === 'Consulting').length);
+                    
+                    isDataLoaded = true;
+                    resolve();
+                } catch (error) {
+                    console.error('❌ 데이터 로드 실패:', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 지도 초기화 함수
+        function initMap() {
+            return new Promise((resolve, reject) => {
+                try {
+                    console.log('🗺️ 지도 초기화 시작...');
+                    
+                    if (!map) {
+                        map = L.map('map', { 
+                            center: [20, 0], 
+                            zoom: 2, 
+                            zoomControl: true, 
+                            attributionControl: true, 
+                            worldCopyJump: false, 
+                            maxBounds: [[-90, -Infinity], [90, Infinity]], 
+                            maxBoundsViscosity: 0.0 
+                        });
+                        
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                            attribution: '© OpenStreetMap contributors', 
+                            maxZoom: 18 
+                        }).addTo(map);
+                        
+                        markersLayer = L.layerGroup().addTo(map);
+                        
+                        // 지도 줌 이벤트 리스너 추가
+                        map.on('zoomend', addCountryLabels);
+                    }
+                    
+                    isMapInitialized = true;
+                    console.log('✅ 지도 초기화 완료');
+                    resolve();
+                } catch (error) {
+                    console.error('❌ 지도 초기화 실패:', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 필터 초기화 함수
+        function initializeFilters() {
+            try {
+                console.log('🔧 필터 초기화 시작...');
+                initProjectTypeFilters();
+                initCountryFilters();
+                initYearFilters();
+                initStatusFilters();
+                initClientFilters();
+                applyFilters();
+                setupFilterDropdowns();
+                console.log('✅ 필터 초기화 완료');
+            } catch (error) {
+                console.error('❌ 필터 초기화 실패:', error);
+            }
+        }
+
+        // 메인 초기화 함수
+        async function initialize() {
+            try {
+                console.log('🚀 애플리케이션 초기화 시작...');
+                
+                // 1. 지도 초기화
+                await initMap();
+                
+                // 2. 데이터 로드
+                await loadData();
+                
+                // 3. 필터 초기화
+                initializeFilters();
+                
+                // 4. 로딩 화면 숨김
+                hideLoading();
+                
+                console.log('🎉 애플리케이션 초기화 완료!');
+            } catch (error) {
+                console.error('💥 초기화 실패:', error);
+                hideLoading();
+                alert('데이터 로드에 실패했습니다. 페이지를 새로고침해주세요.');
+            }
+        }
+
         function setupFilterDropdowns() {
             const filterButtons = document.querySelectorAll('.filter-bar-button');
             filterButtons.forEach(button => {
@@ -360,26 +490,9 @@
             } else { alert('이 브라우저는 위치 서비스를 지원하지 않습니다.'); }
         }
 
-        function initMap() {
-            map = L.map('map', { center: [20, 0], zoom: 2, zoomControl: true, attributionControl: true, worldCopyJump: false, maxBounds: [[-90, -Infinity], [90, Infinity]], maxBoundsViscosity: 0.0 });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 18 }).addTo(map);
-            markersLayer = L.layerGroup().addTo(map);
-        }
-
-        function initializeFilters() {
-            console.log('필터 초기화 시작...');
-            initProjectTypeFilters();
-            initCountryFilters();
-            initYearFilters();
-            initStatusFilters();
-            initClientFilters();
-            applyFilters();
-            setupFilterDropdowns();
-            console.log('필터 초기화 완료');
-        }
-
         function initProjectTypeFilters() {
             const container = document.getElementById('projectTypeFilters');
+            if (!container) return;
             container.innerHTML = '';
             const types = [...new Set(allProjects.map(p => p.category))].sort();
             console.log('프로젝트 타입:', types);
@@ -388,6 +501,7 @@
 
         function initCountryFilters() {
             const container = document.getElementById('countryFilters');
+            if (!container) return;
             container.innerHTML = '';
             const countries = [...new Set(allProjects.map(p => p.name.trim()))].sort();
             console.log('국가 목록:', countries);
@@ -396,6 +510,7 @@
 
         function initYearFilters() {
             const container = document.getElementById('yearFilters');
+            if (!container) return;
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
             const years = [...new Set(consultingProjects.map(p => p.year).filter(y => y))].sort((a, b) => b - a);
@@ -405,6 +520,7 @@
 
         function initStatusFilters() {
             const container = document.getElementById('statusFilters');
+            if (!container) return;
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
             const statuses = [...new Set(consultingProjects.map(p => p.status).filter(s => s))].sort();
@@ -414,6 +530,7 @@
         
         function initClientFilters() {
             const container = document.getElementById('clientFilters');
+            if (!container) return;
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting' && p.client);
             const clients = [...new Set(consultingProjects.map(p => p.client.trim()))].sort();
@@ -534,19 +651,28 @@
         }
         
         function updateMapMarkers() {
+            if (!markersLayer) return;
+            
             markersLayer.clearLayers();
             filteredProjects.forEach(project => markersLayer.addLayer(createMarker(project)));
+            
             if (filteredProjects.length > 0) {
                 const projectMarkers = markersLayer.getLayers().filter(layer => layer.options.icon && layer.options.icon.options.className === 'custom-div-icon');
                 if (projectMarkers.length > 0) {
                     const group = new L.featureGroup(projectMarkers);
                     map.fitBounds(group.getBounds().pad(0.2), { maxZoom: 15 });
-                } else { map.setView([20,0], 2); }
-            } else { map.setView([20, 0], 2); }
+                } else { 
+                    map.setView([20,0], 2); 
+                }
+            } else { 
+                map.setView([20, 0], 2); 
+            }
             addCountryLabels();
         }
 
         function addCountryLabels() {
+            if (!markersLayer) return;
+            
             markersLayer.eachLayer(layer => {
                 if (layer.options.icon && layer.options.icon.options.className === 'country-label-container') {
                     markersLayer.removeLayer(layer);
@@ -573,8 +699,6 @@
                 L.marker([avgLat, avgLng], { icon: labelIcon, interactive: false, zIndexOffset: -500 }).addTo(markersLayer);
             });
         }
-        
-        map.on('zoomend', addCountryLabels);
 
         function createMarker(project) {
             const borderColor = projectColors[project.category] || '#666666';
@@ -609,7 +733,7 @@
             if (project.category === 'ODA') {
                 if (project.type) content += `<div class="popup-section"><span class="popup-label">사업형태:</span><span class="popup-value">${project.type}</span></div>`;
                 if (project.period) content += `<div class="popup-section"><span class="popup-label">사업기간:</span><span class="popup-value">${project.period}</span></div>`;
-                if (project.budget && project.budget > 0) content += `<div class="popup-section"><span class="popup-label">예산:</span><span class="popup-value budget">${project.budget.toLocaleString()}백만원</span></div>`;
+                if (project.budget && project.budget > 0) content += `<div class="popup-section"><span class="popup-label">예산:</span><span class="popup-value budget">${(project.budget / 10).toFixed(1)}억원</span></div>`;
                 if (project.continent) content += `<div class="popup-section"><span class="popup-label">대륙:</span><span class="popup-value">${project.continent}</span></div>`;
             } else if (project.category === 'Consulting') {
                 if (project.status) {
@@ -617,7 +741,7 @@
                     content += `<div class="popup-section"><span class="popup-label">상태:</span><span class="status-badge ${statusClass}">${project.status}</span></div>`;
                 }
                 if (project.startDate && project.endDate) content += `<div class="popup-section"><span class="popup-label">기간:</span><span class="popup-value">${project.startDate} ~ ${project.endDate}</span></div>`;
-                if (project.budget && project.budget > 0) content += `<div class="popup-section"><span class="popup-label">용역비:</span><span class="popup-value budget">${project.budget.toLocaleString()}백만원</span></div>`;
+                if (project.budget && project.budget > 0) content += `<div class="popup-section"><span class="popup-label">용역비:</span><span class="popup-value budget">${(project.budget / 10).toFixed(1)}억원</span></div>`;
                 if (project.client) content += `<div class="popup-section"><span class="popup-label">발주처:</span><span class="popup-value">${project.client.trim()}</span></div>`;
                 if (project.year) content += `<div class="popup-section" style="font-size: 12px; color: #777;"><span class="popup-label" style="color: #777;">수주년도:</span><span class="popup-value" style="color: #777;">${project.year}</span></div>`;
             }
@@ -633,58 +757,47 @@
             let totalBudgetSum = 0;
             filteredProjects.forEach(p => { if (p.budget && typeof p.budget === 'number' && !isNaN(p.budget)) totalBudgetSum += p.budget; });
 
+            // 억원 단위로 변환 (백만원을 10으로 나누면 억원)
+            const totalBudgetInBillion = (totalBudgetSum / 10).toFixed(1);
+
             document.getElementById('total-projects').textContent = totalProjectsCount;
             document.getElementById('countries-count').textContent = uniqueCountriesCount;
             document.getElementById('oda-projects').textContent = odaProjectsCount;
             document.getElementById('consulting-projects').textContent = consultingProjectsCount;
-            document.getElementById('total-budget').textContent = `${totalBudgetSum.toLocaleString()} 백만원`;
+            document.getElementById('total-budget').textContent = `${totalBudgetInBillion}`;
 
-            document.getElementById('stat-total-projects').style.borderColor = '#2c3e50'; document.getElementById('total-projects').style.color = '#2c3e50';
-            document.getElementById('stat-countries-count').style.borderColor = '#e74c3c'; document.getElementById('countries-count').style.color = '#e74c3c';
-            document.getElementById('stat-consulting-projects').style.borderColor = '#4682B4'; document.getElementById('consulting-projects').style.color = '#4682B4';
-            document.getElementById('stat-oda-projects').style.borderColor = '#FF8C00'; document.getElementById('oda-projects').style.color = '#FF8C00';
-            document.getElementById('stat-total-budget').style.borderColor = '#27ae60'; document.getElementById('total-budget').style.color = '#27ae60';
+            // 통계 카드 색상 설정
+            document.getElementById('stat-total-projects').style.borderColor = '#2c3e50'; 
+            document.getElementById('total-projects').style.color = '#2c3e50';
+            document.getElementById('stat-countries-count').style.borderColor = '#e74c3c'; 
+            document.getElementById('countries-count').style.color = '#e74c3c';
+            document.getElementById('stat-consulting-projects').style.borderColor = '#4682B4'; 
+            document.getElementById('consulting-projects').style.color = '#4682B4';
+            document.getElementById('stat-oda-projects').style.borderColor = '#FF8C00'; 
+            document.getElementById('oda-projects').style.color = '#FF8C00';
+            document.getElementById('stat-total-budget').style.borderColor = '#27ae60'; 
+            document.getElementById('total-budget').style.color = '#27ae60';
         }
 
         function updateFilterResultText() {
             const resultTextEl = document.getElementById('filterResultText');
+            if (!resultTextEl) return;
+            
             const noFiltersApplied = Object.values(activeFilters).every(set => set.size === 0);
             resultTextEl.textContent = noFiltersApplied ? `전체 ${allProjects.length}개 프로젝트 표시 중` : `${allProjects.length}개 중 ${filteredProjects.length}개 프로젝트 표시 중`;
         }
-        
-        function hideLoading() { 
-            console.log('로딩 화면 숨김');
-            const loadingEl = document.getElementById('loading');
-            if (loadingEl) {
-                loadingEl.style.display = 'none'; 
-            }
+
+        // DOM 로드 완료 후 초기화 실행
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            // DOM이 이미 로드된 경우 바로 실행
+            initialize();
         }
 
-        function loadData() {
-            console.log('🔥 데이터 로드 시작...');
-            
-            // 하드코딩된 데이터를 바로 사용
-            allProjects = [];
-            allProjects.push(...realExcelData.oda);
-            allProjects.push(...realExcelData.consulting);
-            
-            console.log(`🎉 총 ${allProjects.length}개 프로젝트 로드 완료!`);
-            console.log('ODA 프로젝트:', allProjects.filter(p => p.category === 'ODA').length);
-            console.log('Consulting 프로젝트:', allProjects.filter(p => p.category === 'Consulting').length);
-            
-            initializeFilters();
-            hideLoading();
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM 로드 완료, 초기화 시작...');
-            initMap();
-            
-            // 지도가 로드된 후 데이터 로드
-            setTimeout(() => {
-                loadData();
-            }, 100);
-        });
+        // 전역 함수로 내보내기 (HTML에서 호출하기 위해)
+        window.resetAllFilters = resetAllFilters;
+        window.goToMyLocation = goToMyLocation;
     </script>
 </body>
 </html>
