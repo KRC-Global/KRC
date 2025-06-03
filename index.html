@@ -344,50 +344,60 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* 팝업 스타일 */
+        /* 팝업 스타일 개선 */
         .popup-content {
-            max-width: 300px;
+            max-width: 350px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         .popup-title {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             color: #2c3e50;
-            margin-bottom: 8px;
+            margin: 0;
         }
         
         .popup-header {
             border-bottom: 2px solid #3498db;
-            padding-bottom: 5px;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
         }
         
         .popup-section {
             margin: 8px 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
         }
         
         .popup-label {
             font-weight: 600;
             color: #34495e;
+            font-size: 14px;
         }
         
         .popup-value {
             color: #2c3e50;
-            margin-left: 5px;
+            font-size: 14px;
         }
         
         .project-details {
-            max-height: 100px;
+            max-height: 120px;
             overflow-y: auto;
-            padding: 5px;
+            padding: 8px;
             background: #f8f9fa;
             border-radius: 4px;
             font-size: 13px;
             line-height: 1.4;
+            border: 1px solid #e9ecef;
+            width: 100%;
+            margin-top: 5px;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 2px 8px;
+            padding: 3px 8px;
             border-radius: 12px;
             font-size: 11px;
             font-weight: 600;
@@ -397,16 +407,19 @@
         .status-complete {
             background: #d4edda;
             color: #155724;
+            border: 1px solid #c3e6cb;
         }
         
         .status-progress {
             background: #fff3cd;
             color: #856404;
+            border: 1px solid #ffeaa7;
         }
         
         .status-proposal {
             background: #cce5ff;
             color: #004085;
+            border: 1px solid #99d3ff;
         }
         
         .budget {
@@ -1097,12 +1110,51 @@
                 markersLayer.addLayer(marker);
             });
 
+            // 지도 범위를 필터링된 마커에 맞춤
             if (filteredProjects.length > 0) {
                 const group = new L.featureGroup(markersLayer.getLayers());
                 if (group.getLayers().length > 0) {
                     map.fitBounds(group.getBounds().pad(0.1));
                 }
             }
+            
+            // 마커 정보 표시 (툴팁 대신 별도 방법)
+            addCountryLabels();
+        }
+
+        // 국가 라벨을 별도로 표시하는 안전한 방법
+        function addCountryLabels() {
+            // 국가별로 그룹화
+            const countryGroups = {};
+            filteredProjects.forEach(project => {
+                if (!countryGroups[project.name]) {
+                    countryGroups[project.name] = [];
+                }
+                countryGroups[project.name].push(project);
+            });
+
+            // 각 국가별로 하나의 라벨 추가
+            Object.keys(countryGroups).forEach(countryName => {
+                const projects = countryGroups[countryName];
+                // 해당 국가의 첫 번째 프로젝트 좌표를 사용
+                const firstProject = projects[0];
+                
+                // 라벨을 지도에 추가 (마커와 독립적)
+                const label = L.divIcon({
+                    html: `<div class="floating-country-label">${countryName}</div>`,
+                    className: 'country-label-container',
+                    iconSize: [100, 20],
+                    iconAnchor: [50, -30]
+                });
+                
+                const labelMarker = L.marker([firstProject.lat, firstProject.lng], {
+                    icon: label,
+                    interactive: false, // 상호작용 비활성화
+                    zIndexOffset: -1000 // 다른 마커보다 뒤에 표시
+                });
+                
+                markersLayer.addLayer(labelMarker);
+            });
         }
 
         function createMarker(project) {
@@ -1110,24 +1162,14 @@
             const countryCode = countryCodeMap[project.name] || 'un';
             const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
             
-            // 국기 로드 실패시 기본 아이콘 스타일 개선
-            const fallbackStyle = `
-                background: linear-gradient(135deg, ${borderColor}, ${borderColor}99);
-                color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 10px;
-                font-weight: bold;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
-                font-family: Arial, sans-serif;
-            `;
-            
             // 국가명 첫글자 추출 (한글 처리)
             const countryInitial = project.name.charAt(0);
             
+            // 마커 HTML을 단순화하고 안정화
             const iconHtml = `
-                <div class="custom-marker" 
+                <div class="project-marker" 
+                     data-country="${project.name}"
+                     data-category="${project.category}"
                      style="
                         width: 24px;
                         height: 24px;
@@ -1137,61 +1179,57 @@
                         background-size: cover;
                         background-position: center;
                         background-repeat: no-repeat;
+                        background-color: ${borderColor};
                         box-shadow: 0 3px 8px rgba(0,0,0,0.4);
                         cursor: pointer;
-                        transition: transform 0.2s ease, box-shadow 0.2s ease;
-                        ${countryCode === 'un' ? fallbackStyle : ''}
-                     " 
-                     onload="this.style.backgroundImage = 'url(${flagUrl})'; this.innerHTML = '';"
-                     onerror="this.style.backgroundImage = 'none'; this.style.cssText += '${fallbackStyle}'; this.innerHTML = '${countryInitial}';"
-                     data-country="${project.name}"
-                >${countryCode === 'un' ? countryInitial : ''}</div>
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 10px;
+                        font-weight: bold;
+                        font-family: Arial, sans-serif;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+                        pointer-events: auto;
+                     ">${countryCode === 'un' ? countryInitial : ''}</div>
             `;
 
             const customIcon = L.divIcon({
                 html: iconHtml,
-                className: 'custom-div-icon',
+                className: 'stable-marker-icon',
                 iconSize: [24, 24],
                 iconAnchor: [12, 12],
-                popupAnchor: [0, -12]
+                popupAnchor: [0, -15]
             });
 
             const marker = L.marker([project.lat, project.lng], {
-                icon: customIcon
+                icon: customIcon,
+                riseOnHover: true,
+                riseOffset: 250
             });
 
-            // 간단한 호버 효과로 변경 (문제 해결)
+            // 안전한 방식으로 이벤트 처리 - 전혀 사라지지 않게
             marker.on('mouseover', function(e) {
-                const element = e.target.getElement();
-                if (element) {
-                    element.style.transform = 'scale(1.15)';
-                    element.style.boxShadow = '0 5px 15px rgba(0,0,0,0.6)';
-                }
+                // 마커 자체에는 변화 주지 않고 단순히 커서 변경만
+                L.DomUtil.addClass(e.target.getElement(), 'marker-hover');
             });
             
             marker.on('mouseout', function(e) {
-                const element = e.target.getElement();
-                if (element) {
-                    element.style.transform = 'scale(1)';
-                    element.style.boxShadow = '0 3px 8px rgba(0,0,0,0.4)';
-                }
+                L.DomUtil.removeClass(e.target.getElement(), 'marker-hover');
             });
 
-            // 툴팁 설정 개선 (permanent false로 변경)
-            marker.bindTooltip(project.name, {
-                permanent: false,
-                direction: 'top',
-                className: 'country-label',
-                offset: [0, -25]
-            });
-
+            // 클릭시 상세 정보 표시 (툴팁 대신 팝업만 사용)
             const popupContent = createPopupContent(project);
             marker.bindPopup(popupContent, {
                 maxWidth: 400,
                 minWidth: 280,
                 closeButton: true,
-                autoClose: true
+                autoClose: false,
+                keepInView: true
             });
+
+            // 마커에 국가 정보 저장
+            marker._projectData = project;
 
             return marker;
         }
