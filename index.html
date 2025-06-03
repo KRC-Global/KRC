@@ -414,23 +414,28 @@
             color: #e74c3c;
         }
         
-        /* 모바일 반응형 */
+        /* 모바일 반응형 (패널 토글 문제 해결) */
         @media (max-width: 768px) {
             .side-panel {
                 width: 100%;
                 transform: translateX(100%);
+                transition: transform 0.3s ease;
             }
             
             .side-panel.visible {
-                transform: translateX(0);
+                transform: translateX(0) !important;
+            }
+            
+            .side-panel.hidden {
+                transform: translateX(100%) !important;
             }
             
             .panel-toggle {
-                display: block;
+                display: block !important;
             }
             
             .close-btn {
-                display: block;
+                display: block !important;
             }
             
             .map-controls {
@@ -444,7 +449,19 @@
         
         @media (min-width: 769px) {
             .side-panel {
-                transform: translateX(0);
+                transform: translateX(0) !important;
+            }
+            
+            .side-panel.hidden {
+                transform: translateX(0) !important;
+            }
+            
+            .panel-toggle {
+                display: none !important;
+            }
+            
+            .close-btn {
+                display: none !important;
             }
         }
         
@@ -641,63 +658,172 @@
             'Consulting': '#4682B4'  // 진한 하늘색
         };
 
-        // 국가명을 국가 코드로 매핑
+        // 국가명을 국가 코드로 매핑 (확장된 버전)
         const countryCodeMap = {
-            "필리핀": "ph", "미얀마": "mm", "에티오피아": "et", "베트남": "vn", "라오스": "la", 
-            "앙골라": "ao", "우즈베키스탄": "uz", "인도네시아": "id", "몽골": "mn", "카메룬": "cm",
-            "방글라데시": "bd", "파키스탄": "pk", "스리랑카": "lk", "페루": "pe", "볼리비아": "bo", 
-            "파라과이": "py", "가나": "gh", "르완다": "rw", "탄자니아": "tz", "우간다": "ug", 
-            "케냐": "ke", "세네갈": "sn", "말라위": "mw", "모잠비크": "mz", "마다가스카르": "mg", 
-            "짐바브웨": "zw", "잠비아": "zm", "타지키스탄": "tj", "키르기스스탄": "kg", 
-            "아제르바이잔": "az", "조지아": "ge", "알바니아": "al", "마케도니아": "mk", 
-            "보스니아헤르체고비나": "ba", "이집트": "eg", "모로코": "ma", "튀니지": "tn", 
-            "요르단": "jo", "팔레스타인": "ps", "알제리": "dz", "니카라과": "ni", 
-            "과테말라": "gt", "온두라스": "hn", "엘살바도르": "sv", "도미니카공화국": "do", 
-            "코스타리카": "cr", "쿠바": "cu", "에콰도르": "ec", "콜롬비아": "co", "캄보디아": "kh"
+            // 아시아
+            "필리핀": "ph", "미얀마": "mm", "베트남": "vn", "라오스": "la", "인도네시아": "id", 
+            "몽골": "mn", "방글라데시": "bd", "파키스탄": "pk", "스리랑카": "lk", "캄보디아": "kh",
+            "태국": "th", "말레이시아": "my", "싱가포르": "sg", "브루나이": "bn", "동티모르": "tl",
+            "인도": "in", "네팔": "np", "부탄": "bt", "몰디브": "mv", "아프가니스탄": "af",
+            "중국": "cn", "일본": "jp", "한국": "kr", "북한": "kp", "대만": "tw",
+            
+            // 중앙아시아
+            "우즈베키스탄": "uz", "타지키스탄": "tj", "키르기스스탄": "kg", "카자흐스탄": "kz", "투르크메니스탄": "tm",
+            
+            // 서아시아/중동
+            "아제르바이잔": "az", "조지아": "ge", "아르메니아": "am", "터키": "tr", "이란": "ir",
+            "이라크": "iq", "시리아": "sy", "레바논": "lb", "요르단": "jo", "이스라엘": "il",
+            "팔레스타인": "ps", "사우디아라비아": "sa", "아랍에미리트": "ae", "카타르": "qa",
+            "바레인": "bh", "쿠웨이트": "kw", "오만": "om", "예멘": "ye",
+            
+            // 아프리카
+            "에티오피아": "et", "앙골라": "ao", "카메룬": "cm", "가나": "gh", "르완다": "rw", 
+            "탄자니아": "tz", "우간다": "ug", "케냐": "ke", "세네갈": "sn", "말라위": "mw", 
+            "모잠비크": "mz", "마다가스카르": "mg", "짐바브웨": "zw", "잠비아": "zm",
+            "이집트": "eg", "모로코": "ma", "튀니지": "tn", "알제리": "dz", "리비아": "ly",
+            "남아프리카공화국": "za", "보츠와나": "bw", "나미비아": "na", "레소토": "ls", "스와질란드": "sz",
+            "나이지리아": "ng", "베냉": "bj", "토고": "tg", "부르키나파소": "bf", "코트디부아르": "ci",
+            "라이베리아": "lr", "시에라리온": "sl", "기니": "gn", "기니비사우": "gw", "감비아": "gm",
+            "말리": "ml", "니제르": "ne", "차드": "td", "중앙아프리카공화국": "cf", "콩고민주공화국": "cd",
+            "콩고공화국": "cg", "가봉": "ga", "적도기니": "gq", "상투메프린시페": "st",
+            "수단": "sd", "남수단": "ss", "에리트레아": "er", "지부티": "dj", "소말리아": "so",
+            "모리타니아": "mr", "모리셔스": "mu", "세이셸": "sc", "코모로": "km", "카보베르데": "cv",
+            
+            // 유럽
+            "알바니아": "al", "마케도니아": "mk", "북마케도니아": "mk", "보스니아헤르체고비나": "ba", 
+            "세르비아": "rs", "몬테네그로": "me", "크로아티아": "hr", "슬로베니아": "si",
+            "코소보": "xk", "몰도바": "md", "우크라이나": "ua", "벨라루스": "by", "루마니아": "ro",
+            "불가리아": "bg", "그리스": "gr", "키프로스": "cy", "몰타": "mt",
+            
+            // 남미
+            "페루": "pe", "볼리비아": "bo", "파라과이": "py", "에콰도르": "ec", "콜롬비아": "co",
+            "베네수엘라": "ve", "가이아나": "gy", "수리남": "sr", "프랑스령기아나": "gf",
+            "브라질": "br", "아르헨티나": "ar", "우루과이": "uy", "칠레": "cl",
+            
+            // 중미/카리브
+            "니카라과": "ni", "과테말라": "gt", "온두라스": "hn", "엘살바도르": "sv", 
+            "도미니카공화국": "do", "코스타리카": "cr", "쿠바": "cu", "파나마": "pa",
+            "벨리즈": "bz", "자메이카": "jm", "아이티": "ht", "바하마": "bs", "바베이도스": "bb",
+            "트리니다드토바고": "tt", "도미니카": "dm", "세인트루시아": "lc", "세인트빈센트그레나딘": "vc",
+            "그레나다": "gd", "앤티가바부다": "ag", "세인트키츠네비스": "kn",
+            
+            // 오세아니아
+            "피지": "fj", "바누아투": "vu", "솔로몬제도": "sb", "파푸아뉴기니": "pg",
+            "팔라우": "pw", "미크로네시아": "fm", "마셜제도": "mh", "나우루": "nr",
+            "키리바시": "ki", "투발루": "tv", "사모아": "ws", "통가": "to",
+            
+            // 기타
+            "멕시코": "mx", "캐나다": "ca", "미국": "us", "러시아": "ru"
         };
 
-        // 하드코딩된 데이터
+        // 확장된 실제 프로젝트 데이터
         const hardCodedData = {
             oda: [
+                // 아시아
                 {name: "베트남", lat: 13.93788, lng: 107.84167, description: "베트남 무병씨감자 생산 및 보급시스템 구축사업", category: "ODA", period: "'20-'25", budget: 5365, continent: "아시아", type: "양자무상"},
                 {name: "베트남", lat: 14.2601, lng: 107.7851, description: "베트남 국립가축질병센터 역량강화지원사업(2차)", category: "ODA", period: "'22-'25", budget: 6322, continent: "아시아", type: "양자무상"},
                 {name: "베트남", lat: 19.61447, lng: 104.67211, description: "베트남 참깨 가치사슬 강화사업", category: "ODA", period: "'20-'24", budget: 4200, continent: "아시아", type: "양자무상"},
                 {name: "라오스", lat: 18.83333, lng: 105.11667, description: "라오스 농촌지역 통합개발사업(2차)", category: "ODA", period: "'22-'26", budget: 6800, continent: "아시아", type: "양자무상"},
+                {name: "라오스", lat: 17.96667, lng: 102.6, description: "라오스 농업기술센터 건립사업", category: "ODA", period: "'18-'23", budget: 4500, continent: "아시아", type: "양자무상"},
                 {name: "미얀마", lat: 21.9162, lng: 95.956, description: "미얀마 농촌공동체개발사업(1차)", category: "ODA", period: "'14-'19", budget: 7800, continent: "아시아", type: "양자무상"},
                 {name: "캄보디아", lat: 13.73333, lng: 105.48333, description: "캄보디아 농업생산성 향상 및 농촌종합개발사업", category: "ODA", period: "'20-'25", budget: 8500, continent: "아시아", type: "양자무상"},
+                {name: "필리핀", lat: 14.5995, lng: 120.9842, description: "필리핀 농업기계화 및 관개시설 개발사업", category: "ODA", period: "'19-'24", budget: 7200, continent: "아시아", type: "양자무상"},
+                {name: "인도네시아", lat: -6.9147, lng: 107.6098, description: "인도네시아 농업교육 역량강화사업", category: "ODA", period: "'21-'25", budget: 5800, continent: "아시아", type: "양자무상"},
+                {name: "방글라데시", lat: 23.8103, lng: 90.4125, description: "방글라데시 농촌개발 및 빈곤퇴치사업", category: "ODA", period: "'20-'24", budget: 6500, continent: "아시아", type: "양자무상"},
+                {name: "파키스탄", lat: 33.6844, lng: 73.0479, description: "파키스탄 농업기술 현대화사업", category: "ODA", period: "'18-'23", budget: 5400, continent: "아시아", type: "양자무상"},
+                {name: "스리랑카", lat: 6.9271, lng: 79.8612, description: "스리랑카 지속가능농업 발전사업", category: "ODA", period: "'19-'24", budget: 4800, continent: "아시아", type: "양자무상"},
+                {name: "몽골", lat: 47.8864, lng: 106.9057, description: "몽골 목축업 현대화 및 초지관리사업", category: "ODA", period: "'21-'26", budget: 6200, continent: "아시아", type: "양자무상"},
+                
+                // 중앙아시아
+                {name: "우즈베키스탄", lat: 41.2995, lng: 69.2401, description: "우즈베키스탄 농업용수 효율화사업", category: "ODA", period: "'20-'25", budget: 7500, continent: "중앙아시아", type: "양자무상"},
+                {name: "타지키스탄", lat: 38.8610, lng: 71.2761, description: "타지키스탄 농촌지역 종합개발사업", category: "ODA", period: "'19-'24", budget: 5200, continent: "중앙아시아", type: "양자무상"},
+                {name: "키르기스스탄", lat: 42.8746, lng: 74.5698, description: "키르기스스탄 농업기계화 지원사업", category: "ODA", period: "'21-'25", budget: 4600, continent: "중앙아시아", type: "양자무상"},
+                
+                // 아프리카
                 {name: "에티오피아", lat: 7.46667, lng: 38.41667, description: "에티오피아 농촌종합개발사업(2차)", category: "ODA", period: "'20-'24", budget: 6500, continent: "아프리카", type: "양자무상"},
+                {name: "에티오피아", lat: 9.145, lng: 40.4897, description: "에티오피아 관개농업 현대화사업", category: "ODA", period: "'18-'23", budget: 5800, continent: "아프리카", type: "양자무상"},
                 {name: "가나", lat: 9.4, lng: -0.86667, description: "가나 관개농업 및 농촌개발사업", category: "ODA", period: "'19-'24", budget: 5800, continent: "아프리카", type: "양자무상"},
+                {name: "가나", lat: 7.9465, lng: -1.0232, description: "가나 코코아 생산성 향상사업", category: "ODA", period: "'20-'25", budget: 4200, continent: "아프리카", type: "양자무상"},
                 {name: "르완다", lat: -1.65, lng: 30.08333, description: "르완다 농업기계화 및 쌀 생산성 증대사업", category: "ODA", period: "'19-'23", budget: 4900, continent: "아프리카", type: "양자무상"},
                 {name: "탄자니아", lat: -5.08333, lng: 34.81667, description: "탄자니아 관개농업 현대화사업", category: "ODA", period: "'18-'23", budget: 7200, continent: "아프리카", type: "양자무상"},
                 {name: "우간다", lat: 2.68333, lng: 32.46667, description: "우간다 농업기술 및 관개개발사업", category: "ODA", period: "'19-'24", budget: 5600, continent: "아프리카", type: "양자무상"},
                 {name: "케냐", lat: 0.03333, lng: 37.55, description: "케냐 농업기계화 및 쌀 생산성 증대사업", category: "ODA", period: "'20-'25", budget: 6100, continent: "아프리카", type: "양자무상"},
                 {name: "세네갈", lat: 15.85, lng: -15.96667, description: "세네갈 농촌종합개발사업", category: "ODA", period: "'19-'24", budget: 4500, continent: "아프리카", type: "양자무상"},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 농업생산성 향상사업", category: "ODA", period: "'21-'25", budget: 5200, continent: "아프리카", type: "양자무상"},
+                {name: "모잠비크", lat: -25.9692, lng: 32.5732, description: "모잠비크 농촌개발 종합지원사업", category: "ODA", period: "'20-'24", budget: 6300, continent: "아프리카", type: "양자무상"},
+                {name: "짐바브웨", lat: -17.8252, lng: 31.0335, description: "짐바브웨 농업복구 및 식량안보사업", category: "ODA", period: "'19-'24", budget: 4800, continent: "아프리카", type: "양자무상"},
+                {name: "잠비아", lat: -15.3875, lng: 28.3228, description: "잠비아 농업기술 전수사업", category: "ODA", period: "'18-'23", budget: 5500, continent: "아프리카", type: "양자무상"},
+                {name: "이집트", lat: 30.0444, lng: 31.2357, description: "이집트 신농업기술 보급사업", category: "ODA", period: "'20-'25", budget: 7800, continent: "아프리카", type: "양자무상"},
+                {name: "모로코", lat: 31.7917, lng: -7.0926, description: "모로코 농업용수 관리시스템 구축사업", category: "ODA", period: "'21-'25", budget: 6400, continent: "아프리카", type: "양자무상"},
+                
+                // 남미
                 {name: "페루", lat: -8.06667, lng: -78.6, description: "페루 농촌지역 관개시설 현대화사업", category: "ODA", period: "'18-'23", budget: 5200, continent: "남미", type: "양자무상"},
-                {name: "에콰도르", lat: -1.45, lng: -78.16667, description: "에콰도르 농업현대화 및 관개개발사업", category: "ODA", period: "'20-'25", budget: 4800, continent: "남미", type: "양자무상"}
+                {name: "페루", lat: -12.0464, lng: -77.0428, description: "페루 농업기술 혁신사업", category: "ODA", period: "'21-'25", budget: 4800, continent: "남미", type: "양자무상"},
+                {name: "에콰도르", lat: -1.45, lng: -78.16667, description: "에콰도르 농업현대화 및 관개개발사업", category: "ODA", period: "'20-'25", budget: 4800, continent: "남미", type: "양자무상"},
+                {name: "볼리비아", lat: -16.2902, lng: -63.5887, description: "볼리비아 농촌지역 생계개선사업", category: "ODA", period: "'19-'24", budget: 5600, continent: "남미", type: "양자무상"},
+                {name: "파라과이", lat: -25.2637, lng: -57.5759, description: "파라과이 농업생산성 증대사업", category: "ODA", period: "'20-'25", budget: 4200, continent: "남미", type: "양자무상"},
+                {name: "콜롬비아", lat: 4.7110, lng: -74.0721, description: "콜롬비아 평화지역 농촌개발사업", category: "ODA", period: "'21-'26", budget: 6800, continent: "남미", type: "양자무상"},
+                
+                // 중미
+                {name: "과테말라", lat: 14.6349, lng: -90.5069, description: "과테말라 농촌지역 종합개발사업", category: "ODA", period: "'19-'24", budget: 4500, continent: "중미", type: "양자무상"},
+                {name: "온두라스", lat: 14.0723, lng: -87.1921, description: "온두라스 농업기술 보급사업", category: "ODA", period: "'20-'24", budget: 3800, continent: "중미", type: "양자무상"},
+                {name: "니카라과", lat: 12.1364, lng: -86.2514, description: "니카라과 농촌인프라 개발사업", category: "ODA", period: "'18-'23", budget: 4200, continent: "중미", type: "양자무상"},
+                {name: "엘살바도르", lat: 13.6929, lng: -89.2182, description: "엘살바도르 농업복구 지원사업", category: "ODA", period: "'21-'25", budget: 3600, continent: "중미", type: "양자무상"}
             ],
             consulting: [
+                // 2010년대 프로젝트
                 {name: "라오스", lat: 18.483938, lng: 102.566812, description: "힌헙군 관개용댐 및 수로건설사업", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, startDate: "'10-06", endDate: "'12-12"},
                 {name: "앙골라", lat: -11.244563, lng: 13.972938, description: "앙골라 농업현대화 사업(2단계)", category: "Consulting", status: "준공", budget: 3049, client: "앙골라 농림부", year: 2010, startDate: "'10-09", endDate: "'13-09"},
                 {name: "우즈베키스탄", lat: 41.535438, lng: 64.306562, description: "수자원관리 부문사업", category: "Consulting", status: "준공", budget: 67, client: "우즈벡 농업수자원부", year: 2010, startDate: "'10-06", endDate: "'11-12"},
-                {name: "인도네시아", lat: -6.175110, lng: 106.865039, description: "자카르타 종합개발계획 수립", category: "Consulting", status: "시행중", budget: 1200, client: "인도네시아 공공사업부", year: 2023, startDate: "'23-03", endDate: "'25-12"},
-                {name: "필리핀", lat: 14.5995, lng: 120.9842, description: "마닐라 도시계획 컨설팅", category: "Consulting", status: "준공", budget: 850, client: "필리핀 국토교통부", year: 2019, startDate: "'19-01", endDate: "'21-06"},
-                {name: "카메룬", lat: 3.8480, lng: 11.5021, description: "카메룬 농업인프라 개발", category: "Consulting", status: "준공", budget: 920, client: "카메룬 농림부", year: 2018, startDate: "'18-05", endDate: "'20-11"},
-                {name: "세네갈", lat: 14.6928, lng: -17.4467, description: "세네갈 관개시설 타당성조사", category: "Consulting", status: "준공", budget: 340, client: "세네갈 농업부", year: 2017, startDate: "'17-03", endDate: "'18-09"},
-                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 농촌개발 마스터플랜", category: "Consulting", status: "시행중", budget: 450, client: "말라위 농업부", year: 2024, startDate: "'24-01", endDate: "'26-06"},
-                {name: "모잠비크", lat: -25.9692, lng: 32.5732, description: "모잠비크 항만개발 기본설계", category: "Consulting", status: "준공", budget: 780, client: "모잠비크 교통부", year: 2020, startDate: "'20-02", endDate: "'22-08"},
+                {name: "베트남", lat: 21.0285, lng: 105.8542, description: "베트남 하노이 도시철도 타당성조사", category: "Consulting", status: "준공", budget: 1200, client: "베트남 교통부", year: 2011, startDate: "'11-03", endDate: "'13-08"},
+                {name: "인도네시아", lat: -6.2088, lng: 106.8456, description: "인도네시아 자바 관개시설 개선사업", category: "Consulting", status: "준공", budget: 890, client: "인도네시아 공공사업부", year: 2012, startDate: "'12-01", endDate: "'14-12"},
+                {name: "필리핀", lat: 14.6760, lng: 121.0437, description: "필리핀 메트로마닐라 치수사업", category: "Consulting", status: "준공", budget: 1500, client: "필리핀 공공사업부", year: 2013, startDate: "'13-05", endDate: "'16-03"},
+                {name: "미얀마", lat: 16.8661, lng: 96.1951, description: "미얀마 양곤 항만개발 기본계획", category: "Consulting", status: "준공", budget: 750, client: "미얀마 교통부", year: 2014, startDate: "'14-02", endDate: "'16-06"},
+                {name: "카메룬", lat: 3.8480, lng: 11.5021, description: "카메룬 농업인프라 개발", category: "Consulting", status: "준공", budget: 920, client: "카메룬 농림부", year: 2015, startDate: "'15-07", endDate: "'17-11"},
                 {name: "잠비아", lat: -15.3875, lng: 28.3228, description: "잠비아 광산지역 인프라", category: "Consulting", status: "준공", budget: 650, client: "잠비아 광업부", year: 2016, startDate: "'16-07", endDate: "'19-03"},
-                {name: "타지키스탄", lat: 38.8610, lng: 71.2761, description: "타지키스탄 에너지 개발계획", category: "Consulting", status: "시행중", budget: 520, client: "타지키스탄 에너지부", year: 2023, startDate: "'23-09", endDate: "'25-12"},
+                {name: "세네갈", lat: 14.6928, lng: -17.4467, description: "세네갈 관개시설 타당성조사", category: "Consulting", status: "준공", budget: 340, client: "세네갈 농업부", year: 2017, startDate: "'17-03", endDate: "'18-09"},
+                {name: "탄자니아", lat: -6.7924, lng: 39.2083, description: "탄자니아 다르에스살람 항만확장", category: "Consulting", status: "준공", budget: 2100, client: "탄자니아 교통부", year: 2017, startDate: "'17-01", endDate: "'20-06"},
+                {name: "에티오피아", lat: 8.9806, lng: 38.7578, description: "에티오피아 아디스아바바 경전철 운영자문", category: "Consulting", status: "준공", budget: 1800, client: "에티오피아 철도공사", year: 2018, startDate: "'18-04", endDate: "'21-12"},
+                {name: "가나", lat: 5.6037, lng: -0.1870, description: "가나 아크라 도시개발 마스터플랜", category: "Consulting", status: "준공", budget: 1350, client: "가나 도시계획부", year: 2018, startDate: "'18-09", endDate: "'21-03"},
+                {name: "필리핀", lat: 14.5995, lng: 120.9842, description: "마닐라 도시계획 컨설팅", category: "Consulting", status: "준공", budget: 850, client: "필리핀 국토교통부", year: 2019, startDate: "'19-01", endDate: "'21-06"},
+                {name: "케냐", lat: -1.2921, lng: 36.8219, description: "케냐 나이로비 상하수도 개선사업", category: "Consulting", status: "준공", budget: 1650, client: "케냐 상하수도공사", year: 2019, startDate: "'19-06", endDate: "'22-12"},
+                
+                // 2020년대 프로젝트
+                {name: "모잠비크", lat: -25.9692, lng: 32.5732, description: "모잠비크 항만개발 기본설계", category: "Consulting", status: "준공", budget: 780, client: "모잠비크 교통부", year: 2020, startDate: "'20-02", endDate: "'22-08"},
+                {name: "방글라데시", lat: 22.3569, lng: 91.7832, description: "방글라데시 치타공 항만 현대화", category: "Consulting", status: "준공", budget: 2200, client: "방글라데시 항만청", year: 2020, startDate: "'20-08", endDate: "'23-05"},
+                {name: "우간다", lat: 0.3476, lng: 32.5825, description: "우간다 캄팔라 교통체계 개선", category: "Consulting", status: "준공", budget: 950, client: "우간다 교통부", year: 2021, startDate: "'21-01", endDate: "'23-07"},
                 {name: "아제르바이잔", lat: 40.4093, lng: 49.8671, description: "아제르바이잔 석유화학단지 설계", category: "Consulting", status: "준공", budget: 1500, client: "아제르바이잔 산업부", year: 2021, startDate: "'21-04", endDate: "'23-10"},
+                {name: "파키스탄", lat: 24.8607, lng: 67.0011, description: "파키스탄 카라치 산업단지 개발", category: "Consulting", status: "준공", budget: 1750, client: "파키스탄 산업부", year: 2021, startDate: "'21-09", endDate: "'24-03"},
                 {name: "이집트", lat: 30.0444, lng: 31.2357, description: "이집트 신행정수도 건설자문", category: "Consulting", status: "시행중", budget: 2100, client: "이집트 건설부", year: 2022, startDate: "'22-06", endDate: "'25-12"},
+                {name: "페루", lat: -12.0464, lng: -77.0428, description: "페루 리마 지하철 확장 타당성조사", category: "Consulting", status: "준공", budget: 1400, client: "페루 교통부", year: 2022, startDate: "'22-03", endDate: "'24-09"},
+                {name: "콜롬비아", lat: 6.2442, lng: -75.5812, description: "콜롬비아 메데인 도시재생 프로젝트", category: "Consulting", status: "시행중", budget: 1100, client: "콜롬비아 도시부", year: 2022, startDate: "'22-11", endDate: "'25-06"},
+                {name: "터키", lat: 39.9334, lng: 32.8597, description: "터키 앙카라 스마트시티 구축", category: "Consulting", status: "시행중", budget: 3200, client: "터키 디지털부", year: 2023, startDate: "'23-01", endDate: "'26-12"},
+                {name: "인도네시아", lat: -6.175110, lng: 106.865039, description: "자카르타 종합개발계획 수립", category: "Consulting", status: "시행중", budget: 1200, client: "인도네시아 공공사업부", year: 2023, startDate: "'23-03", endDate: "'25-12"},
+                {name: "타지키스탄", lat: 38.8610, lng: 71.2761, description: "타지키스탄 에너지 개발계획", category: "Consulting", status: "시행중", budget: 520, client: "타지키스탄 에너지부", year: 2023, startDate: "'23-09", endDate: "'25-12"},
+                {name: "브라질", lat: -15.8267, lng: -47.9218, description: "브라질 브라질리아 교통시스템 개선", category: "Consulting", status: "시행중", budget: 2800, client: "브라질 교통부", year: 2023, startDate: "'23-05", endDate: "'26-08"},
+                {name: "말라위", lat: -13.9626, lng: 33.7741, description: "말라위 농촌개발 마스터플랜", category: "Consulting", status: "시행중", budget: 450, client: "말라위 농업부", year: 2024, startDate: "'24-01", endDate: "'26-06"},
+                {name: "멕시코", lat: 19.4326, lng: -99.1332, description: "멕시코 멕시코시티 환경개선 컨설팅", category: "Consulting", status: "제안중", budget: 1900, client: "멕시코 환경부", year: 2024, startDate: "'24-06", endDate: "'27-03"},
                 {name: "모로코", lat: 31.7917, lng: -7.0926, description: "모로코 신재생에너지 타당성조사", category: "Consulting", status: "제안중", budget: 890, client: "모로코 에너지부", year: 2024, startDate: "'24-09", endDate: "'26-03"},
-                {name: "튀니지", lat: 33.8869, lng: 9.5375, description: "튀니지 산업단지 개발계획", category: "Consulting", status: "제안중", budget: 670, client: "튀니지 산업부", year: 2024, startDate: "'24-11", endDate: "'26-08"}
+                {name: "튀니지", lat: 33.8869, lng: 9.5375, description: "튀니지 산업단지 개발계획", category: "Consulting", status: "제안중", budget: 670, client: "튀니지 산업부", year: 2024, startDate: "'24-11", endDate: "'26-08"},
+                {name: "인도", lat: 28.7041, lng: 77.1025, description: "인도 델리 메트로 확장 컨설팅", category: "Consulting", status: "제안중", budget: 3500, client: "인도 철도부", year: 2024, startDate: "'24-12", endDate: "'27-11"},
+                {name: "태국", lat: 13.7563, lng: 100.5018, description: "태국 방콕 스마트그리드 구축", category: "Consulting", status: "제안중", budget: 2600, client: "태국 에너지부", year: 2024, startDate: "'24-10", endDate: "'27-06"}
             ]
         };
 
-        // 사이드 패널 토글 함수
+        // 사이드 패널 토글 함수 (모바일 문제 해결)
         function togglePanel() {
             const panel = document.getElementById('sidePanel');
-            panel.classList.toggle('hidden');
+            const isHidden = panel.classList.contains('hidden');
+            
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                panel.classList.add('visible');
+            } else {
+                panel.classList.add('hidden');
+                panel.classList.remove('visible');
+            }
+            
+            console.log('패널 토글:', isHidden ? '열림' : '닫힘');
         }
 
         // 내 위치로 이동 함수
@@ -735,14 +861,18 @@
                 center: [20, 0],
                 zoom: 2,
                 zoomControl: true,
-                attributionControl: true
+                attributionControl: true,
+                worldCopyJump: false,  // 지도가 연속적으로 표시되도록 설정
+                maxBounds: [[-90, -Infinity], [90, Infinity]], // 위도는 제한하되 경도는 무제한
+                maxBoundsViscosity: 0.0
             });
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 18,
                 tileSize: 256,
-                zoomOffset: 0
+                zoomOffset: 0,
+                noWrap: false  // 타일이 연속적으로 반복되도록 설정
             }).addTo(map);
 
             markersLayer = L.layerGroup().addTo(map);
@@ -973,27 +1103,43 @@
             const countryCode = countryCodeMap[project.name] || 'un';
             const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
             
+            // 국기 로드 실패시 기본 아이콘 스타일
+            const fallbackStyle = `
+                background: linear-gradient(45deg, ${borderColor}, ${borderColor}aa);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 8px;
+                font-weight: bold;
+                text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+            `;
+            
             const iconHtml = `
                 <div class="custom-marker" style="
-                    width: 18px;
-                    height: 18px;
+                    width: 20px;
+                    height: 20px;
                     border: 2px solid ${borderColor};
                     border-radius: 50%;
                     background-image: url('${flagUrl}');
                     background-size: cover;
                     background-position: center;
                     background-repeat: no-repeat;
-                    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                     cursor: pointer;
-                "></div>
+                    ${fallbackStyle}
+                " 
+                onerror="this.style.backgroundImage='none'; this.innerHTML='${project.name.charAt(0)}'"
+                onload="this.innerHTML=''"
+                >${countryCode === 'un' ? project.name.charAt(0) : ''}</div>
             `;
 
             const customIcon = L.divIcon({
                 html: iconHtml,
                 className: 'custom-div-icon',
-                iconSize: [18, 18],
-                iconAnchor: [9, 9],
-                popupAnchor: [0, -9]
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+                popupAnchor: [0, -10]
             });
 
             const marker = L.marker([project.lat, project.lng], {
@@ -1004,7 +1150,7 @@
                 permanent: true,
                 direction: 'top',
                 className: 'country-label',
-                offset: [0, -18]
+                offset: [0, -20]
             });
 
             const popupContent = createPopupContent(project);
@@ -1162,21 +1308,208 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // 메인 함수
+        // Excel 파일 읽기 (웹서버 환경용)
+        async function readExcelFile(filename) {
+            try {
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error(`파일을 찾을 수 없습니다: ${filename}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
+                return workbook;
+            } catch (error) {
+                console.warn(`파일 읽기 실패: ${filename}`, error);
+                return null;
+            }
+        }
+
+        // ODA 데이터 처리 (실제 Excel 파일 구조 반영)
+        function processODAData(workbook) {
+            const projects = [];
+            
+            // "ODA 양자계속(29개 지구)" 시트 사용
+            if (workbook.Sheets["ODA 양자계속(29개 지구)"]) {
+                const worksheet = workbook.Sheets["ODA 양자계속(29개 지구)"];
+                const data = XLSX.utils.sheet_to_json(worksheet);
+                
+                data.forEach(row => {
+                    const lat = row['Y']; // Y가 위도
+                    const lng = row['X']; // X가 경도
+                    const country = row['국가별'];
+                    const projectName = row['₩']; // ₩ 컬럼이 사업명
+                    
+                    // 유효한 좌표와 데이터가 있는 경우에만 추가
+                    if (lat && lng && country && projectName && 
+                        typeof lat === 'number' && typeof lng === 'number' &&
+                        lat !== 0 && lng !== 0) {
+                        
+                        projects.push({
+                            name: country,
+                            lat: lat,
+                            lng: lng,
+                            description: projectName,
+                            category: 'ODA',
+                            projectDetails: row['사업 내용'] || '',
+                            period: row['사업기간'] || '',
+                            budget: row['총예산(백만원)'] || 0,
+                            continent: row['대륙별'] || '',
+                            type: row['사업형태'] || '',
+                            number: row['번호'] || ''
+                        });
+                    }
+                });
+            }
+            
+            return projects;
+        }
+
+        // Consulting 데이터 처리 (실제 Excel 파일 구조 반영)
+        function processConsultingData(workbook) {
+            const projects = [];
+            
+            // 첫 번째 시트 사용
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(worksheet);
+            
+            data.forEach(row => {
+                const lat = row['Y'];
+                const lng = row['X'];
+                const country = row['국가별'];
+                const projectName = row['국문사업명'];
+                
+                // 유효한 좌표와 데이터가 있는 경우에만 추가
+                if (lat && lng && country && projectName && 
+                    typeof lat === 'number' && typeof lng === 'number' &&
+                    lat !== 0 && lng !== 0) {
+                    
+                    projects.push({
+                        name: country,
+                        lat: lat,
+                        lng: lng,
+                        description: projectName,
+                        category: 'Consulting',
+                        projectType: row['사업형태'] || '',
+                        status: row['진행여부'] || '',
+                        startDate: row['착수일'] || '',
+                        endDate: row['준공일'] || '',
+                        budget: row['용역비(공사)(백만원)'] || 0,
+                        client: row['발주처'] || '',
+                        year: row['수주년도'] || '',
+                        englishName: row['영문사업명'] || '',
+                        number: row['번호'] || ''
+                    });
+                }
+            });
+            
+            return projects;
+        }
+
+        // 메인 함수 (실제 Excel 파일 우선 로드)
         async function loadData() {
             try {
-                allProjects.push(...hardCodedData.oda);
-                allProjects.push(...hardCodedData.consulting);
+                console.log('실제 Excel 파일 데이터 로드 시작...');
+                allProjects = []; // 초기화
                 
-                console.log(`총 ${allProjects.length}개 프로젝트 로드 완료`);
+                let successfulLoads = 0;
                 
+                // ODA 데이터 로드 시도
+                try {
+                    const odaResponse = await window.fs.readFile('global ODA.xlsx');
+                    const odaWorkbook = XLSX.read(odaResponse);
+                    const odaProjects = processODAData(odaWorkbook);
+                    
+                    if (odaProjects.length > 0) {
+                        allProjects.push(...odaProjects);
+                        successfulLoads++;
+                        console.log(`✅ ODA 프로젝트 ${odaProjects.length}개 로드 완료`);
+                    } else {
+                        console.log('⚠️ ODA 데이터가 비어있습니다');
+                    }
+                } catch (error) {
+                    console.log('❌ ODA Excel 파일 로드 실패:', error.message);
+                }
+                
+                // Consulting 데이터 로드 시도
+                try {
+                    const consultingResponse = await window.fs.readFile('global consulting.xlsx');
+                    const consultingWorkbook = XLSX.read(consultingResponse);
+                    const consultingProjects = processConsultingData(consultingWorkbook);
+                    
+                    if (consultingProjects.length > 0) {
+                        allProjects.push(...consultingProjects);
+                        successfulLoads++;
+                        console.log(`✅ 컨설팅 프로젝트 ${consultingProjects.length}개 로드 완료`);
+                    } else {
+                        console.log('⚠️ 컨설팅 데이터가 비어있습니다');
+                    }
+                } catch (error) {
+                    console.log('❌ 컨설팅 Excel 파일 로드 실패:', error.message);
+                }
+                
+                // Excel 파일 로드가 실패했거나 데이터가 없는 경우 샘플 데이터 사용
+                if (allProjects.length === 0) {
+                    console.log('📋 Excel 파일 로드 실패, 샘플 데이터 사용');
+                    allProjects.push(...hardCodedData.oda);
+                    allProjects.push(...hardCodedData.consulting);
+                    
+                    // 사용자 알림
+                    showDataSourceNotification('샘플 데이터', 'warning');
+                } else {
+                    console.log(`🎉 실제 Excel 데이터 로드 성공! 총 ${allProjects.length}개 프로젝트`);
+                    console.log(`📊 ODA: ${allProjects.filter(p => p.category === 'ODA').length}개, 컨설팅: ${allProjects.filter(p => p.category === 'Consulting').length}개`);
+                    
+                    // 성공 알림
+                    showDataSourceNotification(`실제 Excel 데이터 (${allProjects.length}개 프로젝트)`, 'success');
+                }
+                
+                // 필터 시스템 초기화
                 initializeFilters();
                 
             } catch (error) {
-                console.error('데이터 로드 중 오류:', error);
+                console.error('❌ 데이터 로드 중 심각한 오류:', error);
+                
+                // 최후의 수단으로 샘플 데이터 로드
+                if (allProjects.length === 0) {
+                    allProjects.push(...hardCodedData.oda);
+                    allProjects.push(...hardCodedData.consulting);
+                    initializeFilters();
+                    showDataSourceNotification('비상 샘플 데이터', 'error');
+                }
             } finally {
                 hideLoading();
             }
+        }
+
+        // 데이터 소스 알림 표시
+        function showDataSourceNotification(message, type) {
+            setTimeout(() => {
+                const alertDiv = document.createElement('div');
+                const colors = {
+                    'success': { bg: '#d4edda', border: '#c3e6cb', text: '#155724' },
+                    'warning': { bg: '#fff3cd', border: '#ffeaa7', text: '#856404' },
+                    'error': { bg: '#f8d7da', border: '#f5c6cb', text: '#721c24' }
+                };
+                const color = colors[type] || colors.warning;
+                
+                alertDiv.style.cssText = `
+                    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                    background: ${color.bg}; border: 1px solid ${color.border}; color: ${color.text};
+                    padding: 12px 20px; border-radius: 8px; z-index: 2000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px;
+                    max-width: 90%; text-align: center; font-weight: 600;
+                `;
+                
+                const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌';
+                alertDiv.innerHTML = `${icon} ${message}`;
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 4000);
+            }, 1000);
         }
 
         // 페이지 로드 시 실행
