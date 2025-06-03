@@ -1,0 +1,35 @@
+function applyFilters() {
+            filteredProjects = allProjects.filter(project => {
+                const projectTypeMatch = activeFilters.projectTypes.size === 0 || activeFilters.projectTypes.has(project.category);
+                const countryMatch = activeFilters.countries.size === 0 || activeFilters.countries.has(project.name);
+
+                // 프로젝트 타입 또는 국가 필터에 맞지 않으면 바로 제외
+                if (!projectTypeMatch || !countryMatch) {
+                    return false;
+                }
+
+                // ODA 프로젝트의 경우: 수주년도 또는 진행여부 필터가 활성화되어 있으면 제외
+                if (project.category === 'ODA') {
+                    if (activeFilters.years.size > 0 || activeFilters.statuses.size > 0) {
+                        return false;
+                    }
+                }
+                // Consulting 프로젝트의 경우: 수주년도 및 진행여부 필터 적용
+                else if (project.category === 'Consulting') {
+                    const yearMatch = activeFilters.years.size === 0 || activeFilters.years.has(project.year?.toString());
+                    const statusMatch = activeFilters.statuses.size === 0 || activeFilters.statuses.has(project.status);
+
+                    if (!yearMatch || !statusMatch) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+            
+            updateMapMarkers();
+            updateStats();
+            updateLegend();
+            updateFilterResultText();
+            updateFilterCounts();
+        }
