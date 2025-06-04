@@ -393,222 +393,206 @@
             }
         }
 
-        // ODA 파일 처리 (모든 시트 검사)
+        // ODA 파일 처리 (정확한 시트만 선택)
         function processODAFile(workbook) {
             console.log('ODA 파일 처리 시작');
             console.log('사용 가능한 시트:', workbook.SheetNames);
             
             const projects = [];
-            const processedProjects = new Set(); // 중복 제거를 위한 Set
             
-            // 모든 시트를 검사하여 데이터가 있는 시트 찾기
+            // ODA 전용 시트만 처리 ("ODA 양자계속" 포함된 시트)
+            let targetSheetName = null;
             for (const sheetName of workbook.SheetNames) {
-                console.log(`시트 검사 중: ${sheetName}`);
-                
-                const sheet = workbook.Sheets[sheetName];
-                const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
-                
-                if (rawData.length < 2) continue; // 헤더 + 최소 1개 데이터 행 필요
-                
-                // 헤더 행 찾기
-                let headerRowIndex = -1;
-                for (let i = 0; i < Math.min(5, rawData.length); i++) {
-                    const row = rawData[i];
-                    if (row && Array.isArray(row)) {
-                        const hasCountryCol = row.some(cell => 
-                            cell && typeof cell === 'string' && 
-                            (cell.includes('국가') || cell.includes('Country') || cell === '₩')
-                        );
-                        if (hasCountryCol) {
-                            headerRowIndex = i;
-                            break;
-                        }
-                    }
+                if (sheetName.includes('ODA') || sheetName.includes('양자계속')) {
+                    targetSheetName = sheetName;
+                    break;
                 }
+            }
+            
+            if (!targetSheetName) {
+                console.log('ODA 시트를 찾을 수 없습니다');
+                return projects;
+            }
+            
+            console.log(`ODA 시트 선택: ${targetSheetName}`);
+            
+            const sheet = workbook.Sheets[targetSheetName];
+            const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
+            
+            console.log(`데이터 행 수: ${rawData.length}`);
+            
+            if (rawData.length < 2) {
+                console.log('유효한 데이터가 없습니다');
+                return projects;
+            }
+            
+            // 헤더 확인 (첫 번째 행)
+            const headers = rawData[0];
+            console.log('헤더:', headers);
+            
+            let processedCount = 0;
+            
+            // 데이터 행 처리 (헤더 제외)
+            for (let i = 1; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row || !Array.isArray(row)) continue;
                 
-                if (headerRowIndex === -1) continue;
-                
-                // 헤더를 키로 사용하여 객체 배열로 변환
-                const headers = rawData[headerRowIndex];
-                const dataRows = rawData.slice(headerRowIndex + 1);
-                
-                console.log(`시트 ${sheetName} 헤더:`, headers);
-                console.log(`데이터 행 수: ${dataRows.length}`);
-                
-                let processedInSheet = 0;
-                
-                dataRows.forEach((row, index) => {
-                    if (!row || !Array.isArray(row)) return;
+                try {
+                    // ODA 시트 구조에 맞게 컬럼 인덱스 사용
+                    const country = row[1]; // 국가별
+                    const x = parseFloat(row[2]) || 0; // X
+                    const y = parseFloat(row[3]) || 0; // Y
+                    const projectName = row[4]; // ₩ (프로젝트명)
+                    const projectContent = row[5]; // 사업 내용
+                    const period = row[6]; // 사업기간
+                    const type = row[7]; // 사업형태
+                    const budget = parseFloat(row[8]) || 0; // 총예산(백만원)
+                    const continent = row[9]; // 대륙별
                     
-                    // 행 데이터를 객체로 변환
-                    const rowObj = {};
-                    headers.forEach((header, colIndex) => {
-                        if (header) {
-                            rowObj[header] = row[colIndex];
-                        }
-                    });
-                    
-                    try {
-                        // 다양한 컬럼명 패턴으로 데이터 추출
-                        const country = getValueFromRow(rowObj, ['국가별', '국가', '대상국가', 'Country', '₩']);
-                        const projectName = getValueFromRow(rowObj, ['사업명', '프로젝트명', 'Project', '₩1', '사업']);
-                        let lat = parseFloat(getValueFromRow(rowObj, ['Y', 'Lat', 'Latitude', '위도', 'y좌표']) || 0);
-                        let lng = parseFloat(getValueFromRow(rowObj, ['X', 'Lng', 'Longitude', '경도', 'x좌표']) || 0);
-                        const budget = parseFloat(getValueFromRow(rowObj, ['총예산(백만원)', '예산', 'Budget', '사업비', '총예산']) || 0);
-                        const period = getValueFromRow(rowObj, ['사업기간', '기간', 'Period', '수행기간']);
-                        const type = getValueFromRow(rowObj, ['사업형태', '타입', 'Type', '형태']);
-                        const continent = getValueFromRow(rowObj, ['대륙별', '대륙', 'Continent', '지역']);
+                    // 유효한 데이터 검증
+                    if (country && projectName && 
+                        country.toString().trim() !== '' && 
+                        projectName.toString().trim() !== '') {
                         
-                        // 더 정교한 중복 확인: 국가명, 프로젝트명, 예산, 기간을 모두 포함
-                        const uniqueKey = `${country?.toString().trim()}_${projectName?.toString().trim()}_${budget}_${period?.toString().trim()}`.toLowerCase();
+                        let lat = y;
+                        let lng = x;
                         
-                        // 좌표가 없는 경우 국가별 기본 좌표 사용
-                        if (country && projectName && (!lat || !lng || lat === 0 || lng === 0)) {
+                        // 좌표가 없는 경우 기본 좌표 사용
+                        if (!lat || !lng || lat === 0 || lng === 0) {
                             const defaultCoords = getDefaultCoordinates(country.toString().trim());
                             lat = defaultCoords.lat;
                             lng = defaultCoords.lng;
                         }
                         
-                        // 유효한 데이터이고 정확한 중복이 아닌 경우만 추가
-                        if (country && projectName && !processedProjects.has(uniqueKey)) {
-                            const project = {
-                                name: country.toString().trim(),
-                                lat: lat,
-                                lng: lng,
-                                description: projectName.toString().trim(),
-                                category: 'ODA',
-                                period: period ? period.toString().trim() : '',
-                                budget: budget || 0,
-                                continent: continent ? continent.toString().trim() : '',
-                                type: type ? type.toString().trim() : '',
-                                number: projects.length + 1,
-                                sheet: sheetName
-                            };
-                            
-                            projects.push(project);
-                            processedProjects.add(uniqueKey);
-                            processedInSheet++;
-                        }
-                    } catch (error) {
-                        // 개별 행 오류는 무시하고 계속
+                        const project = {
+                            name: country.toString().trim(),
+                            lat: lat,
+                            lng: lng,
+                            description: projectName.toString().trim(),
+                            category: 'ODA',
+                            period: period ? period.toString().trim() : '',
+                            budget: budget || 0,
+                            continent: continent ? continent.toString().trim() : '',
+                            type: type ? type.toString().trim() : '',
+                            content: projectContent ? projectContent.toString().trim() : '',
+                            number: projects.length + 1,
+                            sheet: targetSheetName
+                        };
+                        
+                        projects.push(project);
+                        processedCount++;
                     }
-                });
-                
-                console.log(`시트 ${sheetName}에서 ${processedInSheet}개 ODA 프로젝트 처리됨`);
+                } catch (error) {
+                    console.warn(`행 ${i + 1} 처리 중 오류:`, error.message);
+                }
             }
             
-            console.log(`총 ODA 프로젝트: ${projects.length}개 (정교한 중복 제거됨)`);
+            console.log(`ODA 프로젝트 처리 완료: ${processedCount}개`);
             return projects;
         }
 
-        // Consulting 파일 처리 (모든 시트 검사)
+        // Consulting 파일 처리 (정확한 시트만 선택)
         function processConsultingFile(workbook) {
             console.log('Consulting 파일 처리 시작');
             console.log('사용 가능한 시트:', workbook.SheetNames);
             
             const projects = [];
-            const processedProjects = new Set(); // 중복 제거를 위한 Set
             
-            // 모든 시트를 검사하여 데이터가 있는 시트 찾기
+            // Consulting 전용 시트만 처리 ("해외기술컨설팅" 포함된 시트)
+            let targetSheetName = null;
             for (const sheetName of workbook.SheetNames) {
-                console.log(`시트 검사 중: ${sheetName}`);
-                
-                const sheet = workbook.Sheets[sheetName];
-                const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
-                
-                if (rawData.length < 2) continue;
-                
-                // 헤더 행 찾기
-                let headerRowIndex = -1;
-                for (let i = 0; i < Math.min(5, rawData.length); i++) {
-                    const row = rawData[i];
-                    if (row && Array.isArray(row)) {
-                        const hasRelevantCol = row.some(cell => 
-                            cell && typeof cell === 'string' && 
-                            (cell.includes('국가') || cell.includes('사업명') || cell.includes('용역비') || cell.includes('수주년도'))
-                        );
-                        if (hasRelevantCol) {
-                            headerRowIndex = i;
-                            break;
-                        }
-                    }
+                if (sheetName.includes('해외기술컨설팅') || sheetName.includes('컨설팅')) {
+                    targetSheetName = sheetName;
+                    break;
                 }
+            }
+            
+            // 컨설팅 시트가 없으면 첫 번째 시트 사용
+            if (!targetSheetName) {
+                targetSheetName = workbook.SheetNames[0];
+            }
+            
+            console.log(`Consulting 시트 선택: ${targetSheetName}`);
+            
+            const sheet = workbook.Sheets[targetSheetName];
+            const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
+            
+            console.log(`데이터 행 수: ${rawData.length}`);
+            
+            if (rawData.length < 2) {
+                console.log('유효한 데이터가 없습니다');
+                return projects;
+            }
+            
+            // 헤더 확인 (첫 번째 행)
+            const headers = rawData[0];
+            console.log('헤더:', headers);
+            
+            let processedCount = 0;
+            
+            // 데이터 행 처리 (헤더 제외)
+            for (let i = 1; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row || !Array.isArray(row)) continue;
                 
-                if (headerRowIndex === -1) continue;
-                
-                // 헤더를 키로 사용하여 객체 배열로 변환
-                const headers = rawData[headerRowIndex];
-                const dataRows = rawData.slice(headerRowIndex + 1);
-                
-                console.log(`시트 ${sheetName} 헤더:`, headers);
-                console.log(`데이터 행 수: ${dataRows.length}`);
-                
-                let processedInSheet = 0;
-                
-                dataRows.forEach((row, index) => {
-                    if (!row || !Array.isArray(row)) return;
+                try {
+                    // Consulting 시트 구조에 맞게 컬럼 인덱스 사용
+                    const number = row[0]; // 번호
+                    const year = parseInt(row[1]) || null; // 수주년도
+                    const status = row[2]; // 진행여부
+                    const country = row[3]; // 국가별
+                    const x = parseFloat(row[4]) || 0; // X
+                    const y = parseFloat(row[5]) || 0; // Y
+                    const englishName = row[6]; // 영문사업명
+                    const projectName = row[7]; // 국문사업명
+                    const projectType = row[8]; // 사업형태
+                    const startDate = row[9]; // 착수일
+                    const endDate = row[10]; // 준공일
+                    const budget = parseFloat(row[11]) || 0; // 용역비(공사)(백만원)
+                    const client = row[12]; // 발주처
                     
-                    // 행 데이터를 객체로 변환
-                    const rowObj = {};
-                    headers.forEach((header, colIndex) => {
-                        if (header) {
-                            rowObj[header] = row[colIndex];
-                        }
-                    });
-                    
-                    try {
-                        const country = getValueFromRow(rowObj, ['국가별', '국가', '대상국가', 'Country']);
-                        const projectName = getValueFromRow(rowObj, ['국문사업명', '사업명', '프로젝트명', 'Project']);
-                        let lat = parseFloat(getValueFromRow(rowObj, ['Y', 'Lat', 'Latitude', '위도', 'y좌표']) || 0);
-                        let lng = parseFloat(getValueFromRow(rowObj, ['X', 'Lng', 'Longitude', '경도', 'x좌표']) || 0);
-                        const budget = parseFloat(getValueFromRow(rowObj, ['용역비(공사)(백만원)', '용역비', 'Budget', '사업비']) || 0);
-                        const status = getValueFromRow(rowObj, ['진행여부', '상태', 'Status', '진행상태']);
-                        const client = getValueFromRow(rowObj, ['발주처', 'Client', '발주기관']);
-                        const year = parseInt(getValueFromRow(rowObj, ['수주년도', '년도', 'Year', '수주']) || 0);
-                        const startDate = getValueFromRow(rowObj, ['착수일', '시작일', 'Start', '착수']);
-                        const endDate = getValueFromRow(rowObj, ['준공일', '종료일', 'End', '준공', '완료일']);
+                    // 유효한 데이터 검증
+                    if (country && projectName && 
+                        country.toString().trim() !== '' && 
+                        projectName.toString().trim() !== '') {
                         
-                        // 더 정교한 중복 확인: 여러 필드를 조합하여 정확한 중복만 제거
-                        const uniqueKey = `${country?.toString().trim()}_${projectName?.toString().trim()}_${year}_${budget}_${client?.toString().trim()}_${startDate?.toString().trim()}`.toLowerCase();
+                        let lat = y;
+                        let lng = x;
                         
-                        // 좌표가 없는 경우 국가별 기본 좌표 사용
-                        if (country && projectName && (!lat || !lng || lat === 0 || lng === 0)) {
+                        // 좌표가 없는 경우 기본 좌표 사용
+                        if (!lat || !lng || lat === 0 || lng === 0) {
                             const defaultCoords = getDefaultCoordinates(country.toString().trim());
                             lat = defaultCoords.lat;
                             lng = defaultCoords.lng;
                         }
                         
-                        // 유효한 데이터이고 정확한 중복이 아닌 경우만 추가
-                        if (country && projectName && !processedProjects.has(uniqueKey)) {
-                            const project = {
-                                name: country.toString().trim(),
-                                lat: lat,
-                                lng: lng,
-                                description: projectName.toString().trim(),
-                                category: 'Consulting',
-                                status: status ? status.toString().trim() : '',
-                                budget: budget || 0,
-                                client: client ? client.toString().trim() : '',
-                                year: year || null,
-                                startDate: startDate ? startDate.toString().trim() : '',
-                                endDate: endDate ? endDate.toString().trim() : '',
-                                number: projects.length + 1,
-                                sheet: sheetName
-                            };
-                            
-                            projects.push(project);
-                            processedProjects.add(uniqueKey);
-                            processedInSheet++;
-                        }
-                    } catch (error) {
-                        // 개별 행 오류는 무시하고 계속
+                        const project = {
+                            name: country.toString().trim(),
+                            lat: lat,
+                            lng: lng,
+                            description: projectName.toString().trim(),
+                            category: 'Consulting',
+                            status: status ? status.toString().trim() : '',
+                            budget: budget || 0,
+                            client: client ? client.toString().trim() : '',
+                            year: year,
+                            startDate: startDate ? startDate.toString().trim() : '',
+                            endDate: endDate ? endDate.toString().trim() : '',
+                            projectType: projectType ? projectType.toString().trim() : '',
+                            englishName: englishName ? englishName.toString().trim() : '',
+                            number: processedCount + 1,
+                            sheet: targetSheetName
+                        };
+                        
+                        projects.push(project);
+                        processedCount++;
                     }
-                });
-                
-                console.log(`시트 ${sheetName}에서 ${processedInSheet}개 Consulting 프로젝트 처리됨`);
+                } catch (error) {
+                    console.warn(`행 ${i + 1} 처리 중 오류:`, error.message);
+                }
             }
             
-            console.log(`총 Consulting 프로젝트: ${projects.length}개 (정교한 중복 제거됨)`);
+            console.log(`Consulting 프로젝트 처리 완료: ${processedCount}개`);
             return projects;
         }
 
@@ -628,7 +612,11 @@
                 
                 console.log(`데이터 로드 완료: ODA ${odaCount}개, Consulting ${consultingCount}개 (총 ${allProjects.length}개)`);
                 
-                showNotification(`데이터 로드 성공! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
+                if (odaCount === 30 && consultingCount === 178) {
+                    showNotification(`✅ 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개 (목표 달성!)`, 'success');
+                } else {
+                    showNotification(`📊 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
+                }
                 
             } catch (error) {
                 console.error('데이터 로드 실패:', error);
