@@ -80,7 +80,7 @@
         .admin-logout-btn:hover { background-color: #545b62; }
         
         .views-panel {
-            position: fixed; top: 60px; right: 20px; width: 400px; max-height: 650px;
+            position: fixed; top: 60px; right: 20px; width: 400px; max-height: 750px;
             background: white; border: 1px solid #ddd; border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.15); z-index: 1007;
             display: none; overflow: hidden;
@@ -90,7 +90,7 @@
             font-weight: 600; display: flex; justify-content: space-between; align-items: center;
         }
         .views-panel-content {
-            max-height: 570px; overflow-y: auto; padding: 8px;
+            max-height: 670px; overflow-y: auto; padding: 8px;
         }
         .views-summary {
             display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -193,22 +193,101 @@
             line-height: 1.3;
         }
         
-        .views-history-item {
+        /* 달력 스타일 (개선된 버전) */
+        .calendar-container {
+            margin: 12px 0;
+        }
+        .calendar-header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 6px 8px; border-radius: 4px; margin-bottom: 2px;
-            transition: background-color 0.2s;
+            margin-bottom: 10px; padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px; color: white;
         }
-        .views-history-item:hover {
-            background-color: #f8f9fa;
+        .calendar-title {
+            font-weight: 700; font-size: 15px; color: white;
         }
-        .views-history-date {
-            font-size: 12px; color: #495057;
+        .calendar-nav {
+            display: flex; gap: 6px;
         }
-        .views-history-count {
-            font-size: 12px; font-weight: 600; color: #007bff;
+        .calendar-nav-btn {
+            background: rgba(255,255,255,0.2); color: white; border: none;
+            border-radius: 6px; padding: 6px 10px; cursor: pointer;
+            font-size: 12px; transition: all 0.2s; font-weight: 600;
+            backdrop-filter: blur(10px);
         }
-        .views-history-today {
-            background-color: #e3f2fd;
+        .calendar-nav-btn:hover {
+            background: rgba(255,255,255,0.3); transform: scale(1.05);
+        }
+        .calendar-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 2px; background: #f8f9fa; border-radius: 8px; padding: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .calendar-day-header {
+            background: #e9ecef; padding: 6px 4px; text-align: center;
+            font-size: 11px; font-weight: 700; color: #495057;
+            border-radius: 4px; margin-bottom: 2px;
+        }
+        .calendar-day-header.sunday { color: #dc3545; }
+        .calendar-day-header.saturday { color: #28a745; }
+        
+        .calendar-day {
+            background: white; border-radius: 6px;
+            min-height: 32px; max-height: 32px; 
+            position: relative; cursor: pointer;
+            transition: all 0.2s; border: 1px solid #e9ecef;
+            display: flex; padding: 3px;
+        }
+        .calendar-day:hover {
+            background: #f8f9fa; transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .calendar-day.other-month {
+            background: #f8f9fa; opacity: 0.5;
+        }
+        .calendar-day.today {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white; border: 2px solid #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        .calendar-day.has-views {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+        .calendar-day.today.has-views {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .calendar-day-number {
+            position: absolute; top: 2px; right: 4px;
+            font-size: 11px; font-weight: 700; 
+            color: #495057;
+        }
+        .calendar-day.today .calendar-day-number {
+            color: white;
+        }
+        .calendar-day.sunday .calendar-day-number {
+            color: #dc3545;
+        }
+        .calendar-day.saturday .calendar-day-number {
+            color: #28a745;
+        }
+        
+        .calendar-day-views {
+            position: absolute; bottom: 2px; left: 4px;
+            font-size: 9px; display: flex; align-items: baseline;
+            line-height: 1;
+        }
+        .calendar-day-views .number {
+            font-weight: 700; color: #007bff; margin-right: 1px;
+        }
+        .calendar-day-views .unit {
+            font-weight: 500; color: #6c757d;
+        }
+        .calendar-day.today .calendar-day-views .number {
+            color: white;
+        }
+        .calendar-day.today .calendar-day-views .unit {
+            color: rgba(255,255,255,0.8);
         }
         .close-panel {
             background: none; border: none; font-size: 16px; cursor: pointer;
@@ -279,7 +358,8 @@
         @media (max-width: 768px) {
             #bottom-info-panel .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
-            .views-panel { width: calc(100% - 40px); }
+            .views-panel { width: calc(100% - 40px); max-height: 80vh; }
+            .views-panel-content { max-height: calc(80vh - 60px); }
         }
 
         .notification {
@@ -376,7 +456,7 @@
 
     <div class="views-panel" id="views-panel">
         <div class="views-panel-header">
-            <span>📊 조회수 통계 (보안 강화 버전)</span>
+            <span>📊 조회수 통계</span>
             <button class="close-panel" onclick="toggleViewsPanel()">✕</button>
         </div>
         <div class="views-panel-content">
@@ -389,41 +469,46 @@
                     <div class="views-summary-number" id="summary-total">0</div>
                     <div class="views-summary-label">누적</div>
                 </div>
-                <div class="views-summary-card">
-                    <div class="views-summary-number" id="summary-avg">0</div>
-                    <div class="views-summary-label">일평균</div>
-                </div>
-                <div class="views-summary-card">
-                    <div class="views-summary-number" id="summary-days">0</div>
-                    <div class="views-summary-label">기록일수</div>
-                </div>
             </div>
             
-            <!-- Firebase 컨트롤 섹션 -->
-            <div class="firebase-controls">
+            <!-- Firebase 컨트롤 섹션 (관리자만) -->
+            <div class="firebase-controls" id="firebase-admin-controls" style="display: none;">
                 <div class="firebase-status-section">
                     <div>
                         <div style="font-size: 12px; font-weight: 600;">🔥 Firebase 연결</div>
                         <div style="font-size: 10px; color: #6c757d;" id="firebase-connection-info">연결 대기 중...</div>
                     </div>
-                    <div style="font-size: 10px; color: #6c757d;" id="user-role-info">읽기 전용</div>
+                    <div style="font-size: 10px; color: #6c757d;" id="user-role-info">관리자</div>
                 </div>
                 <div class="firebase-control-buttons" id="firebase-controls">
-                    <button class="firebase-btn sync" onclick="manualSync()" id="sync-btn" disabled>🔄 동기화</button>
+                    <button class="firebase-btn sync" onclick="manualSync()" id="sync-btn">🔄 동기화</button>
                     <button class="firebase-btn backup" onclick="exportFirebaseData()">💾 내보내기</button>
-                    <button class="firebase-btn reset" onclick="resetFirebaseData()" id="reset-btn" disabled>🗑️ 초기화</button>
+                    <button class="firebase-btn reset" onclick="resetFirebaseData()" id="reset-btn">🗑️ 초기화</button>
                 </div>
                 <div class="firebase-info">
                     <div id="last-sync-info">마지막 동기화: 없음</div>
                     <div id="total-users-info">전체 사용자 수: 확인 중...</div>
-                    <div id="admin-status-info">현재 상태: 읽기 전용 모드</div>
+                    <div id="admin-status-info">현재 상태: 관리자 모드</div>
                 </div>
             </div>
             
-            <div style="border-bottom: 1px solid #dee2e6; margin-bottom: 8px; padding-bottom: 8px;">
-                <strong style="font-size: 13px; color: #495057;">📅 날짜별 기록</strong>
+            <!-- 달력 형태 조회수 기록 -->
+            <div class="calendar-container">
+                <div style="border-bottom: 1px solid #dee2e6; margin-bottom: 12px; padding-bottom: 8px;">
+                    <strong style="font-size: 13px; color: #495057;">📅 월별 조회수</strong>
+                </div>
+                <div class="calendar-header">
+                    <div class="calendar-title" id="calendar-title">2024년 6월</div>
+                    <div class="calendar-nav">
+                        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
+                        <button class="calendar-nav-btn" onclick="goToToday()">오늘</button>
+                        <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- 달력이 여기에 동적으로 생성됩니다 -->
+                </div>
             </div>
-            <div id="views-history"></div>
         </div>
     </div>
 
@@ -494,6 +579,9 @@
         let dailyViews = 0;
         let viewsHistory = {};
         let totalViews = 0;
+        let viewsIncremented = false; // 조회수 증가 중복 방지 플래그
+        let firebaseInitialized = false; // Firebase 초기화 완료 플래그
+        let currentCalendarDate = new Date(); // 현재 달력에 표시되는 월
 
         // Firebase 설정 (하드코딩된 설정)
         const firebaseConfig = {
@@ -634,28 +722,27 @@
             const logoutBtn = document.getElementById('admin-logout-btn');
             const syncBtn = document.getElementById('sync-btn');
             const resetBtn = document.getElementById('reset-btn');
-            const roleInfo = document.getElementById('user-role-info');
-            const statusInfo = document.getElementById('admin-status-info');
             const statusBadge = document.getElementById('firebase-status');
+            const adminControls = document.getElementById('firebase-admin-controls');
             
             if (adminStatus) {
                 loginBtn.style.display = 'none';
                 logoutBtn.style.display = 'inline-block';
-                syncBtn.disabled = false;
-                resetBtn.disabled = false;
-                roleInfo.textContent = '관리자';
-                statusInfo.textContent = '현재 상태: 관리자 모드 (읽기/쓰기 가능)';
                 statusBadge.className = 'firebase-status firebase-admin';
                 statusBadge.textContent = 'ADMIN';
+                adminControls.style.display = 'block'; // 관리자 컨트롤 표시
+                
+                if (syncBtn) syncBtn.disabled = false;
+                if (resetBtn) resetBtn.disabled = false;
             } else {
                 loginBtn.style.display = 'inline-block';
                 logoutBtn.style.display = 'none';
-                syncBtn.disabled = true;
-                resetBtn.disabled = true;
-                roleInfo.textContent = '읽기 전용';
-                statusInfo.textContent = '현재 상태: 읽기 전용 모드';
                 statusBadge.className = 'firebase-status firebase-readonly';
                 statusBadge.textContent = 'READONLY';
+                adminControls.style.display = 'none'; // 관리자 컨트롤 숨김
+                
+                if (syncBtn) syncBtn.disabled = true;
+                if (resetBtn) resetBtn.disabled = true;
             }
         }
 
@@ -897,20 +984,12 @@
             if (dailyElement) dailyElement.textContent = dailyViews.toLocaleString();
             if (totalElement) totalElement.textContent = totalViews.toLocaleString();
             
-            // 패널 요약 정보 업데이트
+            // 패널 요약 정보 업데이트 (오늘, 누적만)
             const summaryToday = document.getElementById('summary-today');
             const summaryTotal = document.getElementById('summary-total');
-            const summaryAvg = document.getElementById('summary-avg');
-            const summaryDays = document.getElementById('summary-days');
             
             if (summaryToday) summaryToday.textContent = dailyViews.toLocaleString();
             if (summaryTotal) summaryTotal.textContent = totalViews.toLocaleString();
-            
-            const recordDays = Object.keys(viewsHistory).length;
-            const avgViews = recordDays > 0 ? Math.round(totalViews / recordDays) : 0;
-            
-            if (summaryAvg) summaryAvg.textContent = avgViews.toLocaleString();
-            if (summaryDays) summaryDays.textContent = recordDays.toLocaleString();
         }
 
         function toggleViewsPanel() {
@@ -920,40 +999,158 @@
             if (isVisible) {
                 panel.style.display = 'none';
             } else {
-                updateViewsHistory();
+                updateCalendar();
                 updateTotalUsersCount(); // 패널 열 때마다 사용자 수 업데이트
                 panel.style.display = 'block';
             }
         }
 
-        function updateViewsHistory() {
-            const historyContainer = document.getElementById('views-history');
-            if (!historyContainer) return;
+        // ===========================================
+        // 달력 시스템
+        // ===========================================
+
+        function updateCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
             
-            // 날짜별 기록을 최신 순으로 정렬
-            const sortedDates = Object.keys(viewsHistory).sort().reverse();
-            const today = getTodayString();
+            // 달력 제목 업데이트
+            const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', 
+                              '7월', '8월', '9월', '10월', '11월', '12월'];
+            document.getElementById('calendar-title').textContent = `${year}년 ${monthNames[month]}`;
             
-            let historyHTML = '';
+            // 달력 그리드 생성
+            generateCalendarGrid(year, month);
+        }
+
+        function generateCalendarGrid(year, month) {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
             
-            sortedDates.forEach(date => {
-                const count = viewsHistory[date];
-                const isToday = date === today;
-                const formattedDate = formatDateForDisplay(date);
-                
-                historyHTML += `
-                    <div class="views-history-item ${isToday ? 'views-history-today' : ''}">
-                        <span class="views-history-date">${formattedDate}${isToday ? ' (오늘)' : ''}</span>
-                        <span class="views-history-count">${count.toLocaleString()}회</span>
-                    </div>
-                `;
+            // 요일 헤더 추가
+            const dayHeaders = [
+                { name: '일', class: 'sunday' },
+                { name: '월', class: '' },
+                { name: '화', class: '' },
+                { name: '수', class: '' },
+                { name: '목', class: '' },
+                { name: '금', class: '' },
+                { name: '토', class: 'saturday' }
+            ];
+            
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = `calendar-day-header ${day.class}`;
+                dayHeader.textContent = day.name;
+                calendarGrid.appendChild(dayHeader);
             });
             
-            if (historyHTML === '') {
-                historyHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">기록이 없습니다.</div>';
+            // 현재 월의 첫 번째 날과 마지막 날
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            
+            // 첫 번째 날의 요일 (0 = 일요일)
+            const startDayOfWeek = firstDay.getDay();
+            
+            // 이전 달의 마지막 날들 추가
+            const prevMonth = new Date(year, month - 1, 0);
+            const prevMonthDays = prevMonth.getDate();
+            
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const dayNum = prevMonthDays - i;
+                const dayOfWeek = (startDayOfWeek - 1 - i + 7) % 7;
+                const dayElement = createCalendarDay(dayNum, year, month - 1, true, dayOfWeek);
+                calendarGrid.appendChild(dayElement);
             }
             
-            historyContainer.innerHTML = historyHTML;
+            // 현재 달의 날들 추가
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayOfWeek = (startDayOfWeek + day - 1) % 7;
+                const dayElement = createCalendarDay(day, year, month, false, dayOfWeek);
+                calendarGrid.appendChild(dayElement);
+            }
+            
+            // 다음 달의 첫 번째 날들 추가 (6주 완성)
+            const totalCells = calendarGrid.children.length - 7; // 헤더 제외
+            const remainingCells = 42 - totalCells; // 6주 * 7일
+            
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayOfWeek = (startDayOfWeek + daysInMonth + day - 1) % 7;
+                const dayElement = createCalendarDay(day, year, month + 1, true, dayOfWeek);
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        function createCalendarDay(day, year, month, isOtherMonth, dayOfWeek) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            
+            if (isOtherMonth) {
+                dayElement.classList.add('other-month');
+            }
+            
+            // 요일별 클래스 추가
+            if (dayOfWeek === 0) { // 일요일
+                dayElement.classList.add('sunday');
+            } else if (dayOfWeek === 6) { // 토요일
+                dayElement.classList.add('saturday');
+            }
+            
+            // 날짜 생성
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const today = getTodayString();
+            
+            // 오늘 날짜 체크
+            if (dateStr === today && !isOtherMonth) {
+                dayElement.classList.add('today');
+            }
+            
+            // 조회수 데이터 가져오기
+            const viewCount = viewsHistory[dateStr] || 0;
+            
+            if (viewCount > 0) {
+                dayElement.classList.add('has-views');
+            }
+            
+            // 날짜 숫자 (오른쪽 위)
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'calendar-day-number';
+            dayNumber.textContent = day;
+            dayElement.appendChild(dayNumber);
+            
+            // 조회수 표시 (왼쪽 아래)
+            if (viewCount > 0) {
+                const viewsElement = document.createElement('div');
+                viewsElement.className = 'calendar-day-views';
+                viewsElement.innerHTML = `<span class="number">${viewCount}</span><span class="unit">회</span>`;
+                dayElement.appendChild(viewsElement);
+            }
+            
+            // 클릭 이벤트 (날짜 정보 표시)
+            dayElement.addEventListener('click', () => {
+                const formattedDate = formatDateForDisplay(dateStr);
+                const message = viewCount > 0 
+                    ? `${formattedDate}: ${viewCount}회 조회`
+                    : `${formattedDate}: 조회 기록 없음`;
+                showNotification(message, 'info');
+            });
+            
+            return dayElement;
+        }
+
+        function changeMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            updateCalendar();
+        }
+
+        function goToToday() {
+            currentCalendarDate = new Date();
+            updateCalendar();
+        }
+
+        function updateViewsHistory() {
+            // 달력 업데이트로 대체
+            updateCalendar();
         }
 
         function formatDateForDisplay(dateString) {
@@ -1852,6 +2049,8 @@
         window.manualSync = manualSync;
         window.exportFirebaseData = exportFirebaseData;
         window.resetFirebaseData = resetFirebaseData;
+        window.changeMonth = changeMonth;
+        window.goToToday = goToToday;
     </script>
 </body>
 </html>
