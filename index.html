@@ -227,7 +227,7 @@
             "세네갈": "sn", "우간다": "ug", "카메룬": "cm", "모잠비크": "mz", "에티오피아": "et", 
             "말라위": "mw", "앙골라": "ao", "감비아": "gm", "기니": "gn", "DR콩고": "cd", 
             "콩고민주공화국": "cd", "코트디브아르": "ci", "볼리비아": "bo", "엘살바도르": "sv", 
-            "페루": "pe", "키리바시": "ki", "한국": "kr", "일본": "jp", "중국": "cn", 
+            "페루": "pe", "키리바시": "ki", "한국": "kr", "일본": "jp", "중국": "cn", "과테말라": "gt", "파키스탄": "pk",
             "러시아": "ru", "미국": "us", "요르단": "jo", "알제리": "dz", "파라과이": "py", "말레이시아": "my", "브루나이": "bn"
         };
 
@@ -343,7 +343,9 @@
                 "알제리": { lat: 28.0339, lng: 1.6596 },
                 "파라과이": { lat: -23.4425, lng: -58.4438 },
                 "말레이시아": { lat: 4.2105, lng: 101.9758 },
-                "브루나이": { lat: 4.5353, lng: 114.7277 }
+                "브루나이": { lat: 4.5353, lng: 114.7277 },
+                "과테말라": { lat: 15.7835, lng: -90.2308 },
+                "파키스탄": { lat: 30.3753, lng: 69.3451 }
             };
             
             return defaultCoords[countryName] || { lat: 0, lng: 0 };
@@ -921,7 +923,7 @@
                     if (project.type) content += `<div style="font-size: 12px; color: #666;"><strong>형태:</strong> ${project.type}</div>`;
                     if (project.period) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.period}</div>`;
                     if (project.budget > 0) {
-                        const budgetInBillion = (project.budget / 10).toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
                         content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
                     }
                 } else {
@@ -932,7 +934,7 @@
                     }
                     if (project.startDate && project.endDate) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
                     if (project.budget > 0) {
-                        const budgetInBillion = (project.budget / 10).toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+                        const budgetInBillion = Math.round(totalBudget / 100).toLocaleString('ko-KR');                        
                         content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
                     }
                     if (project.client) content += `<div style="font-size: 12px; color: #666;"><strong>발주처:</strong> ${project.client}</div>`;
@@ -969,10 +971,7 @@
                 }
             });
             
-            const budgetInBillion = (totalBudget / 10).toLocaleString('ko-KR', { 
-                minimumFractionDigits: 1, 
-                maximumFractionDigits: 1 
-            });
+            const budgetInBillion = Math.round(totalBudget / 100).toLocaleString('ko-KR');
             
             document.getElementById('total-projects').textContent = totalCount.toLocaleString();
             document.getElementById('countries-count').textContent = countryCount.toLocaleString();
