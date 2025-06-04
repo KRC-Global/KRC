@@ -44,7 +44,58 @@
         .daily-views-display {
             margin-left: 10px; padding: 7px 12px; background-color: #f8f9fa; 
             border: 1px solid #ddd; border-radius: 6px; font-size: 0.8em; color: #495057; 
-            display: flex; align-items: center; gap: 5px;
+            display: flex; align-items: center; gap: 5px; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .daily-views-display:hover {
+            background-color: #e9ecef;
+        }
+        
+        .views-panel {
+            position: fixed; top: 60px; right: 20px; width: 350px; max-height: 400px;
+            background: white; border: 1px solid #ddd; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15); z-index: 1007;
+            display: none; overflow: hidden;
+        }
+        .views-panel-header {
+            padding: 12px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
+            font-weight: 600; display: flex; justify-content: space-between; align-items: center;
+        }
+        .views-panel-content {
+            max-height: 320px; overflow-y: auto; padding: 8px;
+        }
+        .views-summary {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+        }
+        .views-summary-card {
+            background: #f8f9fa; padding: 8px; border-radius: 4px; text-align: center;
+        }
+        .views-summary-number {
+            font-size: 18px; font-weight: 600; color: #2c3e50;
+        }
+        .views-summary-label {
+            font-size: 11px; color: #6c757d; margin-top: 2px;
+        }
+        .views-history-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 8px; border-radius: 4px; margin-bottom: 2px;
+            transition: background-color 0.2s;
+        }
+        .views-history-item:hover {
+            background-color: #f8f9fa;
+        }
+        .views-history-date {
+            font-size: 12px; color: #495057;
+        }
+        .views-history-count {
+            font-size: 12px; font-weight: 600; color: #007bff;
+        }
+        .views-history-today {
+            background-color: #e3f2fd;
+        }
+        .close-panel {
+            background: none; border: none; font-size: 16px; cursor: pointer;
+            color: #6c757d; padding: 0; width: 20px; height: 20px;
         }
         
         #filter-result-display {
@@ -168,9 +219,41 @@
             </div>
         </div>
         <button class="reset-all-filters-btn" onclick="resetAllFilters()">🔄 전체 초기화</button>
-        <div class="daily-views-display">
+        <div class="daily-views-display" onclick="toggleViewsPanel()">
             <span>👁️</span>
-            <span>오늘 조회수: <span id="daily-views">0</span></span>
+            <span>오늘: <span id="daily-views">0</span> | 누적: <span id="total-views">0</span></span>
+            <span style="font-size: 10px;">▼</span>
+        </div>
+    </div>
+
+    <div class="views-panel" id="views-panel">
+        <div class="views-panel-header">
+            <span>📊 조회수 통계</span>
+            <button class="close-panel" onclick="toggleViewsPanel()">✕</button>
+        </div>
+        <div class="views-panel-content">
+            <div class="views-summary">
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-today">0</div>
+                    <div class="views-summary-label">오늘</div>
+                </div>
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-total">0</div>
+                    <div class="views-summary-label">누적</div>
+                </div>
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-avg">0</div>
+                    <div class="views-summary-label">일평균</div>
+                </div>
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-days">0</div>
+                    <div class="views-summary-label">기록일수</div>
+                </div>
+            </div>
+            <div style="border-bottom: 1px solid #dee2e6; margin-bottom: 8px; padding-bottom: 8px;">
+                <strong style="font-size: 13px; color: #495057;">📅 날짜별 기록</strong>
+            </div>
+            <div id="views-history"></div>
         </div>
     </div>
 
@@ -228,6 +311,8 @@
             clients: new Set()
         };
         let dailyViews = 0;
+        let viewsHistory = {}; // 날짜별 조회수 기록
+        let totalViews = 0;
 
         const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
         
@@ -285,29 +370,129 @@
             }
         }
 
-        // 일일 조회수 관리
-        function initializeDailyViews() {
-            const today = new Date().toDateString();
-            const storedDate = sessionStorage.getItem('viewDate') || '';
-            const storedViews = parseInt(sessionStorage.getItem('dailyViews')) || 0;
-            
-            if (storedDate === today) {
-                // 같은 날이면 기존 조회수에 1 추가
-                dailyViews = storedViews + 1;
-            } else {
-                // 새로운 날이면 1부터 시작
-                dailyViews = 1;
-                sessionStorage.setItem('viewDate', today);
+        // 장기간 조회수 관리 시스템
+        function initializeViewsSystem() {
+            // localStorage에서 기존 기록 불러오기
+            const savedHistory = localStorage.getItem('viewsHistory');
+            if (savedHistory) {
+                try {
+                    viewsHistory = JSON.parse(savedHistory);
+                } catch (error) {
+                    console.warn('조회수 기록 로드 실패:', error);
+                    viewsHistory = {};
+                }
             }
             
-            sessionStorage.setItem('dailyViews', dailyViews.toString());
+            const today = getTodayString();
+            
+            // 오늘 조회수 증가
+            if (viewsHistory[today]) {
+                viewsHistory[today]++;
+            } else {
+                viewsHistory[today] = 1;
+            }
+            
+            // localStorage에 저장
+            localStorage.setItem('viewsHistory', JSON.stringify(viewsHistory));
+            
+            // 현재 값들 계산
+            dailyViews = viewsHistory[today];
+            totalViews = Object.values(viewsHistory).reduce((sum, count) => sum + count, 0);
+            
             updateViewsDisplay();
         }
 
+        function getTodayString() {
+            const today = new Date();
+            return today.getFullYear() + '-' + 
+                   String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(today.getDate()).padStart(2, '0');
+        }
+
         function updateViewsDisplay() {
-            const viewsElement = document.getElementById('daily-views');
-            if (viewsElement) {
-                viewsElement.textContent = dailyViews.toLocaleString();
+            // 상단바 표시 업데이트
+            const dailyElement = document.getElementById('daily-views');
+            const totalElement = document.getElementById('total-views');
+            
+            if (dailyElement) dailyElement.textContent = dailyViews.toLocaleString();
+            if (totalElement) totalElement.textContent = totalViews.toLocaleString();
+            
+            // 패널 요약 정보 업데이트
+            const summaryToday = document.getElementById('summary-today');
+            const summaryTotal = document.getElementById('summary-total');
+            const summaryAvg = document.getElementById('summary-avg');
+            const summaryDays = document.getElementById('summary-days');
+            
+            if (summaryToday) summaryToday.textContent = dailyViews.toLocaleString();
+            if (summaryTotal) summaryTotal.textContent = totalViews.toLocaleString();
+            
+            const recordDays = Object.keys(viewsHistory).length;
+            const avgViews = recordDays > 0 ? Math.round(totalViews / recordDays) : 0;
+            
+            if (summaryAvg) summaryAvg.textContent = avgViews.toLocaleString();
+            if (summaryDays) summaryDays.textContent = recordDays.toLocaleString();
+        }
+
+        function toggleViewsPanel() {
+            const panel = document.getElementById('views-panel');
+            const isVisible = panel.style.display === 'block';
+            
+            if (isVisible) {
+                panel.style.display = 'none';
+            } else {
+                updateViewsHistory();
+                panel.style.display = 'block';
+            }
+        }
+
+        function updateViewsHistory() {
+            const historyContainer = document.getElementById('views-history');
+            if (!historyContainer) return;
+            
+            // 날짜별 기록을 최신 순으로 정렬
+            const sortedDates = Object.keys(viewsHistory).sort().reverse();
+            const today = getTodayString();
+            
+            let historyHTML = '';
+            
+            sortedDates.forEach(date => {
+                const count = viewsHistory[date];
+                const isToday = date === today;
+                const formattedDate = formatDateForDisplay(date);
+                
+                historyHTML += `
+                    <div class="views-history-item ${isToday ? 'views-history-today' : ''}">
+                        <span class="views-history-date">${formattedDate}${isToday ? ' (오늘)' : ''}</span>
+                        <span class="views-history-count">${count.toLocaleString()}회</span>
+                    </div>
+                `;
+            });
+            
+            if (historyHTML === '') {
+                historyHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">기록이 없습니다.</div>';
+            }
+            
+            historyContainer.innerHTML = historyHTML;
+        }
+
+        function formatDateForDisplay(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (dateString === getTodayString()) {
+                return '오늘';
+            } else if (dateString === yesterday.getFullYear() + '-' + 
+                       String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(yesterday.getDate()).padStart(2, '0')) {
+                return '어제';
+            } else {
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                const weekday = weekdays[date.getDay()];
+                return `${month}월 ${day}일 (${weekday})`;
             }
         }
 
@@ -1096,8 +1281,8 @@
             try {
                 console.log('애플리케이션 초기화 시작');
                 
-                // 조회수 초기화 (제일 먼저)
-                initializeDailyViews();
+                // 조회수 시스템 초기화 (제일 먼저)
+                initializeViewsSystem();
                 
                 initMap();
                 await loadData();
