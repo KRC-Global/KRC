@@ -41,6 +41,12 @@
         }
         .reset-all-filters-btn:hover { background-color: #c0392b; }
         
+        .daily-views-display {
+            margin-left: 10px; padding: 7px 12px; background-color: #f8f9fa; 
+            border: 1px solid #ddd; border-radius: 6px; font-size: 0.8em; color: #495057; 
+            display: flex; align-items: center; gap: 5px;
+        }
+        
         #filter-result-display {
             position: fixed; top: 65px; left: 50%; transform: translateX(-50%);
             background: rgba(0, 102, 204, 0.85); color: white;
@@ -104,6 +110,7 @@
 
         @media (max-width: 768px) {
             #bottom-info-panel .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
         }
 
         .notification {
@@ -161,6 +168,10 @@
             </div>
         </div>
         <button class="reset-all-filters-btn" onclick="resetAllFilters()">🔄 전체 초기화</button>
+        <div class="daily-views-display">
+            <span>👁️</span>
+            <span>오늘 조회수: <span id="daily-views">0</span></span>
+        </div>
     </div>
 
     <div id="filter-result-display">
@@ -216,6 +227,7 @@
             statuses: new Set(),
             clients: new Set()
         };
+        let dailyViews = 0;
 
         const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
         
@@ -227,8 +239,9 @@
             "세네갈": "sn", "우간다": "ug", "카메룬": "cm", "모잠비크": "mz", "에티오피아": "et", 
             "말라위": "mw", "앙골라": "ao", "감비아": "gm", "기니": "gn", "DR콩고": "cd", 
             "콩고민주공화국": "cd", "코트디브아르": "ci", "볼리비아": "bo", "엘살바도르": "sv", 
-            "페루": "pe", "키리바시": "ki", "한국": "kr", "일본": "jp", "중국": "cn", "과테말라": "gt", "파키스탄": "pk",
-            "러시아": "ru", "미국": "us", "요르단": "jo", "알제리": "dz", "파라과이": "py", "말레이시아": "my", "브루나이": "bn"
+            "페루": "pe", "키리바시": "ki", "한국": "kr", "일본": "jp", "중국": "cn", 
+            "러시아": "ru", "미국": "us", "요르단": "jo", "알제리": "dz", "파라과이": "py", 
+            "말레이시아": "my", "브루나이": "bn", "과테말라": "gt", "파키스탄": "pk"
         };
 
         function showNotification(message, type = 'info') {
@@ -269,6 +282,32 @@
             const loadingTextEl = document.getElementById('loading-text');
             if (loadingTextEl) {
                 loadingTextEl.textContent = text;
+            }
+        }
+
+        // 일일 조회수 관리
+        function initializeDailyViews() {
+            const today = new Date().toDateString();
+            const storedDate = sessionStorage.getItem('viewDate') || '';
+            const storedViews = parseInt(sessionStorage.getItem('dailyViews')) || 0;
+            
+            if (storedDate === today) {
+                // 같은 날이면 기존 조회수에 1 추가
+                dailyViews = storedViews + 1;
+            } else {
+                // 새로운 날이면 1부터 시작
+                dailyViews = 1;
+                sessionStorage.setItem('viewDate', today);
+            }
+            
+            sessionStorage.setItem('dailyViews', dailyViews.toString());
+            updateViewsDisplay();
+        }
+
+        function updateViewsDisplay() {
+            const viewsElement = document.getElementById('daily-views');
+            if (viewsElement) {
+                viewsElement.textContent = dailyViews.toLocaleString();
             }
         }
 
@@ -619,7 +658,7 @@
                 console.log(`데이터 로드 완료: ODA ${odaCount}개, Consulting ${consultingCount}개 (총 ${allProjects.length}개)`);
                 
                 if (odaCount === 30 && consultingCount === 178) {
-                    showNotification(`✅ 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
+                    showNotification(`✅ 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개 (목표 달성!)`, 'success');
                 } else {
                     showNotification(`📊 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
                 }
@@ -934,7 +973,7 @@
                     }
                     if (project.startDate && project.endDate) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
                     if (project.budget > 0) {
-                        const budgetInBillion = Math.round(totalBudget / 100).toLocaleString('ko-KR');                        
+                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
                         content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
                     }
                     if (project.client) content += `<div style="font-size: 12px; color: #666;"><strong>발주처:</strong> ${project.client}</div>`;
@@ -1056,6 +1095,9 @@
         async function initialize() {
             try {
                 console.log('애플리케이션 초기화 시작');
+                
+                // 조회수 초기화 (제일 먼저)
+                initializeDailyViews();
                 
                 initMap();
                 await loadData();
