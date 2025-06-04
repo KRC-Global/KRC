@@ -96,8 +96,8 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-        .status-complete { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .status-progress { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .status-complete { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-progress { background: #d1f2eb; color: #155724; border: 1px solid #c3e6cb; }
         .status-proposal { background: #ff6b35; color: white; border: 1px solid #ff5722; }
 
         .custom-div-icon { background: transparent !important; border: none !important; }
@@ -122,6 +122,9 @@
     <div id="map"></div>
 
     <div id="top-filter-bar">
+        <div style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-right: 15px; display: flex; align-items: center;">
+            🔍 사업필터링
+        </div>
         <div class="filter-button-group">
             <button class="filter-bar-button" data-dropdown="projectTypeDropdown">사업 타입 ▾</button>
             <div class="filter-dropdown" id="projectTypeDropdown">
@@ -396,6 +399,7 @@
             console.log('사용 가능한 시트:', workbook.SheetNames);
             
             const projects = [];
+            const processedProjects = new Set(); // 중복 제거를 위한 Set
             
             // 모든 시트를 검사하여 데이터가 있는 시트 찾기
             for (const sheetName of workbook.SheetNames) {
@@ -455,6 +459,9 @@
                         const type = getValueFromRow(rowObj, ['사업형태', '타입', 'Type', '형태']);
                         const continent = getValueFromRow(rowObj, ['대륙별', '대륙', 'Continent', '지역']);
                         
+                        // 중복 확인을 위한 고유 키 생성
+                        const uniqueKey = `${country?.toString().trim()}_${projectName?.toString().trim()}`;
+                        
                         // 좌표가 없는 경우 국가별 기본 좌표 사용
                         if (country && projectName && (!lat || !lng || lat === 0 || lng === 0)) {
                             const defaultCoords = getDefaultCoordinates(country.toString().trim());
@@ -462,8 +469,8 @@
                             lng = defaultCoords.lng;
                         }
                         
-                        // 유효한 데이터인지 확인 (좌표 조건 완화)
-                        if (country && projectName) {
+                        // 유효한 데이터이고 중복이 아닌 경우만 추가
+                        if (country && projectName && !processedProjects.has(uniqueKey)) {
                             const project = {
                                 name: country.toString().trim(),
                                 lat: lat,
@@ -479,6 +486,7 @@
                             };
                             
                             projects.push(project);
+                            processedProjects.add(uniqueKey);
                             processedInSheet++;
                         }
                     } catch (error) {
@@ -489,7 +497,7 @@
                 console.log(`시트 ${sheetName}에서 ${processedInSheet}개 ODA 프로젝트 처리됨`);
             }
             
-            console.log(`총 ODA 프로젝트: ${projects.length}개`);
+            console.log(`총 ODA 프로젝트: ${projects.length}개 (중복 제거됨)`);
             return projects;
         }
 
@@ -499,6 +507,7 @@
             console.log('사용 가능한 시트:', workbook.SheetNames);
             
             const projects = [];
+            const processedProjects = new Set(); // 중복 제거를 위한 Set
             
             // 모든 시트를 검사하여 데이터가 있는 시트 찾기
             for (const sheetName of workbook.SheetNames) {
@@ -559,6 +568,9 @@
                         const startDate = getValueFromRow(rowObj, ['착수일', '시작일', 'Start', '착수']);
                         const endDate = getValueFromRow(rowObj, ['준공일', '종료일', 'End', '준공', '완료일']);
                         
+                        // 중복 확인을 위한 고유 키 생성
+                        const uniqueKey = `${country?.toString().trim()}_${projectName?.toString().trim()}_${year}`;
+                        
                         // 좌표가 없는 경우 국가별 기본 좌표 사용
                         if (country && projectName && (!lat || !lng || lat === 0 || lng === 0)) {
                             const defaultCoords = getDefaultCoordinates(country.toString().trim());
@@ -566,8 +578,8 @@
                             lng = defaultCoords.lng;
                         }
                         
-                        // 유효한 데이터인지 확인 (좌표 조건 완화)
-                        if (country && projectName) {
+                        // 유효한 데이터이고 중복이 아닌 경우만 추가
+                        if (country && projectName && !processedProjects.has(uniqueKey)) {
                             const project = {
                                 name: country.toString().trim(),
                                 lat: lat,
@@ -585,6 +597,7 @@
                             };
                             
                             projects.push(project);
+                            processedProjects.add(uniqueKey);
                             processedInSheet++;
                         }
                     } catch (error) {
@@ -595,7 +608,7 @@
                 console.log(`시트 ${sheetName}에서 ${processedInSheet}개 Consulting 프로젝트 처리됨`);
             }
             
-            console.log(`총 Consulting 프로젝트: ${projects.length}개`);
+            console.log(`총 Consulting 프로젝트: ${projects.length}개 (중복 제거됨)`);
             return projects;
         }
 
@@ -889,15 +902,26 @@
             
             sortedProjects.forEach((project, index) => {
                 const isProposal = project.status === '제안중';
-                const borderStyle = isProposal ? 'border-left: 4px solid #ff6b35; background: rgba(255, 107, 53, 0.05);' : 'border-bottom: 1px solid #eee;';
+                const isProgress = project.status === '시행중';
+                
+                let borderStyle = '';
+                if (isProposal) {
+                    borderStyle = 'border-left: 4px solid #ff6b35; background: rgba(255, 107, 53, 0.05);';
+                } else if (isProgress) {
+                    borderStyle = 'border-left: 4px solid #28a745; background: rgba(40, 167, 69, 0.05);';
+                } else {
+                    borderStyle = 'border-bottom: 1px solid #eee;';
+                }
                 
                 content += `<div style="${borderStyle} padding: 8px;">`;
                 
-                // 프로젝트명과 제안중 뱃지
+                // 프로젝트명과 상태 뱃지
                 content += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">`;
                 content += `<div style="font-weight: 600; color: #2c3e50; font-size: 14px; flex: 1;">${project.description}</div>`;
                 if (isProposal) {
                     content += `<span class="status-badge status-proposal" style="margin-left: 8px;">제안중</span>`;
+                } else if (isProgress) {
+                    content += `<span class="status-badge status-progress" style="margin-left: 8px;">시행중</span>`;
                 }
                 content += `</div>`;
                 
@@ -909,9 +933,9 @@
                         content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
                     }
                 } else {
-                    // 제안중이 아닌 경우에만 상태 표시
-                    if (project.status && !isProposal) {
-                        let statusClass = project.status === '시행중' ? 'status-progress' : 'status-complete';
+                    // 제안중이나 시행중이 아닌 경우에만 상태 표시
+                    if (project.status && !isProposal && !isProgress) {
+                        let statusClass = 'status-complete'; // 준공은 붉은색
                         content += `<div style="font-size: 12px; margin: 2px 0;"><strong>상태:</strong> <span class="status-badge ${statusClass}">${project.status}</span></div>`;
                     }
                     if (project.startDate && project.endDate) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
@@ -921,8 +945,15 @@
                     }
                     if (project.client) content += `<div style="font-size: 12px; color: #666;"><strong>발주처:</strong> ${project.client}</div>`;
                     if (project.year) {
-                        const yearColor = isProposal ? '#ff6b35' : '#999';
-                        const yearWeight = isProposal ? '600' : '400';
+                        let yearColor = '#999';
+                        let yearWeight = '400';
+                        if (isProposal) {
+                            yearColor = '#ff6b35';
+                            yearWeight = '600';
+                        } else if (isProgress) {
+                            yearColor = '#28a745';
+                            yearWeight = '600';
+                        }
                         content += `<div style="font-size: 11px; color: ${yearColor}; font-weight: ${yearWeight};"><strong>수주년도:</strong> ${project.year}</div>`;
                     }
                 }
