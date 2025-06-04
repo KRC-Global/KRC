@@ -422,210 +422,17 @@
             }
         }
 
-        // Excel 파일 읽기 함수
-        async function readExcelFile(filename) {
-            try {
-                console.log(`📁 Excel 파일 읽기 시도: ${filename}`);
-                
-                // 파일 fetch 시도
-                const response = await fetch(filename);
-                if (!response.ok) {
-                    throw new Error(`파일을 찾을 수 없습니다: ${filename} (${response.status})`);
-                }
-                
-                const arrayBuffer = await response.arrayBuffer();
-                const workbook = XLSX.read(arrayBuffer, {
-                    cellStyles: true,
-                    cellFormulas: true,
-                    cellDates: true,
-                    cellNF: true,
-                    sheetStubs: true
-                });
-                
-                console.log(`✅ Excel 파일 읽기 성공: ${filename}`);
-                console.log('시트 목록:', workbook.SheetNames);
-                
-                return workbook;
-            } catch (error) {
-                console.warn(`⚠️ Excel 파일 읽기 실패 (${filename}):`, error.message);
-                return null;
-            }
-        }
 
-        // ODA 데이터 처리 함수 (수정된 버전)
-        function processODAData(workbook) {
-            const projects = [];
-            
-            try {
-                console.log('📊 ODA Workbook 정보:', {
-                    SheetNames: workbook.SheetNames,
-                    TotalSheets: workbook.SheetNames.length
-                });
-                
-                // ODA 데이터가 있는 시트 찾기
-                let dataSheet = null;
-                let sheetName = '';
-                
-                // "ODA" 또는 "양자계속"이 포함된 시트명 우선 탐색
-                for (const name of workbook.SheetNames) {
-                    if (name.includes('ODA') || name.includes('양자계속')) {
-                        dataSheet = workbook.Sheets[name];
-                        sheetName = name;
-                        console.log(`✅ ODA 시트명 매칭으로 선택: "${sheetName}"`);
-                        break;
-                    }
-                }
-                
-                // 매칭되는 시트가 없으면 데이터가 있는 시트 중에서 선택
-                if (!dataSheet) {
-                    for (const name of workbook.SheetNames) {
-                        const sheet = workbook.Sheets[name];
-                        const data = XLSX.utils.sheet_to_json(sheet, { defval: "", header: 1 });
-                        
-                        console.log(`시트 "${name}" 정보:`, {
-                            행수: data.length,
-                            첫번째행: data[0] || '비어있음'
-                        });
-                        
-                        if (data.length > 1) { // 헤더 + 데이터 행이 있는 시트
-                            dataSheet = sheet;
-                            sheetName = name;
-                            console.log(`✅ 데이터 존재로 선택: "${sheetName}"`);
-                            break;
-                        }
-                    }
-                }
-                
-                if (!dataSheet) {
-                    console.warn('❌ ODA 데이터가 있는 시트를 찾을 수 없습니다');
-                    return projects;
-                }
-                
-                console.log(`✅ ODA 데이터 시트 최종 선택: "${sheetName}"`);
-                
-                // 헤더 행 확인
-                const headerData = XLSX.utils.sheet_to_json(dataSheet, { defval: "", header: 1 });
-                const headers = headerData[0] || [];
-                console.log('ODA 헤더 컬럼:', headers);
-                
-                // JSON으로 변환
-                const data = XLSX.utils.sheet_to_json(dataSheet, { defval: "" });
-                console.log(`ODA 데이터 행 수: ${data.length}`);
-                
-                if (data.length === 0) {
-                    console.warn('❌ ODA 시트에 데이터가 없습니다');
-                    return projects;
-                }
-                
-                // 첫 번째 행 샘플 출력
-                console.log('ODA 첫 번째 데이터 행 샘플:', data[0]);
-                console.log('ODA 첫 번째 행 키들:', Object.keys(data[0]));
-                
-                data.forEach((row, index) => {
-                    try {
-                        // ODA 특화 컬럼 매핑 (실제 파일 구조에 맞춤)
-                        const country = findColumnValue(row, ['국가별', '국가', 'Country', '나라']);
-                        const lat = parseFloat(findColumnValue(row, ['Y', '위도', 'Latitude', 'lat']) || 0);
-                        const lng = parseFloat(findColumnValue(row, ['X', '경도', 'Longitude', 'lng', 'lon']) || 0);
-                        
-                        // 사업명 - ODA 파일에서는 "₩" 컬럼이 사업명
-                        const projectName = findColumnValue(row, ['₩', '사업명', 'Project Name', '프로젝트명', '프로젝트']);
-                        
-                        const budget = parseFloat(findColumnValue(row, ['총예산(백만원)', '총예산', '예산', 'Budget', '백만원']) || 0);
-                        const period = findColumnValue(row, ['사업기간', '기간', 'Period']);
-                        const continent = findColumnValue(row, ['대륙별', '대륙', 'Continent']);
-                        const type = findColumnValue(row, ['사업형태', '형태', 'Type']);
-                        const projectDetails = findColumnValue(row, ['사업 내용', '사업내용', '내용', 'Details']);
-                        const number = parseInt(findColumnValue(row, ['번호', 'No', 'Number']) || (index + 1));
-                        
-                        // 데이터 유효성 확인 로깅 (처음 3개 행만)
-                        if (index < 3) {
-                            console.log(`ODA 행 ${index + 1} 파싱 결과:`, {
-                                country, lat, lng, projectName, budget, period, continent, type, number
-                            });
-                        }
-                        
-                        // 필수 데이터 검증
-                        if (country && country.length > 0 && 
-                            projectName && projectName.length > 0 && 
-                            !isNaN(lat) && !isNaN(lng) && 
-                            (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)) {
-                            
-                            projects.push({
-                                name: country.trim(),
-                                lat: lat,
-                                lng: lng,
-                                description: projectName.trim(),
-                                category: 'ODA',
-                                period: period ? period.trim() : '',
-                                budget: budget || 0,
-                                continent: continent ? continent.trim() : '',
-                                type: type ? type.trim() : '',
-                                projectDetails: projectDetails ? projectDetails.trim() : '',
-                                number: number
-                            });
-                        } else {
-                            if (index < 10) { // 처음 10개 스킵된 행만 로그
-                                console.log(`❌ ODA 행 ${index + 1} 스킵 - 필수 데이터 누락:`, { 
-                                    country: country || '없음', 
-                                    projectName: projectName || '없음', 
-                                    lat, 
-                                    lng,
-                                    유효한좌표: (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)
-                                });
-                            }
-                        }
-                    } catch (error) {
-                        console.warn(`❌ ODA 행 ${index + 1} 처리 오류:`, error);
-                    }
-                });
-                
-                console.log(`✅ ODA 프로젝트 처리 완료: ${projects.length}개`);
-                
-                // 처리된 프로젝트 샘플 출력
-                if (projects.length > 0) {
-                    console.log('ODA 처리된 프로젝트 샘플:', projects.slice(0, 3));
-                } else {
-                    console.warn('⚠️ ODA 프로젝트가 하나도 처리되지 않았습니다. 컬럼명을 확인해주세요.');
-                    console.log('사용 가능한 컬럼들:', Object.keys(data[0] || {}));
-                }
-                
-            } catch (error) {
-                console.error('❌ ODA 데이터 처리 오류:', error);
-            }
-            
-            return projects;
-        }
 
-        // 컬럼 값 찾기 헬퍼 함수 (강화된 버전)
+
+
+        // 간단한 컬럼 값 찾기 함수
         function findColumnValue(row, possibleKeys) {
-            // 1. 정확한 매칭 우선
             for (const key of possibleKeys) {
-                if (row.hasOwnProperty(key) && row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
                     return row[key].toString().trim();
                 }
             }
-            
-            // 2. 대소문자 무시 매칭
-            for (const key of possibleKeys) {
-                for (const rowKey of Object.keys(row)) {
-                    if (rowKey.toLowerCase() === key.toLowerCase() && 
-                        row[rowKey] !== undefined && row[rowKey] !== null && row[rowKey] !== '') {
-                        return row[rowKey].toString().trim();
-                    }
-                }
-            }
-            
-            // 3. 부분 문자열 매칭 (컬럼명에 키워드가 포함된 경우)
-            for (const key of possibleKeys) {
-                for (const rowKey of Object.keys(row)) {
-                    if (rowKey.toLowerCase().includes(key.toLowerCase()) && 
-                        row[rowKey] !== undefined && row[rowKey] !== null && row[rowKey] !== '') {
-                        return row[rowKey].toString().trim();
-                    }
-                }
-            }
-            
             return null;
         }
 
@@ -646,223 +453,9 @@
             "북한": "kp", "대만": "tw", "홍콩": "hk", "싱가포르": "sg", "말레이시아": "my", "브루나이": "bn"
         };
 
-        // 컨설팅 데이터 처리 함수 (대용량 파일 대응 강화)
-        function processConsultingData(workbook) {
-            const projects = [];
-            
-            try {
-                console.log('📊 Consulting Workbook 정보:', {
-                    SheetNames: workbook.SheetNames,
-                    TotalSheets: workbook.SheetNames.length
-                });
-                
-                // 컨설팅 데이터가 있는 시트 찾기 (더 포괄적 검색)
-                let dataSheet = null;
-                let sheetName = '';
-                
-                // 우선순위 1: 특정 키워드가 포함된 시트명
-                const consultingKeywords = ['컨설팅', '해외기술', 'consulting', '기술용역', '용역'];
-                for (const name of workbook.SheetNames) {
-                    const lowerName = name.toLowerCase();
-                    if (consultingKeywords.some(keyword => lowerName.includes(keyword.toLowerCase()))) {
-                        dataSheet = workbook.Sheets[name];
-                        sheetName = name;
-                        console.log(`✅ Consulting 시트명 매칭으로 선택: "${sheetName}"`);
-                        break;
-                    }
-                }
-                
-                // 우선순위 2: 가장 많은 데이터가 있는 시트
-                if (!dataSheet) {
-                    let maxRows = 0;
-                    for (const name of workbook.SheetNames) {
-                        const sheet = workbook.Sheets[name];
-                        const data = XLSX.utils.sheet_to_json(sheet, { defval: "", header: 1 });
-                        
-                        console.log(`시트 "${name}" 정보: ${data.length}행`);
-                        
-                        if (data.length > maxRows) {
-                            maxRows = data.length;
-                            dataSheet = sheet;
-                            sheetName = name;
-                        }
-                    }
-                    console.log(`✅ 최대 데이터량으로 선택: "${sheetName}" (${maxRows}행)`);
-                }
-                
-                if (!dataSheet) {
-                    console.warn('❌ Consulting 데이터가 있는 시트를 찾을 수 없습니다');
-                    return projects;
-                }
-                
-                console.log(`✅ Consulting 데이터 시트 최종 선택: "${sheetName}"`);
-                
-                // 헤더 행 확인
-                const headerData = XLSX.utils.sheet_to_json(dataSheet, { defval: "", header: 1 });
-                const headers = headerData[0] || [];
-                console.log('Consulting 헤더 컬럼:', headers);
-                console.log('헤더 컬럼 수:', headers.length);
-                
-                // JSON으로 변환 (배치 처리)
-                const data = XLSX.utils.sheet_to_json(dataSheet, { defval: "" });
-                console.log(`Consulting 데이터 행 수: ${data.length}`);
-                
-                if (data.length === 0) {
-                    console.warn('❌ Consulting 시트에 데이터가 없습니다');
-                    return projects;
-                }
-                
-                // 첫 번째 행 샘플 출력
-                console.log('Consulting 첫 번째 데이터 행 키들:', Object.keys(data[0]));
-                console.log('Consulting 첫 번째 데이터 행 샘플:', data[0]);
-                
-                // 배치 처리로 대용량 데이터 처리
-                const batchSize = 100;
-                let processedCount = 0;
-                let skippedCount = 0;
-                
-                for (let i = 0; i < data.length; i += batchSize) {
-                    const batch = data.slice(i, i + batchSize);
-                    
-                    batch.forEach((row, batchIndex) => {
-                        const actualIndex = i + batchIndex;
-                        
-                        try {
-                            // 확장된 컬럼 매핑 (더 많은 패턴 지원)
-                            const country = findColumnValue(row, [
-                                '국가별', '국가', 'Country', '나라', '대상국가', '국명', '대상국'
-                            ]);
-                            
-                            const lat = parseFloat(findColumnValue(row, [
-                                'Y', '위도', 'Latitude', 'lat', 'LAT', '북위'
-                            ]) || 0);
-                            
-                            const lng = parseFloat(findColumnValue(row, [
-                                'X', '경도', 'Longitude', 'lng', 'lon', 'LNG', '동경', '서경'
-                            ]) || 0);
-                            
-                            // 사업명 - 더 많은 패턴 지원
-                            const projectName = findColumnValue(row, [
-                                '국문사업명', '사업명', 'Project Name', '영문사업명', '프로젝트명', 
-                                '프로젝트', '과업명', '용역명', '사업내용'
-                            ]);
-                            
-                            const englishName = findColumnValue(row, [
-                                '영문사업명', 'English Name', 'English', 'Project Name (EN)'
-                            ]);
-                            
-                            const budget = parseFloat(findColumnValue(row, [
-                                '용역비(공사)(백만원)', '용역비', 'Budget', '백만원', '계약금액', 
-                                '총사업비', '예산', '금액'
-                            ]) || 0);
-                            
-                            const status = findColumnValue(row, [
-                                '진행여부', '상태', 'Status', '진행상태', '완료여부', '준공여부'
-                            ]);
-                            
-                            const client = findColumnValue(row, [
-                                '발주처', 'Client', '클라이언트', '발주기관', '위탁기관', '주관기관'
-                            ]);
-                            
-                            const year = parseInt(findColumnValue(row, [
-                                '수주년도', '년도', 'Year', '수주', '계약년도', '착수년도'
-                            ]) || 0);
-                            
-                            const startDate = findColumnValue(row, [
-                                '착수일', '시작일', 'Start Date', '착수', '개시일', '계약일'
-                            ]);
-                            
-                            const endDate = findColumnValue(row, [
-                                '준공일', '완료일', 'End Date', '준공', '완료', '종료일'
-                            ]);
-                            
-                            const projectType = findColumnValue(row, [
-                                '사업형태', '형태', 'Type', '사업타입', '용역형태'
-                            ]);
-                            
-                            const number = parseInt(findColumnValue(row, [
-                                '번호', 'No', 'Number', '순번', 'ID'
-                            ]) || (actualIndex + 1));
-                            
-                            // 데이터 유효성 확인 로깅 (처음과 마지막 몇 개만)
-                            if (actualIndex < 3 || actualIndex >= data.length - 3) {
-                                console.log(`Consulting 행 ${actualIndex + 1} 파싱 결과:`, {
-                                    country, lat, lng, projectName: projectName?.substring(0, 30) + '...', 
-                                    budget, status, client, year
-                                });
-                            }
-                            
-                            // 필수 데이터 검증 (더 관대한 조건)
-                            if (country && country.length > 0 && 
-                                projectName && projectName.length > 0 && 
-                                !isNaN(lat) && !isNaN(lng) && 
-                                (Math.abs(lat) > 0.001 || Math.abs(lng) > 0.001)) { // 더 관대한 좌표 조건
-                                
-                                projects.push({
-                                    name: country.trim(),
-                                    lat: lat,
-                                    lng: lng,
-                                    description: projectName.trim(),
-                                    category: 'Consulting',
-                                    englishName: englishName ? englishName.trim() : '',
-                                    projectType: projectType ? projectType.trim() : '',
-                                    status: status ? status.trim() : '',
-                                    startDate: startDate ? startDate.trim() : '',
-                                    endDate: endDate ? endDate.trim() : '',
-                                    budget: budget || 0,
-                                    client: client ? client.trim() : '',
-                                    year: year || null,
-                                    number: number
-                                });
-                                processedCount++;
-                            } else {
-                                skippedCount++;
-                                if (actualIndex < 10) { // 처음 10개 스킵된 행만 로그
-                                    console.log(`❌ Consulting 행 ${actualIndex + 1} 스킵:`, { 
-                                        country: country || '없음', 
-                                        projectName: projectName ? projectName.substring(0, 20) + '...' : '없음', 
-                                        lat, lng,
-                                        유효한좌표: (Math.abs(lat) > 0.001 || Math.abs(lng) > 0.001)
-                                    });
-                                }
-                            }
-                        } catch (error) {
-                            console.warn(`❌ Consulting 행 ${actualIndex + 1} 처리 오류:`, error.message);
-                            skippedCount++;
-                        }
-                    });
-                    
-                    // 배치 처리 진행상황 표시 (큰 파일용)
-                    if (data.length > 500 && i > 0 && i % (batchSize * 10) === 0) {
-                        console.log(`처리 진행률: ${Math.round((i / data.length) * 100)}% (${i}/${data.length})`);
-                    }
-                }
-                
-                console.log(`✅ Consulting 프로젝트 처리 완료: ${processedCount}개 성공, ${skippedCount}개 스킵`);
-                
-                // 처리된 프로젝트 샘플 출력
-                if (projects.length > 0) {
-                    console.log('Consulting 처리된 프로젝트 샘플:', projects.slice(0, 2));
-                    console.log('연도 범위:', 
-                        Math.min(...projects.map(p => p.year || 9999).filter(y => y !== 9999)), 
-                        '~', 
-                        Math.max(...projects.map(p => p.year || 0))
-                    );
-                    console.log('고유 국가 수:', new Set(projects.map(p => p.name)).size);
-                    console.log('고유 발주처 수:', new Set(projects.map(p => p.client).filter(c => c)).size);
-                } else {
-                    console.warn('⚠️ Consulting 프로젝트가 하나도 처리되지 않았습니다.');
-                    console.log('사용 가능한 컬럼들:', Object.keys(data[0] || {}));
-                }
-                
-            } catch (error) {
-                console.error('❌ Consulting 데이터 처리 오류:', error);
-            }
-            
-            return projects;
-        }
 
-        // 데이터 로드 함수 (Excel 파일 우선, 실패 시 하드코딩 데이터)
+
+        // 데이터 로드 함수 (타임아웃 및 안전장치 추가)
         function loadData() {
             return new Promise(async (resolve, reject) => {
                 try {
@@ -871,58 +464,44 @@
                     allProjects = [];
                     let excelDataLoaded = false;
                     
+                    // 타임아웃 설정 (10초)
+                    const timeoutPromise = new Promise((_, timeoutReject) => {
+                        setTimeout(() => {
+                            timeoutReject(new Error('Excel 파일 로드 타임아웃 (10초)'));
+                        }, 10000);
+                    });
+                    
                     try {
-                        // Excel 파일 읽기 시도
                         console.log('📊 Excel 파일에서 데이터 읽기 시도...');
                         
-                        const [odaWorkbook, consultingWorkbook] = await Promise.all([
-                            readExcelFile('global ODA.xlsx'),
-                            readExcelFile('global consulting.xlsx')
+                        // Excel 파일 읽기를 타임아웃과 함께 실행
+                        const excelLoadPromise = Promise.race([
+                            loadExcelFiles(),
+                            timeoutPromise
                         ]);
                         
-                        if (odaWorkbook) {
-                            const odaProjects = processODAData(odaWorkbook);
-                            allProjects.push(...odaProjects);
-                            console.log(`📈 ODA 프로젝트 로드: ${odaProjects.length}개`);
-                        }
+                        const excelData = await excelLoadPromise;
                         
-                        if (consultingWorkbook) {
-                            const consultingProjects = processConsultingData(consultingWorkbook);
-                            allProjects.push(...consultingProjects);
-                            console.log(`📈 Consulting 프로젝트 로드: ${consultingProjects.length}개`);
-                        }
-                        
-                        if (allProjects.length > 0) {
+                        if (excelData && excelData.totalProjects > 0) {
+                            allProjects = excelData.projects;
                             excelDataLoaded = true;
                             console.log(`🎉 Excel 데이터 로드 성공! 총 ${allProjects.length}개 프로젝트`);
                         }
                         
                     } catch (excelError) {
-                        console.warn('⚠️ Excel 파일 읽기 실패:', excelError.message);
+                        console.warn('⚠️ Excel 파일 읽기 실패 또는 타임아웃:', excelError.message);
                     }
                     
                     // Excel 데이터 로드 실패 시 하드코딩 데이터 사용
                     if (!excelDataLoaded || allProjects.length === 0) {
                         console.log('📝 하드코딩 데이터 사용 (fallback)');
+                        allProjects = [];
                         allProjects.push(...realExcelData.oda);
                         allProjects.push(...realExcelData.consulting);
                         
-                        // 사용자에게 상세한 알림
-                        const odaLoaded = allProjects.filter(p => p.category === 'ODA').length > 0;
-                        const consultingLoaded = allProjects.filter(p => p.category === 'Consulting').length > 0;
-                        
-                        let message = 'Excel 파일 읽기 실패: ';
-                        if (!odaLoaded && !consultingLoaded) {
-                            message += '모든 Excel 파일을 읽을 수 없습니다. ';
-                        } else if (!odaLoaded) {
-                            message += 'global ODA.xlsx 파일을 읽을 수 없습니다. ';
-                        } else if (!consultingLoaded) {
-                            message += 'global consulting.xlsx 파일을 읽을 수 없습니다. ';
-                        }
-                        message += 'index.html과 같은 폴더에 파일이 있는지 확인해주세요. 현재 샘플 데이터를 표시합니다.';
-                        
+                        // 사용자에게 알림
                         setTimeout(() => {
-                            showDataSourceNotification(message, 'warning');
+                            showDataSourceNotification('Excel 파일 로드 실패 - 샘플 데이터를 표시합니다. 파일 크기가 너무 크거나 형식에 문제가 있을 수 있습니다.', 'warning');
                         }, 1000);
                     } else {
                         // 성공 알림
@@ -946,9 +525,201 @@
                     
                 } catch (error) {
                     console.error('❌ 데이터 로드 실패:', error);
-                    reject(error);
+                    
+                    // 모든 실패 시에도 기본 데이터로 계속 진행
+                    allProjects = [];
+                    allProjects.push(...realExcelData.oda);
+                    allProjects.push(...realExcelData.consulting);
+                    
+                    isDataLoaded = true;
+                    resolve(); // reject 대신 resolve로 계속 진행
                 }
             });
+        }
+
+        // Excel 파일 로딩 함수 (분리)
+        async function loadExcelFiles() {
+            const projects = [];
+            
+            try {
+                // 더 간단한 방식으로 파일 읽기
+                console.log('📁 ODA 파일 읽기 시도...');
+                const odaWorkbook = await readExcelFileSimple('global ODA.xlsx');
+                
+                if (odaWorkbook) {
+                    const odaProjects = processODADataSimple(odaWorkbook);
+                    projects.push(...odaProjects);
+                    console.log(`📈 ODA 프로젝트 로드: ${odaProjects.length}개`);
+                }
+                
+                console.log('📁 Consulting 파일 읽기 시도...');
+                const consultingWorkbook = await readExcelFileSimple('global consulting.xlsx');
+                
+                if (consultingWorkbook) {
+                    const consultingProjects = processConsultingDataSimple(consultingWorkbook);
+                    projects.push(...consultingProjects);
+                    console.log(`📈 Consulting 프로젝트 로드: ${consultingProjects.length}개`);
+                }
+                
+                return {
+                    projects: projects,
+                    totalProjects: projects.length
+                };
+                
+            } catch (error) {
+                console.error('Excel 파일 로딩 중 오류:', error);
+                throw error;
+            }
+        }
+
+        // 간소화된 Excel 파일 읽기
+        async function readExcelFileSimple(filename) {
+            try {
+                console.log(`📖 ${filename} 파일 읽기 중...`);
+                
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error(`파일을 찾을 수 없습니다: ${filename}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                
+                console.log(`✅ ${filename} 읽기 성공`);
+                return workbook;
+                
+            } catch (error) {
+                console.warn(`⚠️ ${filename} 읽기 실패:`, error.message);
+                return null;
+            }
+        }
+
+        // 간소화된 ODA 데이터 처리
+        function processODADataSimple(workbook) {
+            const projects = [];
+            
+            try {
+                // ODA 시트 찾기
+                let sheetName = '';
+                for (const name of workbook.SheetNames) {
+                    if (name.includes('ODA') || name.includes('양자계속')) {
+                        sheetName = name;
+                        break;
+                    }
+                }
+                
+                if (!sheetName) {
+                    sheetName = workbook.SheetNames[0]; // 첫 번째 시트 사용
+                }
+                
+                console.log(`ODA 시트 선택: "${sheetName}"`);
+                
+                const sheet = workbook.Sheets[sheetName];
+                const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                
+                console.log(`ODA 데이터 행 수: ${data.length}`);
+                
+                // 간단한 데이터 처리 (빠른 처리를 위해)
+                let processedCount = 0;
+                data.forEach((row, index) => {
+                    try {
+                        const country = (row['국가별'] || row['국가'] || '').toString().trim();
+                        const lat = parseFloat(row['Y'] || 0);
+                        const lng = parseFloat(row['X'] || 0);
+                        const projectName = (row['₩'] || row['사업명'] || '').toString().trim();
+                        const budget = parseFloat(row['총예산(백만원)'] || 0);
+                        
+                        if (country && projectName && lat && lng) {
+                            projects.push({
+                                name: country,
+                                lat: lat,
+                                lng: lng,
+                                description: projectName,
+                                category: 'ODA',
+                                period: (row['사업기간'] || '').toString().trim(),
+                                budget: budget,
+                                continent: (row['대륙별'] || '').toString().trim(),
+                                type: (row['사업형태'] || '').toString().trim(),
+                                number: index + 1
+                            });
+                            processedCount++;
+                        }
+                    } catch (error) {
+                        // 개별 행 오류는 무시하고 계속 진행
+                    }
+                });
+                
+                console.log(`ODA 처리 완료: ${processedCount}개`);
+                
+            } catch (error) {
+                console.error('ODA 데이터 처리 오류:', error);
+            }
+            
+            return projects;
+        }
+
+        // 간소화된 Consulting 데이터 처리
+        function processConsultingDataSimple(workbook) {
+            const projects = [];
+            
+            try {
+                // Consulting 시트 찾기
+                let sheetName = workbook.SheetNames[0]; // 기본적으로 첫 번째 시트
+                
+                for (const name of workbook.SheetNames) {
+                    if (name.includes('컨설팅') || name.includes('해외기술')) {
+                        sheetName = name;
+                        break;
+                    }
+                }
+                
+                console.log(`Consulting 시트 선택: "${sheetName}"`);
+                
+                const sheet = workbook.Sheets[sheetName];
+                const data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                
+                console.log(`Consulting 데이터 행 수: ${data.length}`);
+                
+                // 간단한 데이터 처리 (빠른 처리를 위해)
+                let processedCount = 0;
+                data.forEach((row, index) => {
+                    try {
+                        const country = (row['국가별'] || row['국가'] || '').toString().trim();
+                        const lat = parseFloat(row['Y'] || 0);
+                        const lng = parseFloat(row['X'] || 0);
+                        const projectName = (row['국문사업명'] || row['사업명'] || '').toString().trim();
+                        const budget = parseFloat(row['용역비(공사)(백만원)'] || row['용역비'] || 0);
+                        const year = parseInt(row['수주년도'] || row['년도'] || 0);
+                        
+                        if (country && projectName && lat && lng) {
+                            projects.push({
+                                name: country,
+                                lat: lat,
+                                lng: lng,
+                                description: projectName,
+                                category: 'Consulting',
+                                status: (row['진행여부'] || row['상태'] || '').toString().trim(),
+                                budget: budget,
+                                client: (row['발주처'] || '').toString().trim(),
+                                year: year || null,
+                                startDate: (row['착수일'] || '').toString().trim(),
+                                endDate: (row['준공일'] || '').toString().trim(),
+                                number: index + 1
+                            });
+                            processedCount++;
+                        }
+                    } catch (error) {
+                        // 개별 행 오류는 무시하고 계속 진행
+                    }
+                });
+                
+                console.log(`Consulting 처리 완료: ${processedCount}개`);
+                
+            } catch (error) {
+                console.error('Consulting 데이터 처리 오류:', error);
+            }
+            
+            return projects;
         }
 
         // 데이터 소스 알림 함수
@@ -1526,17 +1297,69 @@
             resultTextEl.textContent = noFiltersApplied ? `전체 ${allProjects.length}개 프로젝트 표시 중` : `${allProjects.length}개 중 ${filteredProjects.length}개 프로젝트 표시 중`;
         }
 
-        // DOM 로드 완료 후 초기화 실행
+        // DOM 로드 완료 후 초기화 실행 (강화된 버전)
+        function startApplication() {
+            console.log('🎬 애플리케이션 시작...');
+            console.log('DOM 상태:', document.readyState);
+            
+            // 즉시 초기화 시작 (더 이상 대기하지 않음)
+            setTimeout(() => {
+                initialize().catch(error => {
+                    console.error('애플리케이션 초기화 최종 실패:', error);
+                    hideLoading();
+                });
+            }, 100);
+        }
+
+        // DOM 상태에 따른 초기화
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initialize);
+            console.log('📄 DOM 로딩 중 - 이벤트 리스너 등록');
+            document.addEventListener('DOMContentLoaded', startApplication);
+            
+            // 추가 안전장치: 일정 시간 후 강제 시작
+            setTimeout(() => {
+                if (document.readyState === 'loading') {
+                    console.warn('⚠️ DOM 로드 지연 - 강제 시작');
+                    startApplication();
+                }
+            }, 3000);
         } else {
-            // DOM이 이미 로드된 경우 바로 실행
-            initialize();
+            console.log('📄 DOM 이미 로드됨 - 즉시 시작');
+            startApplication();
         }
 
         // 전역 함수로 내보내기 (HTML에서 호출하기 위해)
         window.resetAllFilters = resetAllFilters;
         window.goToMyLocation = goToMyLocation;
+
+        // 페이지 언로드 시 정리
+        window.addEventListener('beforeunload', () => {
+            console.log('페이지 종료 중...');
+        });
+
+        // 추가 안전장치: 페이지 로드 후 일정 시간이 지나도 로딩이 안 끝나면 강제 완료
+        setTimeout(() => {
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl && loadingEl.style.display !== 'none') {
+                console.warn('🚨 최종 안전장치 동작 - 강제 로딩 완료');
+                hideLoading();
+                
+                if (!isDataLoaded) {
+                    allProjects = [];
+                    allProjects.push(...realExcelData.oda);
+                    allProjects.push(...realExcelData.consulting);
+                    isDataLoaded = true;
+                    
+                    try {
+                        initializeFilters();
+                    } catch (error) {
+                        console.error('최종 필터 초기화 실패:', error);
+                    }
+                }
+                
+                showDataSourceNotification('로딩이 지연되어 기본 데이터를 표시합니다.', 'warning');
+            }
+        }, 20000); // 20초 후 최종 안전장치
     </script>
 </body>
 </html>
