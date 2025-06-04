@@ -579,7 +579,7 @@
         let dailyViews = 0;
         let viewsHistory = {};
         let totalViews = 0;
-        let viewsIncremented = false; // 조회수 증가 중복 방지 플래그
+        let sessionId = null; // 세션별 고유 ID
         let firebaseInitialized = false; // Firebase 초기화 완료 플래그
         let currentCalendarDate = new Date(); // 현재 달력에 표시되는 월
 
