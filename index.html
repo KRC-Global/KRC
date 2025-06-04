@@ -11,21 +11,11 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; height: 100vh; background-color: #f5f5f5; }
         #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-        /* 상단 필터 바 */
         #top-filter-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(8px);
-            padding: 8px 15px;
-            z-index: 1005;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap; 
+            position: fixed; top: 0; left: 0; width: 100%;
+            background-color: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);
+            padding: 8px 15px; z-index: 1005; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap; 
         }
         .filter-button-group { position: relative; }
         .filter-bar-button {
@@ -52,18 +42,10 @@
         .reset-all-filters-btn:hover { background-color: #c0392b; }
         
         #filter-result-display {
-            position: fixed;
-            top: 65px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 102, 204, 0.85);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            z-index: 1004;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            white-space: nowrap;
+            position: fixed; top: 65px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 102, 204, 0.85); color: white;
+            padding: 6px 12px; border-radius: 15px; font-size: 0.8em; z-index: 1004;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;
         }
         
         .checkbox-group { display: flex; flex-direction: column; gap: 6px; }
@@ -84,9 +66,7 @@
             font-size: 1em; font-weight: 600; color: #2c3e50; margin-bottom: 10px; 
         }
         #bottom-info-panel .stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(5, 1fr); 
-            gap: 12px; 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; 
         }
         #bottom-info-panel .stat-card { 
             background: white; padding: 12px; border-radius: 8px; text-align: center; 
@@ -122,15 +102,19 @@
 
         .custom-div-icon { background: transparent !important; border: none !important; }
 
-        /* 디버그 패널 */
-        #debug-panel {
-            position: fixed; top: 100px; right: 10px; background: rgba(0,0,0,0.8); color: white;
-            padding: 10px; border-radius: 5px; font-size: 11px; max-width: 300px; z-index: 2001;
-            max-height: 200px; overflow-y: auto; display: none;
-        }
-
         @media (max-width: 768px) {
             #bottom-info-panel .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .notification {
+            position: fixed; top: 20px; right: 20px; background: #2c3e50; color: white;
+            padding: 12px 16px; border-radius: 8px; font-size: 13px; z-index: 2002;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-width: 350px;
+            animation: slideInRight 0.3s ease;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
@@ -174,7 +158,6 @@
             </div>
         </div>
         <button class="reset-all-filters-btn" onclick="resetAllFilters()">🔄 전체 초기화</button>
-        <button class="control-btn" onclick="toggleDebug()" style="margin-left: 10px; border-radius: 4px; width: auto; padding: 6px 12px;">🐛</button>
     </div>
 
     <div id="filter-result-display">
@@ -213,10 +196,8 @@
     
     <div class="loading" id="loading">
         <div class="loading-spinner"></div>
-        <div id="loading-text">Excel 파일에서 데이터를 읽는 중...</div>
+        <div id="loading-text">Excel 파일에서 데이터를 불러오는 중...</div>
     </div>
-
-    <div id="debug-panel"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -232,38 +213,46 @@
             statuses: new Set(),
             clients: new Set()
         };
-        let debugMode = false;
 
         const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
         
         const countryCodeMap = {
-            "베트남": "vn", "라오스": "la", "캄보디아": "kh", "필리핀": "ph", "몽골": "mn", "우즈베키스탄": "uz", 
-            "키르기스스탄": "kg", "스리랑카": "lk", "미얀마": "mm", "방글라데시": "bd", "태국": "th", 
-            "인도네시아": "id", "인도": "in", "네팔": "np", "아프가니스탄": "af", "이란": "ir",
-            "가나": "gh", "케냐": "ke", "탄자니아": "tz", "세네갈": "sn", "우간다": "ug", "카메룬": "cm", 
-            "모잠비크": "mz", "에티오피아": "et", "말라위": "mw", "앙골라": "ao", "감비아": "gm", "기니": "gn", 
-            "DR콩고": "cd", "콩고민주공화국": "cd", "코트디브아르": "ci",
-            "볼리비아": "bo", "엘살바도르": "sv", "페루": "pe", "키리바시": "ki",
-            "한국": "kr", "일본": "jp", "중국": "cn", "러시아": "ru", "미국": "us"
+            "베트남": "vn", "라오스": "la", "캄보디아": "kh", "필리핀": "ph", "몽골": "mn", 
+            "우즈베키스탄": "uz", "키르기스스탄": "kg", "스리랑카": "lk", "미얀마": "mm", 
+            "방글라데시": "bd", "태국": "th", "인도네시아": "id", "인도": "in", "네팔": "np", 
+            "아프가니스탄": "af", "이란": "ir", "가나": "gh", "케냐": "ke", "탄자니아": "tz", 
+            "세네갈": "sn", "우간다": "ug", "카메룬": "cm", "모잠비크": "mz", "에티오피아": "et", 
+            "말라위": "mw", "앙골라": "ao", "감비아": "gm", "기니": "gn", "DR콩고": "cd", 
+            "콩고민주공화국": "cd", "코트디브아르": "ci", "볼리비아": "bo", "엘살바도르": "sv", 
+            "페루": "pe", "키리바시": "ki", "한국": "kr", "일본": "jp", "중국": "cn", 
+            "러시아": "ru", "미국": "us", "요르단": "jo"
         };
 
-        // 디버그 함수
-        function debugLog(message) {
-            console.log(`[DEBUG] ${message}`);
-            if (debugMode) {
-                const panel = document.getElementById('debug-panel');
-                panel.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
-                panel.scrollTop = panel.scrollHeight;
-            }
-        }
-
-        function toggleDebug() {
-            debugMode = !debugMode;
-            const panel = document.getElementById('debug-panel');
-            panel.style.display = debugMode ? 'block' : 'none';
-            if (debugMode) {
-                panel.innerHTML = '<div><strong>디버그 모드 활성화</strong></div>';
-            }
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            if (type === 'success') notification.style.background = '#27ae60';
+            else if (type === 'warning') notification.style.background = '#f39c12';
+            else if (type === 'error') notification.style.background = '#e74c3c';
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 500);
+            }, 4000);
         }
 
         function hideLoading() {
@@ -280,253 +269,313 @@
             }
         }
 
-        // Excel 파일에서 데이터 읽기
-        async function loadExcelData() {
-            debugLog('Excel 데이터 로딩 시작');
-            const projects = [];
-            
-            try {
-                // 업로드된 파일 목록 확인
-                updateLoadingText('업로드된 파일을 확인하는 중...');
+        // 모든 가능한 컬럼명을 포괄하는 헬퍼 함수
+        function getValueFromRow(row, possibleNames) {
+            for (const name of possibleNames) {
+                // 정확한 매치
+                if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+                    return row[name];
+                }
                 
-                // ODA 파일 읽기 시도
-                try {
-                    debugLog('ODA 파일 읽기 시도: global ODA.xlsx');
-                    const odaData = await window.fs.readFile('global ODA.xlsx');
-                    const odaWorkbook = XLSX.read(odaData, { type: 'array' });
-                    debugLog(`ODA 파일 시트: ${odaWorkbook.SheetNames.join(', ')}`);
-                    
-                    const odaProjects = await processODAWorkbook(odaWorkbook);
-                    projects.push(...odaProjects);
-                    debugLog(`ODA 프로젝트 ${odaProjects.length}개 로드됨`);
-                } catch (error) {
-                    debugLog(`ODA 파일 읽기 실패: ${error.message}`);
-                }
-
-                // Consulting 파일 읽기 시도
-                try {
-                    debugLog('Consulting 파일 읽기 시도: global consulting.xlsx');
-                    const consultingData = await window.fs.readFile('global consulting.xlsx');
-                    const consultingWorkbook = XLSX.read(consultingData, { type: 'array' });
-                    debugLog(`Consulting 파일 시트: ${consultingWorkbook.SheetNames.join(', ')}`);
-                    
-                    const consultingProjects = await processConsultingWorkbook(consultingWorkbook);
-                    projects.push(...consultingProjects);
-                    debugLog(`Consulting 프로젝트 ${consultingProjects.length}개 로드됨`);
-                } catch (error) {
-                    debugLog(`Consulting 파일 읽기 실패: ${error.message}`);
-                }
-
-                debugLog(`총 ${projects.length}개 프로젝트 로드 완료`);
-                return projects;
-                
-            } catch (error) {
-                debugLog(`Excel 데이터 로딩 오류: ${error.message}`);
-                throw error;
-            }
-        }
-
-        // ODA 워크북 처리
-        async function processODAWorkbook(workbook) {
-            debugLog('ODA 워크북 처리 시작');
-            const projects = [];
-            
-            // 적절한 시트 찾기
-            let targetSheet = null;
-            let targetSheetName = '';
-            
-            for (const sheetName of workbook.SheetNames) {
-                debugLog(`ODA 시트 검사: ${sheetName}`);
-                if (sheetName.includes('ODA') || sheetName.includes('양자') || sheetName.includes('다자')) {
-                    targetSheet = workbook.Sheets[sheetName];
-                    targetSheetName = sheetName;
-                    break;
-                }
-            }
-            
-            if (!targetSheet) {
-                targetSheet = workbook.Sheets[workbook.SheetNames[0]];
-                targetSheetName = workbook.SheetNames[0];
-            }
-            
-            debugLog(`ODA 시트 선택: ${targetSheetName}`);
-            
-            const rawData = XLSX.utils.sheet_to_json(targetSheet, { defval: '' });
-            debugLog(`ODA 원본 데이터 행 수: ${rawData.length}`);
-            
-            if (rawData.length > 0) {
-                debugLog(`ODA 첫 번째 행 컬럼: ${Object.keys(rawData[0]).join(', ')}`);
-            }
-            
-            rawData.forEach((row, index) => {
-                try {
-                    // 다양한 컬럼명 패턴 시도
-                    const country = findValue(row, ['국가별', '국가', '대상국가', 'Country']);
-                    const projectName = findValue(row, ['사업명', '₩', '프로젝트명', 'Project']);
-                    const lat = parseFloat(findValue(row, ['Y', 'Lat', 'Latitude', '위도']) || 0);
-                    const lng = parseFloat(findValue(row, ['X', 'Lng', 'Longitude', '경도']) || 0);
-                    const budget = parseFloat(findValue(row, ['총예산(백만원)', '예산', 'Budget', '사업비']) || 0);
-                    const period = findValue(row, ['사업기간', '기간', 'Period']);
-                    const type = findValue(row, ['사업형태', '타입', 'Type']);
-                    const continent = findValue(row, ['대륙별', '대륙', 'Continent']);
-                    
-                    if (country && projectName && lat && lng) {
-                        const project = {
-                            name: country.trim(),
-                            lat: lat,
-                            lng: lng,
-                            description: projectName.trim(),
-                            category: 'ODA',
-                            period: period ? period.toString().trim() : '',
-                            budget: budget,
-                            continent: continent ? continent.toString().trim() : '',
-                            type: type ? type.toString().trim() : '',
-                            number: projects.length + 1
-                        };
-                        
-                        projects.push(project);
-                        
-                        if (index < 5) { // 처음 5개 프로젝트만 디버그 로그
-                            debugLog(`ODA 프로젝트 ${index + 1}: ${country} - ${projectName}`);
+                // 부분 매치 (대소문자 무시하고 공백 제거)
+                const cleanName = name.toLowerCase().replace(/\s/g, '');
+                for (const key in row) {
+                    if (key && typeof key === 'string') {
+                        const cleanKey = key.toLowerCase().replace(/\s/g, '');
+                        if (cleanKey.includes(cleanName) || cleanName.includes(cleanKey)) {
+                            if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                                return row[key];
+                            }
                         }
                     }
-                } catch (error) {
-                    debugLog(`ODA 행 ${index + 1} 처리 오류: ${error.message}`);
-                }
-            });
-            
-            debugLog(`ODA 프로젝트 처리 완료: ${projects.length}개`);
-            return projects;
-        }
-
-        // Consulting 워크북 처리
-        async function processConsultingWorkbook(workbook) {
-            debugLog('Consulting 워크북 처리 시작');
-            const projects = [];
-            
-            // 적절한 시트 찾기
-            let targetSheet = null;
-            let targetSheetName = '';
-            
-            for (const sheetName of workbook.SheetNames) {
-                debugLog(`Consulting 시트 검사: ${sheetName}`);
-                if (sheetName.includes('컨설팅') || sheetName.includes('해외') || sheetName.includes('기술')) {
-                    targetSheet = workbook.Sheets[sheetName];
-                    targetSheetName = sheetName;
-                    break;
-                }
-            }
-            
-            if (!targetSheet) {
-                targetSheet = workbook.Sheets[workbook.SheetNames[0]];
-                targetSheetName = workbook.SheetNames[0];
-            }
-            
-            debugLog(`Consulting 시트 선택: ${targetSheetName}`);
-            
-            const rawData = XLSX.utils.sheet_to_json(targetSheet, { defval: '' });
-            debugLog(`Consulting 원본 데이터 행 수: ${rawData.length}`);
-            
-            if (rawData.length > 0) {
-                debugLog(`Consulting 첫 번째 행 컬럼: ${Object.keys(rawData[0]).join(', ')}`);
-            }
-            
-            rawData.forEach((row, index) => {
-                try {
-                    const country = findValue(row, ['국가별', '국가', '대상국가', 'Country']);
-                    const projectName = findValue(row, ['국문사업명', '사업명', '프로젝트명', 'Project']);
-                    const lat = parseFloat(findValue(row, ['Y', 'Lat', 'Latitude', '위도']) || 0);
-                    const lng = parseFloat(findValue(row, ['X', 'Lng', 'Longitude', '경도']) || 0);
-                    const budget = parseFloat(findValue(row, ['용역비(공사)(백만원)', '용역비', 'Budget', '사업비']) || 0);
-                    const status = findValue(row, ['진행여부', '상태', 'Status']);
-                    const client = findValue(row, ['발주처', 'Client']);
-                    const year = parseInt(findValue(row, ['수주년도', '년도', 'Year']) || 0);
-                    const startDate = findValue(row, ['착수일', '시작일', 'Start']);
-                    const endDate = findValue(row, ['준공일', '종료일', 'End']);
-                    
-                    if (country && projectName && lat && lng) {
-                        const project = {
-                            name: country.trim(),
-                            lat: lat,
-                            lng: lng,
-                            description: projectName.trim(),
-                            category: 'Consulting',
-                            status: status ? status.toString().trim() : '',
-                            budget: budget,
-                            client: client ? client.toString().trim() : '',
-                            year: year || null,
-                            startDate: startDate ? startDate.toString().trim() : '',
-                            endDate: endDate ? endDate.toString().trim() : '',
-                            number: projects.length + 1
-                        };
-                        
-                        projects.push(project);
-                        
-                        if (index < 5) { // 처음 5개 프로젝트만 디버그 로그
-                            debugLog(`Consulting 프로젝트 ${index + 1}: ${country} - ${projectName} (${year})`);
-                        }
-                    }
-                } catch (error) {
-                    debugLog(`Consulting 행 ${index + 1} 처리 오류: ${error.message}`);
-                }
-            });
-            
-            debugLog(`Consulting 프로젝트 처리 완료: ${projects.length}개`);
-            return projects;
-        }
-
-        // 값 찾기 헬퍼 함수
-        function findValue(row, possibleKeys) {
-            for (const key of possibleKeys) {
-                if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
-                    return row[key];
                 }
             }
             return null;
         }
 
-        // 데이터 로드 메인 함수
-        async function loadData() {
+        // Excel 파일 로딩 (fetch 사용)
+        async function loadExcelFiles() {
+            console.log('Excel 파일 로딩 시작');
+            const projects = [];
+            
             try {
-                debugLog('데이터 로드 시작');
-                updateLoadingText('Excel 파일에서 데이터를 읽는 중...');
+                // ODA 파일 로딩
+                updateLoadingText('ODA 파일을 읽는 중...');
+                try {
+                    const odaResponse = await fetch('global ODA.xlsx');
+                    if (odaResponse.ok) {
+                        const odaArrayBuffer = await odaResponse.arrayBuffer();
+                        const odaWorkbook = XLSX.read(odaArrayBuffer, { type: 'array' });
+                        const odaProjects = processODAFile(odaWorkbook);
+                        projects.push(...odaProjects);
+                        console.log(`ODA 프로젝트 ${odaProjects.length}개 로드`);
+                    } else {
+                        throw new Error('ODA 파일을 찾을 수 없습니다');
+                    }
+                } catch (error) {
+                    console.warn('ODA 파일 로딩 실패:', error.message);
+                }
+
+                // Consulting 파일 로딩
+                updateLoadingText('Consulting 파일을 읽는 중...');
+                try {
+                    const consultingResponse = await fetch('global consulting.xlsx');
+                    if (consultingResponse.ok) {
+                        const consultingArrayBuffer = await consultingResponse.arrayBuffer();
+                        const consultingWorkbook = XLSX.read(consultingArrayBuffer, { type: 'array' });
+                        const consultingProjects = processConsultingFile(consultingWorkbook);
+                        projects.push(...consultingProjects);
+                        console.log(`Consulting 프로젝트 ${consultingProjects.length}개 로드`);
+                    } else {
+                        throw new Error('Consulting 파일을 찾을 수 없습니다');
+                    }
+                } catch (error) {
+                    console.warn('Consulting 파일 로딩 실패:', error.message);
+                }
+
+                return projects;
+
+            } catch (error) {
+                console.error('Excel 파일 로딩 오류:', error);
+                throw error;
+            }
+        }
+
+        // ODA 파일 처리 (모든 시트 검사)
+        function processODAFile(workbook) {
+            console.log('ODA 파일 처리 시작');
+            console.log('사용 가능한 시트:', workbook.SheetNames);
+            
+            const projects = [];
+            
+            // 모든 시트를 검사하여 데이터가 있는 시트 찾기
+            for (const sheetName of workbook.SheetNames) {
+                console.log(`시트 검사 중: ${sheetName}`);
                 
-                allProjects = await loadExcelData();
+                const sheet = workbook.Sheets[sheetName];
+                const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
                 
-                if (allProjects.length === 0) {
-                    throw new Error('로드된 프로젝트가 없습니다');
+                if (rawData.length < 2) continue; // 헤더 + 최소 1개 데이터 행 필요
+                
+                // 헤더 행 찾기
+                let headerRowIndex = -1;
+                for (let i = 0; i < Math.min(5, rawData.length); i++) {
+                    const row = rawData[i];
+                    if (row && Array.isArray(row)) {
+                        const hasCountryCol = row.some(cell => 
+                            cell && typeof cell === 'string' && 
+                            (cell.includes('국가') || cell.includes('Country') || cell === '₩')
+                        );
+                        if (hasCountryCol) {
+                            headerRowIndex = i;
+                            break;
+                        }
+                    }
                 }
                 
-                debugLog(`총 ${allProjects.length}개 프로젝트 로드 완료`);
+                if (headerRowIndex === -1) continue;
+                
+                // 헤더를 키로 사용하여 객체 배열로 변환
+                const headers = rawData[headerRowIndex];
+                const dataRows = rawData.slice(headerRowIndex + 1);
+                
+                console.log(`시트 ${sheetName} 헤더:`, headers);
+                console.log(`데이터 행 수: ${dataRows.length}`);
+                
+                let processedInSheet = 0;
+                
+                dataRows.forEach((row, index) => {
+                    if (!row || !Array.isArray(row)) return;
+                    
+                    // 행 데이터를 객체로 변환
+                    const rowObj = {};
+                    headers.forEach((header, colIndex) => {
+                        if (header) {
+                            rowObj[header] = row[colIndex];
+                        }
+                    });
+                    
+                    try {
+                        // 다양한 컬럼명 패턴으로 데이터 추출
+                        const country = getValueFromRow(rowObj, ['국가별', '국가', '대상국가', 'Country', '₩']);
+                        const projectName = getValueFromRow(rowObj, ['사업명', '프로젝트명', 'Project', '₩1', '사업']);
+                        const lat = parseFloat(getValueFromRow(rowObj, ['Y', 'Lat', 'Latitude', '위도', 'y좌표']) || 0);
+                        const lng = parseFloat(getValueFromRow(rowObj, ['X', 'Lng', 'Longitude', '경도', 'x좌표']) || 0);
+                        const budget = parseFloat(getValueFromRow(rowObj, ['총예산(백만원)', '예산', 'Budget', '사업비', '총예산']) || 0);
+                        const period = getValueFromRow(rowObj, ['사업기간', '기간', 'Period', '수행기간']);
+                        const type = getValueFromRow(rowObj, ['사업형태', '타입', 'Type', '형태']);
+                        const continent = getValueFromRow(rowObj, ['대륙별', '대륙', 'Continent', '지역']);
+                        
+                        // 유효한 데이터인지 확인
+                        if (country && projectName && lat && lng && lat !== 0 && lng !== 0) {
+                            const project = {
+                                name: country.toString().trim(),
+                                lat: lat,
+                                lng: lng,
+                                description: projectName.toString().trim(),
+                                category: 'ODA',
+                                period: period ? period.toString().trim() : '',
+                                budget: budget || 0,
+                                continent: continent ? continent.toString().trim() : '',
+                                type: type ? type.toString().trim() : '',
+                                number: projects.length + 1,
+                                sheet: sheetName
+                            };
+                            
+                            projects.push(project);
+                            processedInSheet++;
+                        }
+                    } catch (error) {
+                        // 개별 행 오류는 무시하고 계속
+                    }
+                });
+                
+                console.log(`시트 ${sheetName}에서 ${processedInSheet}개 ODA 프로젝트 처리됨`);
+            }
+            
+            console.log(`총 ODA 프로젝트: ${projects.length}개`);
+            return projects;
+        }
+
+        // Consulting 파일 처리 (모든 시트 검사)
+        function processConsultingFile(workbook) {
+            console.log('Consulting 파일 처리 시작');
+            console.log('사용 가능한 시트:', workbook.SheetNames);
+            
+            const projects = [];
+            
+            // 모든 시트를 검사하여 데이터가 있는 시트 찾기
+            for (const sheetName of workbook.SheetNames) {
+                console.log(`시트 검사 중: ${sheetName}`);
+                
+                const sheet = workbook.Sheets[sheetName];
+                const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
+                
+                if (rawData.length < 2) continue;
+                
+                // 헤더 행 찾기
+                let headerRowIndex = -1;
+                for (let i = 0; i < Math.min(5, rawData.length); i++) {
+                    const row = rawData[i];
+                    if (row && Array.isArray(row)) {
+                        const hasRelevantCol = row.some(cell => 
+                            cell && typeof cell === 'string' && 
+                            (cell.includes('국가') || cell.includes('사업명') || cell.includes('용역비') || cell.includes('수주년도'))
+                        );
+                        if (hasRelevantCol) {
+                            headerRowIndex = i;
+                            break;
+                        }
+                    }
+                }
+                
+                if (headerRowIndex === -1) continue;
+                
+                // 헤더를 키로 사용하여 객체 배열로 변환
+                const headers = rawData[headerRowIndex];
+                const dataRows = rawData.slice(headerRowIndex + 1);
+                
+                console.log(`시트 ${sheetName} 헤더:`, headers);
+                console.log(`데이터 행 수: ${dataRows.length}`);
+                
+                let processedInSheet = 0;
+                
+                dataRows.forEach((row, index) => {
+                    if (!row || !Array.isArray(row)) return;
+                    
+                    // 행 데이터를 객체로 변환
+                    const rowObj = {};
+                    headers.forEach((header, colIndex) => {
+                        if (header) {
+                            rowObj[header] = row[colIndex];
+                        }
+                    });
+                    
+                    try {
+                        const country = getValueFromRow(rowObj, ['국가별', '국가', '대상국가', 'Country']);
+                        const projectName = getValueFromRow(rowObj, ['국문사업명', '사업명', '프로젝트명', 'Project']);
+                        const lat = parseFloat(getValueFromRow(rowObj, ['Y', 'Lat', 'Latitude', '위도', 'y좌표']) || 0);
+                        const lng = parseFloat(getValueFromRow(rowObj, ['X', 'Lng', 'Longitude', '경도', 'x좌표']) || 0);
+                        const budget = parseFloat(getValueFromRow(rowObj, ['용역비(공사)(백만원)', '용역비', 'Budget', '사업비']) || 0);
+                        const status = getValueFromRow(rowObj, ['진행여부', '상태', 'Status', '진행상태']);
+                        const client = getValueFromRow(rowObj, ['발주처', 'Client', '발주기관']);
+                        const year = parseInt(getValueFromRow(rowObj, ['수주년도', '년도', 'Year', '수주']) || 0);
+                        const startDate = getValueFromRow(rowObj, ['착수일', '시작일', 'Start', '착수']);
+                        const endDate = getValueFromRow(rowObj, ['준공일', '종료일', 'End', '준공', '완료일']);
+                        
+                        // 유효한 데이터인지 확인
+                        if (country && projectName && lat && lng && lat !== 0 && lng !== 0) {
+                            const project = {
+                                name: country.toString().trim(),
+                                lat: lat,
+                                lng: lng,
+                                description: projectName.toString().trim(),
+                                category: 'Consulting',
+                                status: status ? status.toString().trim() : '',
+                                budget: budget || 0,
+                                client: client ? client.toString().trim() : '',
+                                year: year || null,
+                                startDate: startDate ? startDate.toString().trim() : '',
+                                endDate: endDate ? endDate.toString().trim() : '',
+                                number: projects.length + 1,
+                                sheet: sheetName
+                            };
+                            
+                            projects.push(project);
+                            processedInSheet++;
+                        }
+                    } catch (error) {
+                        // 개별 행 오류는 무시하고 계속
+                    }
+                });
+                
+                console.log(`시트 ${sheetName}에서 ${processedInSheet}개 Consulting 프로젝트 처리됨`);
+            }
+            
+            console.log(`총 Consulting 프로젝트: ${projects.length}개`);
+            return projects;
+        }
+
+        // 메인 데이터 로드 함수
+        async function loadData() {
+            try {
+                console.log('데이터 로드 시작');
+                
+                allProjects = await loadExcelFiles();
+                
+                if (allProjects.length === 0) {
+                    throw new Error('Excel 파일에서 데이터를 읽을 수 없습니다');
+                }
                 
                 const odaCount = allProjects.filter(p => p.category === 'ODA').length;
                 const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
                 
-                debugLog(`ODA: ${odaCount}개, Consulting: ${consultingCount}개`);
+                console.log(`데이터 로드 완료: ODA ${odaCount}개, Consulting ${consultingCount}개 (총 ${allProjects.length}개)`);
                 
-                updateLoadingText('데이터 처리 완료!');
+                showNotification(`데이터 로드 성공! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
+                
+                // 목표 개수와 비교
+                if (odaCount === 30 && consultingCount === 179) {
+                    showNotification('모든 데이터가 완벽하게 로드되었습니다! 🎉', 'success');
+                } else {
+                    showNotification(`예상 개수와 다릅니다. 목표: ODA 30개, 컨설팅 179개`, 'warning');
+                }
                 
             } catch (error) {
-                debugLog(`데이터 로드 실패: ${error.message}`);
+                console.error('데이터 로드 실패:', error);
+                showNotification('Excel 파일을 읽을 수 없습니다. 파일을 확인해주세요.', 'error');
                 
-                // 폴백 샘플 데이터
+                // 최소한의 샘플 데이터로 진행
                 allProjects = [
-                    {name: "베트남", lat: 13.93788, lng: 107.84167, description: "베트남 무병씨감자 생산 및 보급시스템 구축사업", category: "ODA", period: "'20-'25", budget: 5365, continent: "아시아", type: "양자무상", number: 1},
-                    {name: "베트남", lat: 14.2601, lng: 107.7851, description: "베트남 국립가축질병센터 역량강화지원사업(2차)", category: "ODA", period: "'22-'25", budget: 6322, continent: "아시아", type: "양자무상", number: 2},
-                    {name: "캄보디아", lat: 13.41, lng: 103.86, description: "캄보디아 산지지역의 고부가가치 채소생산 및 가치사슬 개선사업", category: "ODA", period: "'21-'25", budget: 5800, continent: "아시아", type: "양자무상", number: 3},
-                    {name: "라오스", lat: 18.483938, lng: 102.566812, description: "힌헙군 관개용댐 및 수로건설사업", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, startDate: "'10-06", endDate: "'12-12", number: 1},
-                    {name: "캄보디아", lat: 11.8867, lng: 104.9225, description: "캄퐁참주 크로치마군 농촌종합개발사업", category: "Consulting", status: "준공", budget: 1250, client: "KOICA", year: 2010, startDate: "'10-03", endDate: "'13-06", number: 2},
-                    {name: "인도네시아", lat: -6.69, lng: 107.64, description: "마뗑겡 다목적댐 건설사업", category: "Consulting", status: "시행중", budget: 4800, client: "KOICA", year: 2022, startDate: "'22-04", endDate: "'27-12", number: 3}
+                    {name: "베트남", lat: 13.93788, lng: 107.84167, description: "샘플 ODA 프로젝트", category: "ODA", period: "'20-'25", budget: 5365, type: "양자무상", number: 1},
+                    {name: "라오스", lat: 18.483938, lng: 102.566812, description: "샘플 컨설팅 프로젝트", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, number: 1}
                 ];
-                
-                updateLoadingText('샘플 데이터를 표시합니다');
-                debugLog(`폴백 데이터 사용: ${allProjects.length}개 프로젝트`);
             }
         }
 
         // 지도 초기화
         function initMap() {
-            debugLog('지도 초기화');
+            console.log('지도 초기화');
             map = L.map('map', { center: [20, 0], zoom: 2 });
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
                 attribution: '© OpenStreetMap contributors' 
@@ -536,7 +585,7 @@
 
         // 필터 초기화
         function initializeFilters() {
-            debugLog('필터 초기화');
+            console.log('필터 초기화');
             initProjectTypeFilters();
             initCountryFilters();
             initYearFilters();
@@ -550,7 +599,6 @@
             const container = document.getElementById('projectTypeFilters');
             container.innerHTML = '';
             const types = [...new Set(allProjects.map(p => p.category))].sort();
-            debugLog(`프로젝트 타입: ${types.join(', ')}`);
             types.forEach(type => {
                 const count = allProjects.filter(p => p.category === type).length;
                 container.appendChild(createCheckboxItem(type, count, 'projectType'));
@@ -561,7 +609,6 @@
             const container = document.getElementById('countryFilters');
             container.innerHTML = '';
             const countries = [...new Set(allProjects.map(p => p.name.trim()))].sort();
-            debugLog(`국가 수: ${countries.length}`);
             countries.forEach(country => {
                 const count = allProjects.filter(p => p.name.trim() === country).length;
                 container.appendChild(createCheckboxItem(country, count, 'country'));
@@ -573,7 +620,6 @@
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
             const years = [...new Set(consultingProjects.map(p => p.year).filter(y => y))].sort((a, b) => b - a);
-            debugLog(`수주년도: ${years.join(', ')}`);
             years.forEach(year => {
                 const count = consultingProjects.filter(p => p.year === year).length;
                 container.appendChild(createCheckboxItem(year.toString(), count, 'year'));
@@ -585,7 +631,6 @@
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
             const statuses = [...new Set(consultingProjects.map(p => p.status).filter(s => s))].sort();
-            debugLog(`진행상태: ${statuses.join(', ')}`);
             statuses.forEach(status => {
                 const count = consultingProjects.filter(p => p.status === status).length;
                 container.appendChild(createCheckboxItem(status, count, 'status'));
@@ -597,7 +642,6 @@
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting' && p.client);
             const clients = [...new Set(consultingProjects.map(p => p.client.trim()))].sort();
-            debugLog(`발주처: ${clients.join(', ')}`);
             clients.forEach(client => {
                 const count = consultingProjects.filter(p => p.client && p.client.trim() === client).length;
                 container.appendChild(createCheckboxItem(client, count, 'client'));
@@ -630,42 +674,30 @@
                 filterSet.delete(val);
             }
             
-            debugLog(`필터 업데이트: ${type} = ${val} (${checked ? '선택' : '해제'})`);
             applyFilters();
         }
 
         function applyFilters() {
-            const originalCount = filteredProjects.length;
-            
             filteredProjects = allProjects.filter(project => {
-                // 프로젝트 타입 필터
                 if (activeFilters.projectTypes.size > 0 && !activeFilters.projectTypes.has(project.category)) {
                     return false;
                 }
                 
-                // 국가 필터
                 if (activeFilters.countries.size > 0 && !activeFilters.countries.has(project.name.trim())) {
                     return false;
                 }
                 
-                // 컨설팅 프로젝트에만 적용되는 필터들
                 if (project.category === 'Consulting') {
-                    // 년도 필터
                     if (activeFilters.years.size > 0 && !activeFilters.years.has(project.year?.toString())) {
                         return false;
                     }
-                    
-                    // 상태 필터
                     if (activeFilters.statuses.size > 0 && !activeFilters.statuses.has(project.status)) {
                         return false;
                     }
-                    
-                    // 발주처 필터
                     if (activeFilters.clients.size > 0 && (!project.client || !activeFilters.clients.has(project.client.trim()))) {
                         return false;
                     }
                 } else {
-                    // ODA 프로젝트인데 컨설팅 전용 필터가 활성화되어 있으면 제외
                     if (activeFilters.years.size > 0 || activeFilters.statuses.size > 0 || activeFilters.clients.size > 0) {
                         return false;
                     }
@@ -673,8 +705,6 @@
                 
                 return true;
             });
-            
-            debugLog(`필터 적용: ${allProjects.length}개 → ${filteredProjects.length}개`);
             
             updateMapMarkers();
             updateStats();
@@ -686,7 +716,6 @@
             
             markersLayer.clearLayers();
             
-            // 국가별로 그룹핑
             const countryGroups = {};
             filteredProjects.forEach(project => {
                 const countryName = project.name.trim();
@@ -696,7 +725,6 @@
                 countryGroups[countryName][project.category].push(project);
             });
             
-            // 마커 생성
             Object.keys(countryGroups).forEach(countryName => {
                 const countryData = countryGroups[countryName];
                 
@@ -719,7 +747,6 @@
                 }
             });
             
-            // 지도 범위 조정
             if (filteredProjects.length > 0) {
                 const allMarkers = markersLayer.getLayers();
                 if (allMarkers.length > 0) {
@@ -727,8 +754,6 @@
                     map.fitBounds(group.getBounds().pad(0.1));
                 }
             }
-            
-            debugLog(`마커 생성 완료: ${Object.keys(countryGroups).length}개 국가`);
         }
 
         function createCountryMarker(countryName, category, projects, lat, lng) {
@@ -840,7 +865,6 @@
             document.getElementById('consulting-projects').textContent = consultingCount.toLocaleString();
             document.getElementById('total-budget').textContent = budgetInBillion;
             
-            // 색상 설정
             document.getElementById('stat-total-projects').style.borderColor = '#2c3e50';
             document.getElementById('stat-countries-count').style.borderColor = '#e74c3c';
             document.getElementById('stat-oda-projects').style.borderColor = '#FF8C00';
@@ -892,7 +916,6 @@
             applyFilters();
             document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
             document.querySelectorAll('.filter-bar-button').forEach(btn => btn.classList.remove('active'));
-            debugLog('모든 필터 리셋');
         }
 
         function goToMyLocation() {
@@ -906,38 +929,31 @@
                         setTimeout(() => { if(map.hasLayer(marker)) map.removeLayer(marker); }, 5000);
                     },
                     (error) => { 
-                        debugLog(`위치 정보 오류: ${error.message}`);
-                        alert('위치 정보를 가져올 수 없습니다.'); 
+                        console.error('위치 정보 오류:', error);
+                        showNotification('위치 정보를 가져올 수 없습니다.', 'warning');
                     }
                 );
             } else { 
-                alert('이 브라우저는 위치 서비스를 지원하지 않습니다.'); 
+                showNotification('이 브라우저는 위치 서비스를 지원하지 않습니다.', 'warning');
             }
         }
 
         // 메인 초기화
         async function initialize() {
             try {
-                debugLog('애플리케이션 초기화 시작');
+                console.log('애플리케이션 초기화 시작');
                 
-                // 1. 지도 초기화
                 initMap();
-                
-                // 2. 데이터 로드
                 await loadData();
-                
-                // 3. 필터 초기화
                 initializeFilters();
-                
-                // 4. 로딩 화면 숨김
                 hideLoading();
                 
-                debugLog('애플리케이션 초기화 완료');
+                console.log('애플리케이션 초기화 완료');
                 
             } catch (error) {
-                debugLog(`초기화 실패: ${error.message}`);
+                console.error('초기화 실패:', error);
                 hideLoading();
-                alert('데이터 로드에 실패했습니다. 파일을 업로드했는지 확인해주세요.');
+                showNotification('초기화 중 오류가 발생했습니다.', 'error');
             }
         }
 
@@ -951,7 +967,6 @@
         // 전역 함수
         window.resetAllFilters = resetAllFilters;
         window.goToMyLocation = goToMyLocation;
-        window.toggleDebug = toggleDebug;
     </script>
 </body>
 </html>
