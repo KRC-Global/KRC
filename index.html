@@ -617,13 +617,6 @@
                 
                 showNotification(`데이터 로드 성공! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
                 
-                // 목표 개수와 비교 (실제 파일 기준)
-                if (odaCount >= 25 && consultingCount >= 175) {
-                    showNotification('모든 데이터가 성공적으로 로드되었습니다! 🎉', 'success');
-                } else if (consultingCount < 100) {
-                    showNotification(`일부 데이터가 누락될 수 있습니다. 현재: ODA ${odaCount}개, 컨설팅 ${consultingCount}개`, 'warning');
-                }
-                
             } catch (error) {
                 console.error('데이터 로드 실패:', error);
                 showNotification('Excel 파일을 읽을 수 없습니다. 파일을 확인해주세요.', 'error');
@@ -859,6 +852,30 @@
             const categoryColor = projectColors[category];
             const categoryName = category === 'ODA' ? 'ODA 사업' : '컨설팅 사업';
             
+            // 프로젝트 정렬: 제안중이 맨 위, 그 다음 수주년도 내림차순
+            const sortedProjects = [...projects].sort((a, b) => {
+                if (category === 'Consulting') {
+                    // 1. 제안중 사업이 최우선 (맨 위로)
+                    const aIsProposal = a.status === '제안중';
+                    const bIsProposal = b.status === '제안중';
+                    
+                    if (aIsProposal && !bIsProposal) return -1;
+                    if (!aIsProposal && bIsProposal) return 1;
+                    
+                    // 2. 수주년도 내림차순 (최근이 위로)
+                    const aYear = a.year || 0;
+                    const bYear = b.year || 0;
+                    
+                    if (aYear !== bYear) return bYear - aYear;
+                    
+                    // 3. 같은 조건이면 사업명 오름차순
+                    return a.description.localeCompare(b.description);
+                } else {
+                    // ODA 사업은 사업명 오름차순
+                    return a.description.localeCompare(b.description);
+                }
+            });
+            
             let content = `
                 <div style="font-family: 'Segoe UI', sans-serif;">
                     <div style="display: flex; align-items: center; margin-bottom: 12px; border-bottom: 2px solid ${categoryColor}; padding-bottom: 8px;">
@@ -870,12 +887,19 @@
                     </div>
                     <div style="max-height: 300px; overflow-y: auto;">`;
             
-            projects.forEach((project, index) => {
+            sortedProjects.forEach((project, index) => {
                 const isProposal = project.status === '제안중';
                 const borderStyle = isProposal ? 'border-left: 4px solid #ff6b35; background: rgba(255, 107, 53, 0.05);' : 'border-bottom: 1px solid #eee;';
                 
                 content += `<div style="${borderStyle} padding: 8px;">`;
-                content += `<div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">${project.description}</div>`;
+                
+                // 프로젝트명과 제안중 뱃지
+                content += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">`;
+                content += `<div style="font-weight: 600; color: #2c3e50; font-size: 14px; flex: 1;">${project.description}</div>`;
+                if (isProposal) {
+                    content += `<span class="status-badge status-proposal" style="margin-left: 8px;">제안중</span>`;
+                }
+                content += `</div>`;
                 
                 if (project.category === 'ODA') {
                     if (project.type) content += `<div style="font-size: 12px; color: #666;"><strong>형태:</strong> ${project.type}</div>`;
@@ -885,9 +909,10 @@
                         content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
                     }
                 } else {
-                    if (project.status) {
-                        let statusClass = project.status === '시행중' ? 'status-progress' : project.status === '제안중' ? 'status-proposal' : 'status-complete';
-                        content += `<div style="margin: 4px 0;"><span class="status-badge ${statusClass}">${project.status}</span></div>`;
+                    // 제안중이 아닌 경우에만 상태 표시
+                    if (project.status && !isProposal) {
+                        let statusClass = project.status === '시행중' ? 'status-progress' : 'status-complete';
+                        content += `<div style="font-size: 12px; margin: 2px 0;"><strong>상태:</strong> <span class="status-badge ${statusClass}">${project.status}</span></div>`;
                     }
                     if (project.startDate && project.endDate) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
                     if (project.budget > 0) {
@@ -895,7 +920,11 @@
                         content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
                     }
                     if (project.client) content += `<div style="font-size: 12px; color: #666;"><strong>발주처:</strong> ${project.client}</div>`;
-                    if (project.year) content += `<div style="font-size: 11px; color: #999;"><strong>수주년도:</strong> ${project.year}</div>`;
+                    if (project.year) {
+                        const yearColor = isProposal ? '#ff6b35' : '#999';
+                        const yearWeight = isProposal ? '600' : '400';
+                        content += `<div style="font-size: 11px; color: ${yearColor}; font-weight: ${yearWeight};"><strong>수주년도:</strong> ${project.year}</div>`;
+                    }
                 }
                 content += `</div>`;
             });
