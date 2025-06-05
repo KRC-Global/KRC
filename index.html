@@ -382,11 +382,13 @@
         .popup-header {
             display: flex;
             align-items: center;
+            justify-content: center;
             margin-bottom: 10px;
             border-bottom: 2px solid;
             padding-bottom: 6px;
             flex-wrap: wrap;
             gap: 8px;
+            text-align: center;
         }
         
         .popup-flag {
@@ -399,6 +401,7 @@
         .popup-title {
             flex: 1;
             min-width: 0;
+            text-align: center;
         }
         
         .popup-country-name {
@@ -479,8 +482,128 @@
             font-weight: 600 !important;
         }
 
+        /* 범례 스타일 */
+        .legend {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1002;
+            font-size: 12px;
+            min-width: 180px;
+            transition: top 0.3s ease;
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 13px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+        
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .legend-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid;
+            flex-shrink: 0;
+        }
+        
+        .legend-marker.oda {
+            border-color: #FF8C00;
+            background: rgba(255, 140, 0, 0.1);
+        }
+        
+        .legend-marker.consulting {
+            border-color: #4682B4;
+            background: rgba(70, 130, 180, 0.1);
+        }
+        
+        .legend-text {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .legend-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .legend-count {
+            font-weight: 600;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
         @media (max-width: 768px) {
-            #bottom-info-panel .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            #bottom-info-panel .stats-grid { 
+                grid-template-columns: repeat(5, 1fr); 
+                gap: 6px; 
+            }
+            #bottom-info-panel .stat-card { 
+                padding: 6px 4px; 
+            }
+            #bottom-info-panel .stat-number { 
+                font-size: 1em; 
+                margin-bottom: 2px; 
+            }
+            #bottom-info-panel .stat-label { 
+                font-size: 0.65em; 
+                line-height: 1.2;
+            }
+            #bottom-info-panel {
+                padding: 8px 10px;
+            }
+            #bottom-info-panel .section-title {
+                font-size: 0.9em;
+                margin-bottom: 6px;
+            }
+            
+            .legend {
+                top: 130px;
+                right: 10px;
+                padding: 8px;
+                min-width: 150px;
+                font-size: 11px;
+            }
+            
+            .legend-title {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+            
+            .legend-marker {
+                width: 14px;
+                height: 14px;
+            }
+            
+            .legend-count {
+                font-size: 10px;
+                padding: 1px 4px;
+            }
+            
             .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
             .views-panel { width: calc(100% - 40px); max-height: 80vh; }
             .views-panel-content { max-height: calc(80vh - 60px); }
@@ -545,6 +668,25 @@
 </head>
 <body>
     <div id="map"></div>
+
+    <!-- 범례 -->
+    <div class="legend" id="legend">
+        <div class="legend-title">📍 사업 유형</div>
+        <div class="legend-item">
+            <div class="legend-marker consulting"></div>
+            <div class="legend-text">
+                <span class="legend-label">컨설팅 사업</span>
+                <span class="legend-count" id="legend-consulting-count">0</span>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-marker oda"></div>
+            <div class="legend-text">
+                <span class="legend-label">ODA 사업</span>
+                <span class="legend-count" id="legend-oda-count">0</span>
+            </div>
+        </div>
+    </div>
 
     <div class="admin-login-modal" id="admin-login-modal">
         <div class="admin-login-content">
@@ -1834,6 +1976,9 @@
             initClientFilters();
             applyFilters();
             setupFilterDropdowns();
+            
+            // 초기 범례 위치 조정
+            setTimeout(adjustLegendPosition, 100);
         }
 
         function initProjectTypeFilters() {
@@ -2166,6 +2311,38 @@
             document.getElementById('stat-oda-projects').style.borderColor = '#FF8C00';
             document.getElementById('stat-consulting-projects').style.borderColor = '#4682B4';
             document.getElementById('stat-total-budget').style.borderColor = '#27ae60';
+            
+            // 범례 업데이트
+            updateLegend(consultingCount, odaCount);
+        }
+
+        function updateLegend(consultingCount, odaCount) {
+            const consultingCountEl = document.getElementById('legend-consulting-count');
+            const odaCountEl = document.getElementById('legend-oda-count');
+            
+            if (consultingCountEl) consultingCountEl.textContent = consultingCount.toLocaleString();
+            if (odaCountEl) odaCountEl.textContent = odaCount.toLocaleString();
+            
+            // 범례 위치 동적 조정
+            adjustLegendPosition();
+        }
+
+        function adjustLegendPosition() {
+            const filterBar = document.getElementById('top-filter-bar');
+            const legend = document.getElementById('legend');
+            
+            if (filterBar && legend) {
+                const filterBarHeight = filterBar.offsetHeight;
+                const safeMargin = 15; // 여유 공간
+                const newTop = filterBarHeight + safeMargin;
+                
+                legend.style.top = `${newTop}px`;
+            }
+        }
+
+        // 윈도우 리사이즈 시에도 범례 위치 조정
+        function handleResize() {
+            setTimeout(adjustLegendPosition, 100); // 레이아웃 완료 후 조정
         }
 
         function updateFilterResultText() {
@@ -2195,6 +2372,9 @@
                         currentDropdown.style.display = 'block';
                         this.classList.add('active');
                     }
+                    
+                    // 드롭다운 상태 변경 후 범례 위치 조정
+                    setTimeout(adjustLegendPosition, 50);
                 });
             });
             
@@ -2202,6 +2382,8 @@
                 if (!event.target.closest('.filter-button-group')) {
                     document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
                     document.querySelectorAll('.filter-bar-button').forEach(btn => btn.classList.remove('active'));
+                    // 드롭다운 닫힐 때도 범례 위치 조정
+                    setTimeout(adjustLegendPosition, 50);
                 }
             });
         }
@@ -2265,6 +2447,27 @@
         } else {
             initialize();
         }
+
+        // 윈도우 리사이즈 이벤트 등록
+        window.addEventListener('resize', handleResize);
+        
+        // 필터 드롭다운 상태 변경 시에도 범례 위치 조정
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    // 필터 드롭다운이 열리거나 닫힐 때
+                    setTimeout(adjustLegendPosition, 50);
+                }
+            });
+        });
+
+        // 필터 드롭다운들 관찰 시작
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterDropdowns = document.querySelectorAll('.filter-dropdown');
+            filterDropdowns.forEach(dropdown => {
+                observer.observe(dropdown, { attributes: true, attributeFilter: ['style'] });
+            });
+        });
 
         // ===========================================
         // 전역 함수들
