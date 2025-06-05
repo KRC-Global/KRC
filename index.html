@@ -498,11 +498,11 @@
             backdrop-filter: blur(8px);
             border: 1px solid #ddd;
             border-radius: 8px;
-            padding: 10px;
+            padding: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 1002;
-            font-size: 11px;
-            min-width: 170px;
+            font-size: 12px;
+            min-width: 180px;
             transition: top 0.3s ease;
         }
         
@@ -518,8 +518,8 @@
         .legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 4px;
-            gap: 6px;
+            margin-bottom: 6px;
+            gap: 8px;
         }
         
         .legend-item:last-child {
@@ -592,9 +592,9 @@
             .legend {
                 top: 130px;
                 right: 10px;
-                padding: 8px;
-                min-width: 140px;
-                font-size: 10px;
+                padding: 10px;
+                min-width: 160px;
+                font-size: 11px;
             }
             
             .legend-title {
@@ -603,17 +603,17 @@
             }
             
             .legend-item {
-                margin-bottom: 4px;
+                margin-bottom: 5px;
             }
             
             .legend-marker {
-                width: 12px;
-                height: 12px;
+                width: 14px;
+                height: 14px;
             }
             
             .legend-count {
-                font-size: 9px;
-                padding: 1px 3px;
+                font-size: 10px;
+                padding: 1px 4px;
             }
             
             .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
@@ -686,29 +686,15 @@
         <div class="legend-item">
             <div class="legend-marker consulting"></div>
             <div class="legend-text">
-                <span class="legend-label">컨설팅</span>
-                <span class="legend-count" id="legend-consulting-count">0개</span>
-            </div>
-        </div>
-        <div class="legend-item">
-            <div class="legend-marker consulting"></div>
-            <div class="legend-text">
-                <span class="legend-label">컨설팅 사업비</span>
-                <span class="legend-count" id="legend-consulting-budget">0억원</span>
+                <span class="legend-label">기술컨설팅</span>
+                <span class="legend-count" id="legend-consulting-summary">0개/0억원</span>
             </div>
         </div>
         <div class="legend-item">
             <div class="legend-marker oda"></div>
             <div class="legend-text">
                 <span class="legend-label">ODA</span>
-                <span class="legend-count" id="legend-oda-count">0개</span>
-            </div>
-        </div>
-        <div class="legend-item">
-            <div class="legend-marker oda"></div>
-            <div class="legend-text">
-                <span class="legend-label">ODA 사업비</span>
-                <span class="legend-count" id="legend-oda-budget">0억원</span>
+                <span class="legend-count" id="legend-oda-summary">0개/0억원</span>
             </div>
         </div>
     </div>
@@ -2368,19 +2354,12 @@
             const consultingBudgetInBillion = Math.round(consultingBudget / 100).toLocaleString('ko-KR');
             const odaBudgetInBillion = Math.round(odaBudget / 100).toLocaleString('ko-KR');
             
-            // 개수 업데이트
-            const consultingCountEl = document.getElementById('legend-consulting-count');
-            const odaCountEl = document.getElementById('legend-oda-count');
+            // 개수/사업비 통합 업데이트
+            const consultingSummaryEl = document.getElementById('legend-consulting-summary');
+            const odaSummaryEl = document.getElementById('legend-oda-summary');
             
-            if (consultingCountEl) consultingCountEl.textContent = `${consultingCount.toLocaleString()}개`;
-            if (odaCountEl) odaCountEl.textContent = `${odaCount.toLocaleString()}개`;
-            
-            // 사업비 업데이트
-            const consultingBudgetEl = document.getElementById('legend-consulting-budget');
-            const odaBudgetEl = document.getElementById('legend-oda-budget');
-            
-            if (consultingBudgetEl) consultingBudgetEl.textContent = `${consultingBudgetInBillion}억원`;
-            if (odaBudgetEl) odaBudgetEl.textContent = `${odaBudgetInBillion}억원`;
+            if (consultingSummaryEl) consultingSummaryEl.textContent = `${consultingCount.toLocaleString()}개/${consultingBudgetInBillion}억원`;
+            if (odaSummaryEl) odaSummaryEl.textContent = `${odaCount.toLocaleString()}개/${odaBudgetInBillion}억원`;
             
             // 범례 위치 동적 조정
             adjustLegendPosition();
