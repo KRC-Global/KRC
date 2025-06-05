@@ -354,25 +354,173 @@
 
         .custom-div-icon { background: transparent !important; border: none !important; }
 
+        /* 팝업 스타일 개선 (모바일 대응) */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px !important;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.2) !important;
+        }
+        
+        .leaflet-popup-content {
+            margin: 0 !important;
+            line-height: 1.4 !important;
+            font-size: 13px !important;
+            overflow: hidden !important;
+        }
+        
+        .leaflet-popup-close-button {
+            color: #999 !important;
+            font-size: 16px !important;
+            padding: 4px 4px 0 0 !important;
+        }
+
+        /* 모바일용 팝업 컨테이너 스타일 */
+        .popup-container {
+            max-width: 100%;
+            overflow: hidden;
+        }
+        
+        .popup-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 2px solid;
+            padding-bottom: 6px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .popup-flag {
+            width: 24px;
+            height: 16px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        
+        .popup-title {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .popup-country-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+            word-wrap: break-word;
+        }
+        
+        .popup-category {
+            font-weight: 600;
+            font-size: 12px;
+            margin: 2px 0 0 0;
+        }
+        
+        .popup-projects {
+            max-height: 250px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .popup-project-item {
+            padding: 6px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .popup-project-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .popup-project-item.proposal {
+            border-left: 3px solid #ff6b35;
+            background: rgba(255, 107, 53, 0.05);
+        }
+        
+        .popup-project-item.progress {
+            border-left: 3px solid #28a745;
+            background: rgba(40, 167, 69, 0.05);
+        }
+        
+        .popup-project-title {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .popup-project-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 13px;
+            flex: 1;
+            min-width: 0;
+            word-break: break-word;
+        }
+        
+        .popup-project-details {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.3;
+        }
+        
+        .popup-project-details > div {
+            margin: 1px 0;
+            word-break: break-word;
+        }
+        
+        .popup-budget {
+            color: #e74c3c !important;
+            font-weight: 600 !important;
+        }
+
         @media (max-width: 768px) {
             #bottom-info-panel .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
             .views-panel { width: calc(100% - 40px); max-height: 80vh; }
             .views-panel-content { max-height: calc(80vh - 60px); }
 
-            /* 모바일 팝업 크기 조절 */
+            /* 모바일 팝업 크기 개선 */
             .leaflet-popup-content-wrapper {
-                min-width: 250px !important;
-                max-width: 300px !important;
+                min-width: 280px !important;
+                max-width: calc(100vw - 40px) !important;
+                width: auto !important;
             }
+            
             .leaflet-popup-content {
-                font-size: 0.9em;
+                font-size: 12px !important;
+                width: 100% !important;
+                max-width: 100% !important;
             }
-            .leaflet-popup-content .stat-number {
-                font-size: 1.1em;
+            
+            .popup-country-name {
+                font-size: 14px !important;
             }
-            .leaflet-popup-content .stat-label {
-                font-size: 0.7em;
+            
+            .popup-category {
+                font-size: 11px !important;
+            }
+            
+            .popup-project-name {
+                font-size: 12px !important;
+            }
+            
+            .popup-project-details {
+                font-size: 10px !important;
+            }
+            
+            .popup-projects {
+                max-height: 200px !important;
+            }
+            
+            .popup-flag {
+                width: 20px !important;
+                height: 14px !important;
             }
         }
 
@@ -594,7 +742,7 @@
         let currentUser = null;
         let userId = 'readonly_user'; // 기본값: 읽기 전용 (로그아웃 상태)
         let dailyViews = 0;
-        let viewsHistory = {}; // 모든 사용자의 합산 조회수
+        let viewsHistory = {}; // 로컬 조회수 기록
         let totalViews = 0;
         let currentCalendarDate = new Date(); // 현재 달력에 표시되는 월
 
@@ -649,14 +797,14 @@
                     firebaseConnected = snapshot.val() === true;
                     if (firebaseConnected) {
                         updateFirebaseStatus('connected', '연결됨');
-                        // Firebase 연결 완료 후 인증 상태 변경을 감지하여 조회수 로드/기록
-                        // loadViewsFromFirebase()는 onAuthStateChanged에서만 호출
+                        // Firebase 연결 시 조회수 동기화
+                        syncViewsWithFirebase();
                     } else {
                         updateFirebaseStatus('disconnected', '연결 끊김');
                     }
                 });
                 
-                // 인증 상태 모니터링 (가장 중요한 부분)
+                // 인증 상태 모니터링
                 firebaseAuth.onAuthStateChanged((user) => {
                     currentUser = user;
                     if (user) {
@@ -667,15 +815,12 @@
                         showNotification(`관리자로 로그인되었습니다: ${user.email}`, 'success');
                     } else {
                         // 로그아웃 또는 익명 사용자 상태
-                        userId = 'readonly_user'; // 로그아웃 시 고정된 ID 사용
+                        userId = 'readonly_user';
                         isAdmin = false;
                         updateAdminUI(false);
                     }
-                    // **인증 상태가 확정된 후 (로그인/로그아웃 여부 파악 후) 조회수 로드 및 기록**
-                    loadViewsFromFirebase();
                 });
                 
-                // 초기 연결 알림은 짧게
                 showNotification('Firebase에 연결 중입니다...', 'info');
                 
             } catch (error) {
@@ -725,7 +870,7 @@
                         errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
                         break;
                     default:
-                        errorMessage += ` (${error.code})`; // 기타 에러 코드 표시
+                        errorMessage += ` (${error.code})`;
                 }
                 
                 showNotification(errorMessage, 'error');
@@ -738,7 +883,7 @@
                 showNotification('로그아웃되었습니다.', 'success');
                 // 로그아웃 시 hasViewedSession 초기화하여, 다시 접속하면 새로운 세션으로 간주하고 조회수 증가
                 sessionStorage.removeItem('hasViewedPage'); 
-                hasViewedSession = false; // 클라이언트 측 변수도 초기화
+                hasViewedSession = false;
             } catch (error) {
                 console.error('로그아웃 실패:', error);
                 showNotification('로그아웃에 실패했습니다.', 'error');
@@ -758,7 +903,7 @@
                 logoutBtn.style.display = 'inline-block';
                 statusBadge.className = 'firebase-status firebase-admin';
                 statusBadge.textContent = 'ADMIN';
-                adminControls.style.display = 'block'; // 관리자 컨트롤 표시
+                adminControls.style.display = 'block';
                 
                 if (syncBtn) syncBtn.disabled = false;
                 if (resetBtn) resetBtn.disabled = false;
@@ -767,7 +912,7 @@
                 logoutBtn.style.display = 'none';
                 statusBadge.className = 'firebase-status firebase-readonly';
                 statusBadge.textContent = 'READONLY';
-                adminControls.style.display = 'none'; // 관리자 컨트롤 숨김
+                adminControls.style.display = 'none';
                 
                 if (syncBtn) syncBtn.disabled = true;
                 if (resetBtn) resetBtn.disabled = true;
@@ -781,8 +926,8 @@
             if (infoElement) {
                 infoElement.textContent = message;
             }
-            // 상단바의 상태 배지 업데이트 (adminStatus에 따라 클래스가 재설정되므로 덮어쓰지 않도록)
-            if (!isAdmin) { // 관리자가 아닌 경우에만 연결 상태 반영
+            
+            if (!isAdmin) {
                  if (status === 'connected') {
                     statusBadge.className = 'firebase-status firebase-connected';
                     statusBadge.textContent = 'LIVE';
@@ -797,124 +942,144 @@
         }
 
         // ===========================================
-        // Firebase 조회수 관리 (최종 개선 및 안정화)
+        // 조회수 관리 시스템 (개선됨)
         // ===========================================
         
-        function loadViewsFromFirebase() {
-            // Firebase 연결 및 viewsRef 존재 확인
+        function initializeViewsSystem() {
+            // 로컬 조회수 시스템 먼저 초기화
+            loadLocalViews();
+            
+            // 페이지 첫 방문시 조회수 증가 (Firebase 연결과 무관하게)
+            if (!hasViewedSession) {
+                incrementDailyViews();
+                hasViewedSession = true;
+                sessionStorage.setItem('hasViewedPage', 'true');
+                showNotification('페이지 조회수가 1 증가했습니다! 👁️', 'success');
+            }
+            
+            // Firebase 초기화 (비동기)
+            initializeFirebase();
+        }
+
+        function loadLocalViews() {
+            // localStorage에서 조회수 데이터 로드
+            const savedViews = localStorage.getItem('globalMapViews');
+            if (savedViews) {
+                try {
+                    viewsHistory = JSON.parse(savedViews);
+                } catch (error) {
+                    console.error('로컬 조회수 데이터 파싱 실패:', error);
+                    viewsHistory = {};
+                }
+            } else {
+                viewsHistory = {};
+            }
+            
+            calculateViewsStats();
+            updateViewsDisplay();
+            updateCalendar();
+        }
+
+        function saveLocalViews() {
+            // localStorage에 조회수 데이터 저장
+            try {
+                localStorage.setItem('globalMapViews', JSON.stringify(viewsHistory));
+            } catch (error) {
+                console.error('로컬 조회수 데이터 저장 실패:', error);
+            }
+        }
+
+        function incrementDailyViews() {
+            const today = getTodayString();
+            viewsHistory[today] = (viewsHistory[today] || 0) + 1;
+            
+            calculateViewsStats();
+            updateViewsDisplay();
+            updateCalendar();
+            saveLocalViews();
+            
+            console.log(`조회수 증가: ${today} = ${viewsHistory[today]}`);
+        }
+
+        function syncViewsWithFirebase() {
             if (!firebaseConnected || !viewsRef) {
-                console.warn("Firebase 연결 안 됨 또는 viewsRef 없음. 조회수 로드 건너뛰기.");
+                console.log('Firebase 연결 안됨 - 동기화 건너뛰기');
                 return;
             }
             
-            // 모든 사용자(또는 집계된)의 조회수 데이터를 한 번만 가져옴
+            // Firebase에서 전체 조회수 데이터 가져오기
             viewsRef.once('value')
                 .then((snapshot) => {
-                    const allViewsData = snapshot.val();
-                    viewsHistory = {}; // viewsHistory를 현재 로드된 데이터로 초기화
+                    const firebaseData = snapshot.val();
                     
-                    if (allViewsData) {
-                        // 모든 사용자 데이터를 순회하며 날짜별 조회수를 합산
-                        // 이 부분은 전체 조회수를 계산하는 로직입니다.
-                        Object.values(allViewsData).forEach(userData => {
+                    if (firebaseData) {
+                        // 모든 사용자의 조회수를 합산
+                        const aggregatedViews = {};
+                        Object.values(firebaseData).forEach(userData => {
                             if (userData.history) {
                                 Object.keys(userData.history).forEach(date => {
-                                    viewsHistory[date] = (viewsHistory[date] || 0) + userData.history[date];
+                                    aggregatedViews[date] = (aggregatedViews[date] || 0) + userData.history[date];
                                 });
                             }
                         });
-                    }
-                    
-                    // **핵심: 이 세션에서 아직 조회수를 기록하지 않았다면 1 증가시키고 저장**
-                    if (!hasViewedSession) {
-                        const today = getTodayString();
                         
-                        // 현재 사용자의 기록을 업데이트할 경로
-                        const currentUserViewsPath = isAdmin ? `views/${userId}` : `views/readonly_session_views`;
-                        const currentUserViewsRef = firebaseDatabase.ref(currentUserViewsPath);
-
-                        currentUserViewsRef.once('value')
-                            .then(userSnapshot => {
-                                let userDataToUpdate = userSnapshot.val() || {};
-                                let userHistory = userDataToUpdate.history || {};
-                                
-                                userHistory[today] = (userHistory[today] || 0) + 1; // 현재 사용자의 오늘 조회수 1 증가
-                                
-                                // Firebase에 저장할 데이터
-                                const dataToSave = {
-                                    history: userHistory,
-                                    lastUpdate: firebase.database.ServerValue.TIMESTAMP,
-                                    // totalViews는 이 사용자의 총 조회수가 됩니다.
-                                    // 전체 합산은 loadViewsFromFirebase()에서 다시 계산됨
-                                    totalViews: Object.values(userHistory).reduce((sum, count) => sum + count, 0), 
-                                    userId: userId,
-                                    userType: isAdmin ? 'admin' : 'readonly'
-                                };
-
-                                currentUserViewsRef.update(dataToSave)
-                                    .then(() => {
-                                        hasViewedSession = true; // 세션에서 조회 완료 플래그 설정
-                                        sessionStorage.setItem('hasViewedPage', 'true'); // sessionStorage에 저장
-                                        console.log(`Firebase에 ${userId}의 조회수 기록됨: ${today}`);
-                                        // 저장 성공 후 전체 통계 다시 로드 및 업데이트 (최신 상태 반영)
-                                        loadViewsFromFirebase(); 
-                                    })
-                                    .catch(error => {
-                                        console.error(`Firebase 개별 조회수 저장 실패 (${userId}):`, error);
-                                        showNotification('조회수 기록에 실패했습니다.', 'error');
-                                    });
-                            })
-                            .catch(error => {
-                                console.error(`Firebase 개별 조회수 로드 실패 (${userId}):`, error);
-                                showNotification('조회수 데이터 로드 중 오류가 발생했습니다.', 'error');
-                            });
+                        // 로컬 데이터와 Firebase 데이터 병합 (최대값 사용)
+                        Object.keys(aggregatedViews).forEach(date => {
+                            viewsHistory[date] = Math.max(viewsHistory[date] || 0, aggregatedViews[date]);
+                        });
+                        
+                        // 로컬에만 있는 새로운 데이터를 Firebase에 업로드
+                        if (hasNewLocalData(aggregatedViews)) {
+                            uploadLocalViewsToFirebase();
+                        }
                     } else {
-                        console.log("현재 세션에서 이미 조회수를 기록했습니다.");
+                        // Firebase에 데이터가 없으면 로컬 데이터 업로드
+                        uploadLocalViewsToFirebase();
                     }
                     
-                    // (세션 기록 여부와 관계없이) 현재까지 집계된 통계 계산 및 표시 업데이트
                     calculateViewsStats();
                     updateViewsDisplay();
-                    updateLastSyncInfo();
+                    updateCalendar();
+                    saveLocalViews();
                     
+                    console.log('Firebase와 조회수 동기화 완료');
                 })
                 .catch((error) => {
-                    console.error('Firebase 전체 조회수 데이터 로드 실패:', error);
-                    showNotification('조회수 데이터를 불러오는데 실패했습니다.', 'error');
+                    console.error('Firebase 조회수 동기화 실패:', error);
                 });
-                
-            // 전체 사용자 수 조회
-            updateTotalUsersCount();
         }
 
-        // saveViewsToFirebase 함수는 이제 개별 사용자의 기록을 업데이트하는 데 사용되지 않고
-        // loadViewsFromFirebase 내에서 호출되도록 변경되었습니다.
-        // 이 함수 자체는 외부에서 '수동 동기화' 또는 '백업/초기화'를 위해 사용될 수 있습니다.
-        function saveViewsToFirebase(force = false) {
-             // 이 함수는 현재 로직에서 직접적으로 daily view를 업데이트하는 데 사용되지 않습니다.
-             // 주로 수동 동기화, 백업, 초기화 등 관리자 작업에 사용됩니다.
-             // loadViewsFromFirebase() 내부에서 개별 유저의 history를 업데이트합니다.
-             if (!isAdmin) {
-                showNotification('관리자 권한이 필요합니다.', 'warning');
-                return;
-            }
-            if (!firebaseConnected || !firebaseDatabase) {
-                showNotification('Firebase에 연결되지 않았습니다.', 'warning');
-                return;
-            }
-
-            // 관리자용 데이터 백업 또는 특정 데이터를 강제 동기화하는 로직을 여기에 추가할 수 있습니다.
-            // 현재 버전에서는 loadViewsFromFirebase() 내의 `currentUserViewsRef.update()`가 실시간 업데이트를 담당합니다.
-            showNotification('관리자 동기화 기능을 수행합니다. (현재 조회수 직접 업데이트는 아님)', 'info');
-            // 여기서는 전체 viewsHistory를 다시 저장하는 로직을 넣지 않았습니다.
-            // 필요한 경우 viewsRef.set(viewsHistory) 등으로 전체를 덮어쓸 수 있지만, 권장하지 않습니다.
+        function hasNewLocalData(firebaseViews) {
+            return Object.keys(viewsHistory).some(date => 
+                (viewsHistory[date] || 0) > (firebaseViews[date] || 0)
+            );
         }
 
-
-        function calculateViewsStats() {
-            totalViews = Object.values(viewsHistory).reduce((sum, count) => sum + count, 0);
-            const today = getTodayString();
-            dailyViews = viewsHistory[today] || 0;
+        function uploadLocalViewsToFirebase() {
+            if (!firebaseConnected || !viewsRef) {
+                console.log('Firebase 연결 안됨 - 업로드 건너뛰기');
+                return;
+            }
+            
+            const userPath = isAdmin ? `views/${userId}` : `views/readonly_user`;
+            const userRef = firebaseDatabase.ref(userPath);
+            
+            const dataToSave = {
+                history: viewsHistory,
+                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
+                totalViews: Object.values(viewsHistory).reduce((sum, count) => sum + count, 0),
+                userId: userId,
+                userType: isAdmin ? 'admin' : 'readonly'
+            };
+            
+            userRef.update(dataToSave)
+                .then(() => {
+                    console.log('로컬 조회수 데이터를 Firebase에 업로드 완료');
+                    updateLastSyncInfo();
+                })
+                .catch((error) => {
+                    console.error('Firebase 업로드 실패:', error);
+                });
         }
 
         function manualSync() {
@@ -928,31 +1093,16 @@
                 return;
             }
             
-            // 관리자 계정의 현재 뷰 데이터를 Firebase에 저장 (실제 사용자의 history)
-            const currentUserViewsPath = `views/${userId}`;
-            const currentUserViewsRef = firebaseDatabase.ref(currentUserViewsPath);
-
-            const dataToSave = {
-                history: viewsHistory, // 현재 합산된 viewsHistory를 저장 (모든 사용자 기록)
-                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
-                totalViews: Object.values(viewsHistory).reduce((sum, count) => sum + count, 0),
-                userId: userId,
-                userType: 'admin'
-            };
-            
             updateFirebaseStatus('syncing', '동기화 중...');
-            
-            currentUserViewsRef.update(dataToSave)
-                .then(() => {
-                    updateFirebaseStatus('connected', '동기화 완료');
-                    updateLastSyncInfo();
-                    showNotification('관리자 데이터가 동기화되었습니다.', 'success');
-                })
-                .catch((error) => {
-                    console.error('관리자 동기화 실패:', error);
-                    updateFirebaseStatus('connected', '동기화 실패');
-                    showNotification('관리자 동기화에 실패했습니다.', 'error');
-                });
+            syncViewsWithFirebase();
+            showNotification('수동 동기화가 완료되었습니다.', 'success');
+            updateFirebaseStatus('connected', '동기화 완료');
+        }
+
+        function calculateViewsStats() {
+            totalViews = Object.values(viewsHistory).reduce((sum, count) => sum + count, 0);
+            const today = getTodayString();
+            dailyViews = viewsHistory[today] || 0;
         }
 
         function updateLastSyncInfo() {
@@ -987,13 +1137,13 @@
                 showNotification('관리자만 내보내기를 할 수 있습니다.', 'warning');
                 return;
             }
-            // viewsHistory는 현재 모든 사용자의 합산 기록이므로 그대로 내보낼 수 있습니다.
+            
             const exportData = {
                 exportedBy: currentUser ? currentUser.email : 'unknown_admin',
-                viewsHistory: viewsHistory, // 현재 집계된 전체 viewsHistory
+                viewsHistory: viewsHistory,
                 totalViews: totalViews,
                 exportDate: new Date().toISOString(),
-                source: 'Firebase_Secure_Export'
+                source: 'LocalStorage_Firebase_Export'
             };
             
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -1016,11 +1166,6 @@
                 return;
             }
             
-            if (!firebaseConnected) {
-                showNotification('Firebase에 연결되지 않았습니다.', 'warning');
-                return;
-            }
-            
             const confirmed = confirm(
                 '⚠️ 경고: 모든 조회수 데이터가 삭제됩니다.\n\n' +
                 '이 작업은 되돌릴 수 없습니다.\n' +
@@ -1028,34 +1173,31 @@
             );
             
             if (confirmed) {
-                // 'views' 경로 전체를 삭제
-                const viewsRootRef = firebaseDatabase.ref('views');
-                viewsRootRef.remove()
-                    .then(() => {
-                        viewsHistory = {};
-                        totalViews = 0;
-                        dailyViews = 0;
-                        updateViewsDisplay();
-                        updateViewsHistory(); // 달력 업데이트
-                        // 세션 초기화
-                        sessionStorage.removeItem('hasViewedPage');
-                        hasViewedSession = false;
-                        showNotification('모든 조회수 데이터가 초기화되었습니다.', 'success');
-                    })
-                    .catch((error) => {
-                        console.error('데이터 초기화 실패:', error);
-                        showNotification('데이터 초기화에 실패했습니다.', 'error');
-                    });
+                // 로컬 데이터 초기화
+                viewsHistory = {};
+                totalViews = 0;
+                dailyViews = 0;
+                localStorage.removeItem('globalMapViews');
+                sessionStorage.removeItem('hasViewedPage');
+                hasViewedSession = false;
+                
+                // Firebase 데이터 초기화
+                if (firebaseConnected && viewsRef) {
+                    viewsRef.remove()
+                        .then(() => {
+                            showNotification('모든 조회수 데이터가 초기화되었습니다.', 'success');
+                        })
+                        .catch((error) => {
+                            console.error('Firebase 데이터 초기화 실패:', error);
+                            showNotification('Firebase 데이터 초기화에 실패했습니다.', 'error');
+                        });
+                } else {
+                    showNotification('로컬 조회수 데이터가 초기화되었습니다.', 'success');
+                }
+                
+                updateViewsDisplay();
+                updateCalendar();
             }
-        }
-
-        // ===========================================
-        // 기존 조회수 시스템 (수정됨)
-        // ===========================================
-        
-        function initializeViewsSystem() {
-            // Firebase 초기화
-            initializeFirebase();
         }
 
         function getTodayString() {
@@ -1073,7 +1215,7 @@
             if (dailyElement) dailyElement.textContent = dailyViews.toLocaleString();
             if (totalElement) totalElement.textContent = totalViews.toLocaleString();
             
-            // 패널 요약 정보 업데이트 (오늘, 누적만)
+            // 패널 요약 정보 업데이트
             const summaryToday = document.getElementById('summary-today');
             const summaryTotal = document.getElementById('summary-total');
             
@@ -1089,7 +1231,7 @@
                 panel.style.display = 'none';
             } else {
                 updateCalendar();
-                updateTotalUsersCount(); // 패널 열 때마다 사용자 수 업데이트
+                updateTotalUsersCount();
                 panel.style.display = 'block';
             }
         }
@@ -1161,7 +1303,7 @@
             
             // 다음 달의 첫 번째 날들 추가 (6주 완성)
             const totalCells = calendarGrid.children.length - 7; // 헤더 제외
-            const remainingCells = 42 - totalCells; // 6주 * 7일 (달력 항상 6주로 표시)
+            const remainingCells = 42 - totalCells; // 6주 * 7일
             
             for (let day = 1; day <= remainingCells; day++) {
                 const dayOfWeek = (startDayOfWeek + daysInMonth + day - 1) % 7;
@@ -1235,11 +1377,6 @@
 
         function goToToday() {
             currentCalendarDate = new Date();
-            updateCalendar();
-        }
-
-        function updateViewsHistory() {
-            // 달력 업데이트로 대체
             updateCalendar();
         }
 
@@ -1889,8 +2026,9 @@
             
             const marker = L.marker([lat, lng], { icon: customIcon });
             marker.bindPopup(createPopupContent(countryName, category, projects), { 
-                maxWidth: 450, 
-                minWidth: 350 
+                maxWidth: 320, 
+                minWidth: 280,
+                className: 'custom-popup'
             });
             
             return marker;
@@ -1927,60 +2065,60 @@
             });
             
             let content = `
-                <div style="font-family: 'Segoe UI', sans-serif;">
-                    <div style="display: flex; align-items: center; margin-bottom: 12px; border-bottom: 2px solid ${categoryColor}; padding-bottom: 8px;">
-                        <img src="${flagUrl}" alt="${countryName}" style="width: 28px; height: 19px; margin-right: 12px; border-radius: 2px;" onerror="this.style.display='none'">
-                        <div>
-                            <div style="font-size: 18px; font-weight: 700; color: #2c3e50;">${countryName}</div>
-                            <div style="color: ${categoryColor}; font-weight: 600; font-size: 14px;">${categoryName} (${projects.length}개)</div>
+                <div class="popup-container">
+                    <div class="popup-header" style="border-color: ${categoryColor};">
+                        <img src="${flagUrl}" alt="${countryName}" class="popup-flag" onerror="this.style.display='none'">
+                        <div class="popup-title">
+                            <div class="popup-country-name">${countryName}</div>
+                            <div class="popup-category" style="color: ${categoryColor};">${categoryName} (${projects.length}개)</div>
                         </div>
                     </div>
-                    <div style="max-height: 300px; overflow-y: auto;">`;
+                    <div class="popup-projects">`;
             
             sortedProjects.forEach((project, index) => {
                 const isProposal = project.status === '제안중';
                 const isProgress = project.status === '시행중';
                 
-                let borderStyle = '';
+                let itemClass = 'popup-project-item';
                 if (isProposal) {
-                    borderStyle = 'border-left: 4px solid #ff6b35; background: rgba(255, 107, 53, 0.05);';
+                    itemClass += ' proposal';
                 } else if (isProgress) {
-                    borderStyle = 'border-left: 4px solid #28a745; background: rgba(40, 167, 69, 0.05);';
-                } else {
-                    borderStyle = 'border-bottom: 1px solid #eee;';
+                    itemClass += ' progress';
                 }
                 
-                content += `<div style="${borderStyle} padding: 8px;">`;
+                content += `<div class="${itemClass}">`;
                 
                 // 프로젝트명과 상태 뱃지
-                content += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">`;
-                content += `<div style="font-weight: 600; color: #2c3e50; font-size: 14px; flex: 1;">${project.description}</div>`;
+                content += `<div class="popup-project-title">`;
+                content += `<div class="popup-project-name">${project.description}</div>`;
                 if (isProposal) {
-                    content += `<span class="status-badge status-proposal" style="margin-left: 8px;">제안중</span>`;
+                    content += `<span class="status-badge status-proposal">제안중</span>`;
                 } else if (isProgress) {
-                    content += `<span class="status-badge status-progress" style="margin-left: 8px;">시행중</span>`;
+                    content += `<span class="status-badge status-progress">시행중</span>`;
                 }
                 content += `</div>`;
                 
+                content += `<div class="popup-project-details">`;
+                
                 if (project.category === 'ODA') {
-                    if (project.type) content += `<div style="font-size: 12px; color: #666;"><strong>형태:</strong> ${project.type}</div>`;
-                    if (project.period) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.period}</div>`;
+                    if (project.type) content += `<div><strong>형태:</strong> ${project.type}</div>`;
+                    if (project.period) content += `<div><strong>기간:</strong> ${project.period}</div>`;
                     if (project.budget > 0) {
                         const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
-                        content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
+                        content += `<div class="popup-budget"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
                     }
                 } else {
                     // 제안중이나 시행중이 아닌 경우에만 상태 표시 (준공된 프로젝트)
                     if (project.status && !isProposal && !isProgress) {
                         let statusClass = 'status-complete'; // 준공은 붉은색
-                        content += `<div style="font-size: 12px; margin: 2px 0;"><strong>상태:</strong> <span class="status-badge ${statusClass}">${project.status}</span></div>`;
+                        content += `<div><strong>상태:</strong> <span class="status-badge ${statusClass}">${project.status}</span></div>`;
                     }
-                    if (project.startDate && project.endDate) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
+                    if (project.startDate && project.endDate) content += `<div><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
                     if (project.budget > 0) {
                         const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
-                        content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
+                        content += `<div class="popup-budget"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
                     }
-                    if (project.client) content += `<div style="font-size: 12px; color: #666;"><strong>발주처:</strong> ${project.client}</div>`;
+                    if (project.client) content += `<div><strong>발주처:</strong> ${project.client}</div>`;
                     if (project.year) {
                         let yearColor = '#999';
                         let yearWeight = '400';
@@ -1991,10 +2129,11 @@
                             yearColor = '#28a745';
                             yearWeight = '600';
                         }
-                        content += `<div style="font-size: 11px; color: ${yearColor}; font-weight: ${yearWeight};"><strong>수주년도:</strong> ${project.year}</div>`;
+                        content += `<div style="color: ${yearColor}; font-weight: ${yearWeight};"><strong>수주년도:</strong> ${project.year}</div>`;
                     }
                 }
-                content += `</div>`;
+                
+                content += `</div></div>`;
             });
             
             content += `</div></div>`;
@@ -2104,7 +2243,7 @@
                 console.log('애플리케이션 초기화 시작');
                 
                 // 조회수 시스템 초기화 (Firebase 포함)
-                initializeViewsSystem(); // 이 함수 내부에서 initializeFirebase가 호출됩니다.
+                initializeViewsSystem();
                 
                 initMap();
                 await loadData();
