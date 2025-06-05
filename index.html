@@ -359,6 +359,21 @@
             .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
             .views-panel { width: calc(100% - 40px); max-height: 80vh; }
             .views-panel-content { max-height: calc(80vh - 60px); }
+
+            /* 모바일 팝업 크기 조절 */
+            .leaflet-popup-content-wrapper {
+                min-width: 250px !important;
+                max-width: 300px !important;
+            }
+            .leaflet-popup-content {
+                font-size: 0.9em;
+            }
+            .leaflet-popup-content .stat-number {
+                font-size: 1.1em;
+            }
+            .leaflet-popup-content .stat-label {
+                font-size: 0.7em;
+            }
         }
 
         /* 알림 위치 수정 */
@@ -577,14 +592,14 @@
         let firebaseConnected = false;
         let isAdmin = false;
         let currentUser = null;
-        let userId = 'readonly_user'; // 기본값: 읽기 전용
+        let userId = 'readonly_user'; // 기본값: 읽기 전용 (로그아웃 상태)
         let dailyViews = 0;
         let viewsHistory = {}; // 모든 사용자의 합산 조회수
         let totalViews = 0;
         let currentCalendarDate = new Date(); // 현재 달력에 표시되는 월
 
-        // 새롭게 추가된 변수
-        let hasViewedSession = sessionStorage.getItem('hasViewedPage') === 'true'; // 이 세션에서 페이지를 조회했는지 여부
+        // 세션별 페이지 조회 여부 (새로고침 시 중복 방지)
+        let hasViewedSession = sessionStorage.getItem('hasViewedPage') === 'true'; 
         let viewsRef = null; // Firebase 'views' 경로에 대한 참조
 
         // Firebase 설정 (하드코딩된 설정)
@@ -632,33 +647,36 @@
                 const connectedRef = firebaseDatabase.ref('.info/connected');
                 connectedRef.on('value', (snapshot) => {
                     firebaseConnected = snapshot.val() === true;
-                    
                     if (firebaseConnected) {
                         updateFirebaseStatus('connected', '연결됨');
-                        // loadViewsFromFirebase() 호출을 여기서 제거 (인증 상태 변경에서만 호출)
+                        // Firebase 연결 완료 후 인증 상태 변경을 감지하여 조회수 로드/기록
+                        // loadViewsFromFirebase()는 onAuthStateChanged에서만 호출
                     } else {
                         updateFirebaseStatus('disconnected', '연결 끊김');
                     }
                 });
                 
-                // 인증 상태 모니터링
+                // 인증 상태 모니터링 (가장 중요한 부분)
                 firebaseAuth.onAuthStateChanged((user) => {
                     currentUser = user;
                     if (user) {
+                        // 관리자 로그인 상태
                         userId = user.uid;
                         isAdmin = true;
                         updateAdminUI(true);
                         showNotification(`관리자로 로그인되었습니다: ${user.email}`, 'success');
                     } else {
+                        // 로그아웃 또는 익명 사용자 상태
                         userId = 'readonly_user'; // 로그아웃 시 고정된 ID 사용
                         isAdmin = false;
                         updateAdminUI(false);
                     }
-                    // 인증 상태가 확정된 후 조회수 로드 및 기록
+                    // **인증 상태가 확정된 후 (로그인/로그아웃 여부 파악 후) 조회수 로드 및 기록**
                     loadViewsFromFirebase();
                 });
                 
-                showNotification('Firebase에 성공적으로 연결되었습니다!', 'success');
+                // 초기 연결 알림은 짧게
+                showNotification('Firebase에 연결 중입니다...', 'info');
                 
             } catch (error) {
                 console.error('Firebase 초기화 실패:', error);
@@ -706,6 +724,8 @@
                     case 'auth/too-many-requests':
                         errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
                         break;
+                    default:
+                        errorMessage += ` (${error.code})`; // 기타 에러 코드 표시
                 }
                 
                 showNotification(errorMessage, 'error');
@@ -716,9 +736,9 @@
             try {
                 await firebaseAuth.signOut();
                 showNotification('로그아웃되었습니다.', 'success');
-                // 로그아웃 시 hasViewedSession 초기화 (새로운 세션으로 간주)
+                // 로그아웃 시 hasViewedSession 초기화하여, 다시 접속하면 새로운 세션으로 간주하고 조회수 증가
                 sessionStorage.removeItem('hasViewedPage'); 
-                hasViewedSession = false;
+                hasViewedSession = false; // 클라이언트 측 변수도 초기화
             } catch (error) {
                 console.error('로그아웃 실패:', error);
                 showNotification('로그아웃에 실패했습니다.', 'error');
@@ -756,27 +776,46 @@
 
         function updateFirebaseStatus(status, message) {
             const infoElement = document.getElementById('firebase-connection-info');
+            const statusBadge = document.getElementById('firebase-status');
             
             if (infoElement) {
                 infoElement.textContent = message;
             }
+            // 상단바의 상태 배지 업데이트 (adminStatus에 따라 클래스가 재설정되므로 덮어쓰지 않도록)
+            if (!isAdmin) { // 관리자가 아닌 경우에만 연결 상태 반영
+                 if (status === 'connected') {
+                    statusBadge.className = 'firebase-status firebase-connected';
+                    statusBadge.textContent = 'LIVE';
+                } else if (status === 'disconnected') {
+                    statusBadge.className = 'firebase-status firebase-disconnected';
+                    statusBadge.textContent = 'OFFLINE';
+                } else if (status === 'syncing') {
+                    statusBadge.className = 'firebase-status firebase-syncing';
+                    statusBadge.textContent = 'SYNCING';
+                }
+            }
         }
 
         // ===========================================
-        // Firebase 조회수 관리 (보안 강화 및 개선)
+        // Firebase 조회수 관리 (최종 개선 및 안정화)
         // ===========================================
         
         function loadViewsFromFirebase() {
             // Firebase 연결 및 viewsRef 존재 확인
-            if (!firebaseConnected || !viewsRef) return; 
+            if (!firebaseConnected || !viewsRef) {
+                console.warn("Firebase 연결 안 됨 또는 viewsRef 없음. 조회수 로드 건너뛰기.");
+                return;
+            }
             
+            // 모든 사용자(또는 집계된)의 조회수 데이터를 한 번만 가져옴
             viewsRef.once('value')
                 .then((snapshot) => {
                     const allViewsData = snapshot.val();
-                    viewsHistory = {}; // 현재 viewsHistory를 로드된 데이터로 초기화
+                    viewsHistory = {}; // viewsHistory를 현재 로드된 데이터로 초기화
                     
                     if (allViewsData) {
                         // 모든 사용자 데이터를 순회하며 날짜별 조회수를 합산
+                        // 이 부분은 전체 조회수를 계산하는 로직입니다.
                         Object.values(allViewsData).forEach(userData => {
                             if (userData.history) {
                                 Object.keys(userData.history).forEach(date => {
@@ -786,25 +825,61 @@
                         });
                     }
                     
-                    // 이 세션에서 아직 조회수를 기록하지 않았다면 1 증가
+                    // **핵심: 이 세션에서 아직 조회수를 기록하지 않았다면 1 증가시키고 저장**
                     if (!hasViewedSession) {
                         const today = getTodayString();
-                        viewsHistory[today] = (viewsHistory[today] || 0) + 1; // 모든 사용자에 대해 1 증가
-                        hasViewedSession = true; // 세션에서 조회 완료 플래그 설정
-                        sessionStorage.setItem('hasViewedPage', 'true'); // sessionStorage에 저장
+                        
+                        // 현재 사용자의 기록을 업데이트할 경로
+                        const currentUserViewsPath = isAdmin ? `views/${userId}` : `views/readonly_session_views`;
+                        const currentUserViewsRef = firebaseDatabase.ref(currentUserViewsPath);
 
-                        // 조회수 업데이트를 강제로 Firebase에 저장 (읽기 전용 사용자도 포함)
-                        saveViewsToFirebase(true); 
+                        currentUserViewsRef.once('value')
+                            .then(userSnapshot => {
+                                let userDataToUpdate = userSnapshot.val() || {};
+                                let userHistory = userDataToUpdate.history || {};
+                                
+                                userHistory[today] = (userHistory[today] || 0) + 1; // 현재 사용자의 오늘 조회수 1 증가
+                                
+                                // Firebase에 저장할 데이터
+                                const dataToSave = {
+                                    history: userHistory,
+                                    lastUpdate: firebase.database.ServerValue.TIMESTAMP,
+                                    // totalViews는 이 사용자의 총 조회수가 됩니다.
+                                    // 전체 합산은 loadViewsFromFirebase()에서 다시 계산됨
+                                    totalViews: Object.values(userHistory).reduce((sum, count) => sum + count, 0), 
+                                    userId: userId,
+                                    userType: isAdmin ? 'admin' : 'readonly'
+                                };
+
+                                currentUserViewsRef.update(dataToSave)
+                                    .then(() => {
+                                        hasViewedSession = true; // 세션에서 조회 완료 플래그 설정
+                                        sessionStorage.setItem('hasViewedPage', 'true'); // sessionStorage에 저장
+                                        console.log(`Firebase에 ${userId}의 조회수 기록됨: ${today}`);
+                                        // 저장 성공 후 전체 통계 다시 로드 및 업데이트 (최신 상태 반영)
+                                        loadViewsFromFirebase(); 
+                                    })
+                                    .catch(error => {
+                                        console.error(`Firebase 개별 조회수 저장 실패 (${userId}):`, error);
+                                        showNotification('조회수 기록에 실패했습니다.', 'error');
+                                    });
+                            })
+                            .catch(error => {
+                                console.error(`Firebase 개별 조회수 로드 실패 (${userId}):`, error);
+                                showNotification('조회수 데이터 로드 중 오류가 발생했습니다.', 'error');
+                            });
+                    } else {
+                        console.log("현재 세션에서 이미 조회수를 기록했습니다.");
                     }
                     
-                    // 통계 계산 및 표시 업데이트
+                    // (세션 기록 여부와 관계없이) 현재까지 집계된 통계 계산 및 표시 업데이트
                     calculateViewsStats();
                     updateViewsDisplay();
                     updateLastSyncInfo();
                     
                 })
                 .catch((error) => {
-                    console.error('Firebase 데이터 로드 실패:', error);
+                    console.error('Firebase 전체 조회수 데이터 로드 실패:', error);
                     showNotification('조회수 데이터를 불러오는데 실패했습니다.', 'error');
                 });
                 
@@ -812,42 +887,29 @@
             updateTotalUsersCount();
         }
 
+        // saveViewsToFirebase 함수는 이제 개별 사용자의 기록을 업데이트하는 데 사용되지 않고
+        // loadViewsFromFirebase 내에서 호출되도록 변경되었습니다.
+        // 이 함수 자체는 외부에서 '수동 동기화' 또는 '백업/초기화'를 위해 사용될 수 있습니다.
         function saveViewsToFirebase(force = false) {
-            // Firebase 연결이 안 되어 있거나, 관리자가 아니고 강제 저장도 아닐 경우 저장하지 않음
-            if (!firebaseConnected || !firebaseDatabase || (!isAdmin && !force)) {
-                if (!isAdmin && !force) {
-                    console.log("관리자도 아니고 강제 저장도 아니므로 Firebase 저장 건너뛰기.");
-                }
+             // 이 함수는 현재 로직에서 직접적으로 daily view를 업데이트하는 데 사용되지 않습니다.
+             // 주로 수동 동기화, 백업, 초기화 등 관리자 작업에 사용됩니다.
+             // loadViewsFromFirebase() 내부에서 개별 유저의 history를 업데이트합니다.
+             if (!isAdmin) {
+                showNotification('관리자 권한이 필요합니다.', 'warning');
                 return;
             }
-            
-            // 관리자는 자신의 userId로, 일반 사용자는 'readonly_session_views'라는 단일 노드에 집계
-            const viewsPath = isAdmin ? `views/${userId}` : `views/readonly_session_views`;
-            const viewsRef = firebaseDatabase.ref(viewsPath);
+            if (!firebaseConnected || !firebaseDatabase) {
+                showNotification('Firebase에 연결되지 않았습니다.', 'warning');
+                return;
+            }
 
-            // 현재 합산된 viewsHistory를 사용하여 업데이트
-            const updateData = {
-                history: viewsHistory, 
-                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
-                totalViews: totalViews,
-                userId: userId, 
-                userType: isAdmin ? 'admin' : 'readonly'
-            };
-            
-            updateFirebaseStatus('syncing', '동기화 중...');
-            
-            viewsRef.update(updateData) // update()를 사용하여 특정 필드만 업데이트
-                .then(() => {
-                    updateFirebaseStatus('connected', '동기화 완료');
-                    updateLastSyncInfo();
-                    showNotification('조회수 데이터가 저장되었습니다.', 'success');
-                })
-                .catch((error) => {
-                    console.error('Firebase 저장 실패:', error);
-                    updateFirebaseStatus('connected', '동기화 실패');
-                    showNotification('조회수 저장에 실패했습니다.', 'error');
-                });
+            // 관리자용 데이터 백업 또는 특정 데이터를 강제 동기화하는 로직을 여기에 추가할 수 있습니다.
+            // 현재 버전에서는 loadViewsFromFirebase() 내의 `currentUserViewsRef.update()`가 실시간 업데이트를 담당합니다.
+            showNotification('관리자 동기화 기능을 수행합니다. (현재 조회수 직접 업데이트는 아님)', 'info');
+            // 여기서는 전체 viewsHistory를 다시 저장하는 로직을 넣지 않았습니다.
+            // 필요한 경우 viewsRef.set(viewsHistory) 등으로 전체를 덮어쓸 수 있지만, 권장하지 않습니다.
         }
+
 
         function calculateViewsStats() {
             totalViews = Object.values(viewsHistory).reduce((sum, count) => sum + count, 0);
@@ -866,7 +928,31 @@
                 return;
             }
             
-            saveViewsToFirebase(true); // 관리자는 강제로 동기화 실행
+            // 관리자 계정의 현재 뷰 데이터를 Firebase에 저장 (실제 사용자의 history)
+            const currentUserViewsPath = `views/${userId}`;
+            const currentUserViewsRef = firebaseDatabase.ref(currentUserViewsPath);
+
+            const dataToSave = {
+                history: viewsHistory, // 현재 합산된 viewsHistory를 저장 (모든 사용자 기록)
+                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
+                totalViews: Object.values(viewsHistory).reduce((sum, count) => sum + count, 0),
+                userId: userId,
+                userType: 'admin'
+            };
+            
+            updateFirebaseStatus('syncing', '동기화 중...');
+            
+            currentUserViewsRef.update(dataToSave)
+                .then(() => {
+                    updateFirebaseStatus('connected', '동기화 완료');
+                    updateLastSyncInfo();
+                    showNotification('관리자 데이터가 동기화되었습니다.', 'success');
+                })
+                .catch((error) => {
+                    console.error('관리자 동기화 실패:', error);
+                    updateFirebaseStatus('connected', '동기화 실패');
+                    showNotification('관리자 동기화에 실패했습니다.', 'error');
+                });
         }
 
         function updateLastSyncInfo() {
@@ -897,13 +983,17 @@
         }
 
         function exportFirebaseData() {
+            if (!isAdmin) {
+                showNotification('관리자만 내보내기를 할 수 있습니다.', 'warning');
+                return;
+            }
+            // viewsHistory는 현재 모든 사용자의 합산 기록이므로 그대로 내보낼 수 있습니다.
             const exportData = {
-                userId: userId,
-                userType: isAdmin ? 'admin' : 'readonly',
-                viewsHistory: viewsHistory,
+                exportedBy: currentUser ? currentUser.email : 'unknown_admin',
+                viewsHistory: viewsHistory, // 현재 집계된 전체 viewsHistory
                 totalViews: totalViews,
                 exportDate: new Date().toISOString(),
-                source: 'Firebase_Secure'
+                source: 'Firebase_Secure_Export'
             };
             
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -938,8 +1028,7 @@
             );
             
             if (confirmed) {
-                // 특정 사용자의 데이터만 삭제하는 대신, 'views' 전체를 삭제
-                // 모든 사용자 데이터가 삭제되므로 주의
+                // 'views' 경로 전체를 삭제
                 const viewsRootRef = firebaseDatabase.ref('views');
                 viewsRootRef.remove()
                     .then(() => {
