@@ -381,14 +381,21 @@
         
         .popup-header {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             margin-bottom: 10px;
             border-bottom: 2px solid;
             padding-bottom: 6px;
-            flex-wrap: wrap;
-            gap: 8px;
+            gap: 4px;
             text-align: center;
+        }
+        
+        .popup-country-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .popup-flag {
@@ -491,11 +498,11 @@
             backdrop-filter: blur(8px);
             border: 1px solid #ddd;
             border-radius: 8px;
-            padding: 12px;
+            padding: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 1002;
-            font-size: 12px;
-            min-width: 180px;
+            font-size: 11px;
+            min-width: 170px;
             transition: top 0.3s ease;
         }
         
@@ -505,13 +512,14 @@
             margin-bottom: 8px;
             text-align: center;
             font-size: 13px;
+            display: none;
         }
         
         .legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 6px;
-            gap: 8px;
+            margin-bottom: 4px;
+            gap: 6px;
         }
         
         .legend-item:last-child {
@@ -585,23 +593,27 @@
                 top: 130px;
                 right: 10px;
                 padding: 8px;
-                min-width: 150px;
-                font-size: 11px;
+                min-width: 140px;
+                font-size: 10px;
             }
             
             .legend-title {
-                font-size: 12px;
-                margin-bottom: 6px;
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+            
+            .legend-item {
+                margin-bottom: 4px;
             }
             
             .legend-marker {
-                width: 14px;
-                height: 14px;
+                width: 12px;
+                height: 12px;
             }
             
             .legend-count {
-                font-size: 10px;
-                padding: 1px 4px;
+                font-size: 9px;
+                padding: 1px 3px;
             }
             
             .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
@@ -671,19 +683,32 @@
 
     <!-- 범례 -->
     <div class="legend" id="legend">
-        <div class="legend-title">📍 사업 유형</div>
         <div class="legend-item">
             <div class="legend-marker consulting"></div>
             <div class="legend-text">
-                <span class="legend-label">컨설팅 사업</span>
-                <span class="legend-count" id="legend-consulting-count">0</span>
+                <span class="legend-label">컨설팅</span>
+                <span class="legend-count" id="legend-consulting-count">0개</span>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-marker consulting"></div>
+            <div class="legend-text">
+                <span class="legend-label">컨설팅 사업비</span>
+                <span class="legend-count" id="legend-consulting-budget">0억원</span>
             </div>
         </div>
         <div class="legend-item">
             <div class="legend-marker oda"></div>
             <div class="legend-text">
-                <span class="legend-label">ODA 사업</span>
-                <span class="legend-count" id="legend-oda-count">0</span>
+                <span class="legend-label">ODA</span>
+                <span class="legend-count" id="legend-oda-count">0개</span>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-marker oda"></div>
+            <div class="legend-text">
+                <span class="legend-label">ODA 사업비</span>
+                <span class="legend-count" id="legend-oda-budget">0억원</span>
             </div>
         </div>
     </div>
@@ -824,7 +849,7 @@
     </div>
 
     <div id="bottom-info-panel">
-        <div class="section-title">📊 프로젝트 현황</div>
+        <div class="section-title">📊 프로젝트현황(1972~현재)</div>
         <div class="stats-grid">
             <div class="stat-card" id="stat-total-projects">
                 <div class="stat-number" id="total-projects">-</div>
@@ -2212,11 +2237,11 @@
             let content = `
                 <div class="popup-container">
                     <div class="popup-header" style="border-color: ${categoryColor};">
-                        <img src="${flagUrl}" alt="${countryName}" class="popup-flag" onerror="this.style.display='none'">
-                        <div class="popup-title">
+                        <div class="popup-country-row">
+                            <img src="${flagUrl}" alt="${countryName}" class="popup-flag" onerror="this.style.display='none'">
                             <div class="popup-country-name">${countryName}</div>
-                            <div class="popup-category" style="color: ${categoryColor};">${categoryName} (${projects.length}개)</div>
                         </div>
+                        <div class="popup-category" style="color: ${categoryColor};">${categoryName} (${projects.length}개)</div>
                     </div>
                     <div class="popup-projects">`;
             
@@ -2286,13 +2311,14 @@
         }
 
         function updateStats() {
-            const totalCount = filteredProjects.length;
-            const odaCount = filteredProjects.filter(p => p.category === 'ODA').length;
-            const consultingCount = filteredProjects.filter(p => p.category === 'Consulting').length;
-            const countryCount = new Set(filteredProjects.map(p => p.name.trim())).size;
+            // 전체 프로젝트 현황 (필터링 무관)
+            const totalCount = allProjects.length;
+            const odaCount = allProjects.filter(p => p.category === 'ODA').length;
+            const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
+            const countryCount = new Set(allProjects.map(p => p.name.trim())).size;
             
             let totalBudget = 0;
-            filteredProjects.forEach(p => {
+            allProjects.forEach(p => {
                 if (p.budget && !isNaN(p.budget)) {
                     totalBudget += p.budget;
                 }
@@ -2312,16 +2338,49 @@
             document.getElementById('stat-consulting-projects').style.borderColor = '#4682B4';
             document.getElementById('stat-total-budget').style.borderColor = '#27ae60';
             
-            // 범례 업데이트
-            updateLegend(consultingCount, odaCount);
+            // 범례 업데이트 (필터링된 프로젝트 기준)
+            updateLegend();
         }
 
-        function updateLegend(consultingCount, odaCount) {
+        function updateLegend() {
+            // 필터링된 프로젝트들의 개수와 사업비 계산
+            const consultingProjects = filteredProjects.filter(p => p.category === 'Consulting');
+            const odaProjects = filteredProjects.filter(p => p.category === 'ODA');
+            
+            const consultingCount = consultingProjects.length;
+            const odaCount = odaProjects.length;
+            
+            let consultingBudget = 0;
+            let odaBudget = 0;
+            
+            consultingProjects.forEach(p => {
+                if (p.budget && !isNaN(p.budget)) {
+                    consultingBudget += p.budget;
+                }
+            });
+            
+            odaProjects.forEach(p => {
+                if (p.budget && !isNaN(p.budget)) {
+                    odaBudget += p.budget;
+                }
+            });
+            
+            const consultingBudgetInBillion = Math.round(consultingBudget / 100).toLocaleString('ko-KR');
+            const odaBudgetInBillion = Math.round(odaBudget / 100).toLocaleString('ko-KR');
+            
+            // 개수 업데이트
             const consultingCountEl = document.getElementById('legend-consulting-count');
             const odaCountEl = document.getElementById('legend-oda-count');
             
-            if (consultingCountEl) consultingCountEl.textContent = consultingCount.toLocaleString();
-            if (odaCountEl) odaCountEl.textContent = odaCount.toLocaleString();
+            if (consultingCountEl) consultingCountEl.textContent = `${consultingCount.toLocaleString()}개`;
+            if (odaCountEl) odaCountEl.textContent = `${odaCount.toLocaleString()}개`;
+            
+            // 사업비 업데이트
+            const consultingBudgetEl = document.getElementById('legend-consulting-budget');
+            const odaBudgetEl = document.getElementById('legend-oda-budget');
+            
+            if (consultingBudgetEl) consultingBudgetEl.textContent = `${consultingBudgetInBillion}억원`;
+            if (odaBudgetEl) odaBudgetEl.textContent = `${odaBudgetInBillion}억원`;
             
             // 범례 위치 동적 조정
             adjustLegendPosition();
