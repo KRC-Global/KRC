@@ -1143,7 +1143,7 @@
             }
             
             if (!isAdmin) {
-                 if (status === 'connected') {
+                if (status === 'connected') {
                     statusBadge.className = 'firebase-status firebase-connected';
                     statusBadge.textContent = 'LIVE';
                 } else if (status === 'disconnected') {
@@ -1227,9 +1227,9 @@
                 .then((snapshot) => {
                     const firebaseData = snapshot.val();
                     
+                    // 모든 사용자의 조회수를 합산
+                    const aggregatedViews = {};
                     if (firebaseData) {
-                        // 모든 사용자의 조회수를 합산
-                        const aggregatedViews = {};
                         Object.values(firebaseData).forEach(userData => {
                             if (userData.history) {
                                 Object.keys(userData.history).forEach(date => {
@@ -1237,25 +1237,21 @@
                                 });
                             }
                         });
-                        
-                        // 로컬 데이터와 Firebase 데이터 병합 (최대값 사용)
-                        Object.keys(aggregatedViews).forEach(date => {
-                            viewsHistory[date] = Math.max(viewsHistory[date] || 0, aggregatedViews[date]);
-                        });
-                        
-                        // 로컬에만 있는 새로운 데이터를 Firebase에 업로드
-                        if (hasNewLocalData(aggregatedViews)) {
-                            uploadLocalViewsToFirebase();
-                        }
-                    } else {
-                        // Firebase에 데이터가 없으면 로컬 데이터 업로드
-                        uploadLocalViewsToFirebase();
                     }
+                    
+                    // 로컬 데이터와 Firebase 전체 합산 데이터 병합 (최대값 사용)
+                    Object.keys(aggregatedViews).forEach(date => {
+                        viewsHistory[date] = Math.max(viewsHistory[date] || 0, aggregatedViews[date]);
+                    });
+                    
+                    // 로컬에만 있는 새로운 데이터를 Firebase에 업로드 (현재 사용자 경로에)
+                    uploadLocalViewsToFirebase(); // viewsHistory는 이미 aggregatedViews와 병합된 상태
                     
                     calculateViewsStats();
                     updateViewsDisplay();
                     updateCalendar();
-                    saveLocalViews();
+                    saveLocalViews(); // 로컬 데이터도 최신 상태로 저장
+                    updateTotalUsersCount(); // 사용자 수 업데이트
                     
                     console.log('Firebase와 조회수 동기화 완료');
                 })
@@ -1264,23 +1260,17 @@
                 });
         }
 
-        function hasNewLocalData(firebaseViews) {
-            return Object.keys(viewsHistory).some(date => 
-                (viewsHistory[date] || 0) > (firebaseViews[date] || 0)
-            );
-        }
-
         function uploadLocalViewsToFirebase() {
             if (!firebaseConnected || !viewsRef) {
                 console.log('Firebase 연결 안됨 - 업로드 건너뛰기');
                 return;
             }
             
-            const userPath = isAdmin ? `views/${userId}` : `views/readonly_user`;
-            const userRef = firebaseDatabase.ref(userPath);
+            // 현재 로그인된 사용자의 ID를 사용하여 경로 설정
+            const userRef = firebaseDatabase.ref(`views/${userId}`);
             
             const dataToSave = {
-                history: viewsHistory,
+                history: viewsHistory, // viewsHistory는 이미 로컬에서 최신화된 전체 데이터
                 lastUpdate: firebase.database.ServerValue.TIMESTAMP,
                 totalViews: Object.values(viewsHistory).reduce((sum, count) => sum + count, 0),
                 userId: userId,
@@ -1289,7 +1279,7 @@
             
             userRef.update(dataToSave)
                 .then(() => {
-                    console.log('로컬 조회수 데이터를 Firebase에 업로드 완료');
+                    console.log(`로컬 조회수 데이터를 Firebase의 ${userId} 경로에 업로드 완료`);
                     updateLastSyncInfo();
                 })
                 .catch((error) => {
@@ -1355,10 +1345,10 @@
             
             const exportData = {
                 exportedBy: currentUser ? currentUser.email : 'unknown_admin',
-                viewsHistory: viewsHistory,
+                viewsHistory: viewsHistory, // 현재 병합된 전체 히스토리
                 totalViews: totalViews,
                 exportDate: new Date().toISOString(),
-                source: 'LocalStorage_Firebase_Export'
+                source: 'Aggregated_Firebase_Export'
             };
             
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -1418,8 +1408,8 @@
         function getTodayString() {
             const today = new Date();
             return today.getFullYear() + '-' + 
-                           String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                           String(today.getDate()).padStart(2, '0');
+                                String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                                String(today.getDate()).padStart(2, '0');
         }
 
         function updateViewsDisplay() {
@@ -1499,8 +1489,8 @@
             const startDayOfWeek = firstDay.getDay();
             
             // 이전 달의 마지막 날들 추가
-            const prevMonth = new Date(year, month, 0); // Corrected: get last day of previous month
-            const prevMonthDays = prevMonth.getDate();
+            const prevMonthLastDay = new Date(year, month, 0);
+            const prevMonthDays = prevMonthLastDay.getDate();
             
             for (let i = startDayOfWeek - 1; i >= 0; i--) {
                 const dayNum = prevMonthDays - i;
@@ -1604,8 +1594,8 @@
             if (dateString === getTodayString()) {
                 return '오늘';
             } else if (dateString === yesterday.getFullYear() + '-' + 
-                                String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + 
-                                String(yesterday.getDate()).padStart(2, '0')) {
+                                 String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + 
+                                 String(yesterday.getDate()).padStart(2, '0')) {
                 return '어제';
             } else {
                 const month = date.getMonth() + 1;
@@ -2024,8 +2014,8 @@
                 
                 // 최소한의 샘플 데이터로 진행 (에러 발생 시 대체)
                 allProjects = [
-                    {name: "베트남", lat: 13.93788, lng: 107.84167, description: "샘플 ODA 프로젝트", category: "ODA", period: "'20-'25", budget: 5365, type: "양자무상", number: 1},
-                    {name: "라오스", lat: 18.483938, lng: 102.566812, description: "샘플 컨설팅 프로젝트", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, number: 1},
+                    {name: "베트남", lat: 14.0583, lng: 108.2772, description: "샘플 ODA 프로젝트", category: "ODA", period: "'20-'25", budget: 5365, type: "양자무상", number: 1},
+                    {name: "라오스", lat: 19.8563, lng: 102.4955, description: "샘플 컨설팅 프로젝트", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, number: 1},
                     {name: "아르헨티나", lat: -34.6037, lng: -58.3816, description: "샘플 아르헨티나 프로젝트", category: "Consulting", status: "시행중", budget: 1234, client: "ABC", year: 2023, number: 2}
                 ];
             }
@@ -2035,7 +2025,7 @@
         function initMap() {
             console.log('지도 초기화');
             // Adjusted initial zoom from 2 to 3
-            map = L.map('map', { center: [20, 0], zoom: 3 }); 
+            map = L.map('map', { center: [30, 0], zoom: 4 }); 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
                 attribution: '© OpenStreetMap contributors' 
             }).addTo(map);
@@ -2245,14 +2235,19 @@
                 countryGroups[countryName][project.category].push(project);
             });
             
+            const newMarkers = [];
+
             Object.keys(countryGroups).forEach(countryName => {
                 const countryData = countryGroups[countryName];
                 
+                // Collect coordinates for the current country's projects
+                const projectCoords = [];
                 if (countryData.ODA.length > 0) {
                     const avgLat = countryData.ODA.reduce((sum, p) => sum + p.lat, 0) / countryData.ODA.length;
                     const avgLng = countryData.ODA.reduce((sum, p) => sum + p.lng, 0) / countryData.ODA.length;
                     const marker = createCountryMarker(countryName, 'ODA', countryData.ODA, avgLat, avgLng);
-                    markersLayer.addLayer(marker);
+                    newMarkers.push(marker);
+                    projectCoords.push([avgLat, avgLng]);
                 }
                 
                 if (countryData.Consulting.length > 0) {
@@ -2264,19 +2259,22 @@
                     const offsetLng = countryData.ODA.length > 0 ? avgLng + 0.1 : avgLng;
                     
                     const marker = createCountryMarker(countryName, 'Consulting', countryData.Consulting, offsetLat, offsetLng);
-                    markersLayer.addLayer(marker);
+                    newMarkers.push(marker);
+                    projectCoords.push([offsetLat, offsetLng]);
                 }
+                
+                // Add all new markers to the layer
+                newMarkers.forEach(marker => markersLayer.addLayer(marker));
             });
             
-            if (filteredProjects.length > 0) {
-                const allMarkers = markersLayer.getLayers();
-                if (allMarkers.length > 0) {
-                    const group = new L.featureGroup(allMarkers);
-                    map.fitBounds(group.getBounds().pad(0.1));
-                }
+            // Adjust map view to fit all filtered markers
+            if (newMarkers.length > 0) {
+                const group = new L.featureGroup(newMarkers);
+                // Use a dynamic padding based on the number of markers, or a fixed reasonable one
+                map.fitBounds(group.getBounds().pad(0.1)); // Add padding to ensure markers are not at the edge
             } else {
                 // If no projects match, maybe zoom out to world view or a default view
-                map.setView([20, 0], 3); // Reset to initial zoom if no projects are filtered
+                map.setView([30, 0], 2); // Reset to initial zoom if no projects are filtered
             }
         }
 
@@ -2524,7 +2522,7 @@
             const resultTextEl = document.getElementById('filterResultText');
             const noFilters = Object.values(activeFilters).every(set => (set instanceof Set ? set.size === 0 : !set));
             
-            if (noFilters) {
+            if (noFilters && !activeFilters.searchTerm) {
                 resultTextEl.textContent = `전체 ${allProjects.length}개 프로젝트 표시 중`;
             } else {
                 resultTextEl.textContent = `${allProjects.length}개 중 ${filteredProjects.length}개 프로젝트 표시 중`;
