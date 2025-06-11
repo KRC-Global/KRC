@@ -20,28 +20,24 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; height: 100vh; background-color: #f5f5f5; }
         #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        /* 로고 스타일 */
+        /* 로고 스타일 - 필터바 내부로 이동 */
         .logo-container {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 1010;
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            backdrop-filter: blur(8px);
-            border: 2px solid rgba(255,255,255,0.8);
+            margin-right: 15px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            min-width: 36px;
+            height: 36px;
         }
         
         .logo-container img {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
             object-fit: contain;
         }
         
@@ -50,7 +46,6 @@
             background-color: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);
             padding: 8px 15px; z-index: 1005; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
             display: flex; gap: 8px; align-items: center; flex-wrap: wrap; 
-            padding-left: 90px; /* 로고 공간 확보 */
         }
         
         .filter-button-group { position: relative; }
@@ -343,12 +338,20 @@
         }
         #bottom-info-panel .stat-number { font-size: 1.3em; font-weight: 600; margin-bottom: 3px; }
         #bottom-info-panel .stat-label { font-size: 0.75em; color: #7f8c8d; }
-        .map-controls { position: fixed; left: 15px; z-index: 999; display: flex; flex-direction: column; gap: 10px; bottom: 15px;}
+        .map-controls { 
+            position: fixed; 
+            left: 15px; 
+            top: 70px; /* 필터바 아래로 이동 */
+            z-index: 999; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px;
+        }
         .control-btn {
-            background: white; border: 2px solid #3498db; color: #3498db; padding: 8px;
+            background: white; border: 2px solid #3498db; color: #3498db; padding: 6px;
             border-radius: 50%; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            transition: all 0.3s ease; width: 42px; height: 42px;
-            display: flex; align-items: center; justify-content: center; font-size: 14px;
+            transition: all 0.3s ease; width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
         }
         .control-btn:hover { background: #3498db; color: white; transform: scale(1.1); }
         .loading { 
@@ -502,7 +505,7 @@
         /* 범례 스타일 */
         .legend {
             position: fixed;
-            top: 120px;
+            top: 120px; /* 지도 컨트롤과 겹치지 않도록 조정 */
             right: 20px;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(8px);
@@ -607,21 +610,24 @@
         @media (max-width: 768px) {
             /* 로고 모바일 조정 */
             .logo-container {
-                width: 50px;
-                height: 50px;
-                top: 10px;
-                left: 10px;
+                min-width: 30px;
+                height: 30px;
+                margin-right: 8px;
             }
             
             .logo-container img {
-                width: 32px;
-                height: 32px;
+                width: 22px;
+                height: 22px;
+            }
+            
+            /* 지도 컨트롤 모바일 위치 조정 */
+            .map-controls {
+                top: 60px; /* 모바일에서 필터바 높이에 맞춰 조정 */
             }
             
             /* 필터바 모바일 조정 - 가로 배열 유지 */
             #top-filter-bar {
                 padding: 6px 8px;
-                padding-left: 70px; /* 모바일에서 로고 공간 조정 */
                 flex-wrap: nowrap; /* 가로 배열 강제 */
                 overflow-x: auto; /* 가로 스크롤 허용 */
                 gap: 5px;
@@ -701,7 +707,7 @@
             
             /* 범례 모바일 조정 */
             .legend {
-                top: 130px;
+                top: 110px; /* 지도 컨트롤과 겹치지 않도록 조정 */
                 right: 10px;
                 padding: 10px;
                 min-width: 160px;
@@ -805,11 +811,6 @@
 <body>
     <div id="map"></div>
     
-    <!-- 로고 컨테이너 -->
-    <div class="logo-container">
-        <img src="icon-192x192.png" alt="Company Logo" onerror="this.style.display='none'">
-    </div>
-    
     <div class="legend" id="legend">
         <div class="legend-item">
             <div class="legend-marker consulting"></div>
@@ -852,6 +853,11 @@
         </div>
     </div>
     <div id="top-filter-bar">
+        <!-- 로고 -->
+        <div class="logo-container">
+            <img src="icon-192x192.png" alt="Company Logo" onerror="this.style.display='none'">
+        </div>
+        
         <div style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-right: 15px; display: flex; align-items: center;">
             🔍 사업필터링
         </div>
@@ -2209,14 +2215,11 @@
             Object.keys(countryGroups).forEach(countryName => {
                 const countryData = countryGroups[countryName];
                 
-                // Collect coordinates for the current country's projects
-                const projectCoords = [];
                 if (countryData.ODA.length > 0) {
                     const avgLat = countryData.ODA.reduce((sum, p) => sum + p.lat, 0) / countryData.ODA.length;
                     const avgLng = countryData.ODA.reduce((sum, p) => sum + p.lng, 0) / countryData.ODA.length;
                     const marker = createCountryMarker(countryName, 'ODA', countryData.ODA, avgLat, avgLng);
                     newMarkers.push(marker);
-                    projectCoords.push([avgLat, avgLng]);
                 }
                 
                 if (countryData.Consulting.length > 0) {
@@ -2229,19 +2232,30 @@
                     
                     const marker = createCountryMarker(countryName, 'Consulting', countryData.Consulting, offsetLat, offsetLng);
                     newMarkers.push(marker);
-                    projectCoords.push([offsetLat, offsetLng]);
                 }
-                
-                // Add all new markers to the layer
-                newMarkers.forEach(marker => markersLayer.addLayer(marker));
             });
             
-            // Adjust map view to fit all filtered markers
+            // Add all new markers to the layer
+            newMarkers.forEach(marker => markersLayer.addLayer(marker));
+            
+            // Adjust map view with appropriate zoom level
             if (newMarkers.length > 0) {
                 const group = new L.featureGroup(newMarkers);
-                map.fitBounds(group.getBounds().pad(0.1));
+                const bounds = group.getBounds();
+                
+                // 단일 국가인 경우 적절한 줌 레벨로 설정
+                if (Object.keys(countryGroups).length === 1) {
+                    const center = bounds.getCenter();
+                    map.setView([center.lat, center.lng], 6); // 국가 전체가 보이는 줌 레벨
+                } else {
+                    // 여러 국가인 경우 fitBounds 사용하되 최대 줌 레벨 제한
+                    map.fitBounds(bounds, { 
+                        padding: [20, 20],
+                        maxZoom: 8 // 최대 줌 레벨 제한
+                    });
+                }
             } else {
-                map.setView([30, 0], 2);
+                map.setView([30, 0], 3); // 기본 뷰
             }
         }
         function createCountryMarker(countryName, category, projects, lat, lng) {
@@ -2451,7 +2465,8 @@
             if (filterBar && legend) {
                 const filterBarHeight = filterBar.offsetHeight;
                 const safeMargin = 15; // 여유 공간
-                const newTop = filterBarHeight + safeMargin;
+                const mapControlsHeight = 100; // 지도 컨트롤 공간 확보
+                const newTop = Math.max(filterBarHeight + safeMargin, mapControlsHeight);
                 
                 legend.style.top = `${newTop}px`;
             }
