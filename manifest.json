@@ -1,8 +1,8 @@
 {
-  "name": "내 웹앱 이름",
-  "short_name": "웹앱",
-  "description": "웹앱 설명",
-  "start_url": "/",
+  "name": "KRC글로벌맵",
+  "short_name": "KRCgloabl",
+  "description": "KRC글로벌사업처 사업지도",
+  "start_url": "/KRC",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
