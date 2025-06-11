@@ -1,0 +1,2473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Projects Map - Secure Edition</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
+    <meta name="theme-color" content="#000000">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; height: 100vh; background-color: #f5f5f5; }
+        #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        /* 로고 스타일 */
+        #company-logo {
+            position: fixed; top: 15px; left: 15px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+            padding: 12px 16px; border-radius: 8px; z-index: 1010;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 8px;
+            font-weight: 700; color: #2c3e50; font-size: 16px;
+            cursor: pointer; transition: transform 0.2s ease;
+        }
+        #company-logo:hover {
+            transform: scale(1.02);
+        }
+        #company-logo .logo-icon {
+            font-size: 20px;
+        }
+
+        #top-filter-bar {
+            position: fixed; top: 15px; left: 200px; right: 15px;
+            background-color: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);
+            padding: 8px 15px; z-index: 1005; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap; 
+            border-radius: 8px;
+        }
+        .filter-button-group { position: relative; }
+        .filter-bar-button {
+            padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px;
+            background-color: #fff; cursor: pointer; font-size: 0.85em;
+            transition: background-color 0.2s, border-color 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .filter-bar-button:hover, .filter-bar-button.active { background-color: #e9ecef; border-color: #bbb; }
+        .filter-dropdown {
+            position: absolute; top: calc(100% + 5px); left: 0;
+            background-color: white; border: 1px solid #ccc; box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border-radius: 8px; z-index: 1006; min-width: 280px; max-width: 350px;
+            max-height: 320px; overflow-y: auto; display: none; padding: 12px;
+        }
+        .filter-dropdown .filter-title {
+            font-weight: 600; color: #34495e; margin-bottom: 10px; font-size: 0.9em;
+            padding-bottom: 8px; border-bottom: 1px solid #eee;
+        }
+        .reset-all-filters-btn {
+            margin-left: auto; padding: 7px 12px; font-size: 0.8em; background-color: #e74c3c;
+            color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;
+        }
+        .reset-all-filters-btn:hover { background-color: #c0392b; }
+        
+        .daily-views-display {
+            margin-left: 10px; padding: 7px 12px; background-color: #f8f9fa; 
+            border: 1px solid #ddd; border-radius: 6px; font-size: 0.8em; color: #495057; 
+            display: flex; align-items: center; gap: 5px; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .daily-views-display:hover {
+            background-color: #e9ecef;
+        }
+        .firebase-status {
+            margin-left: 5px; padding: 4px 8px; border-radius: 12px; font-size: 0.7em;
+            font-weight: 600; text-transform: uppercase;
+        }
+        .firebase-connected { background: #d4edda; color: #155724; }
+        .firebase-disconnected { background: #f8d7da; color: #721c24; }
+        .firebase-syncing { background: #fff3cd; color: #856404; }
+        .firebase-readonly { background: #e2e3e5; color: #383d41; }
+        .firebase-admin { background: #b3d7ff; color: #004085; }
+        
+        .admin-login-btn {
+            margin-left: 10px; padding: 7px 12px; background-color: #007bff; 
+            color: white; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 0.8em; transition: background-color 0.2s;
+        }
+        .admin-login-btn:hover { background-color: #0056b3; }
+        .admin-logout-btn {
+            margin-left: 10px; padding: 7px 12px; background-color: #6c757d; 
+            color: white; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 0.8em; transition: background-color 0.2s;
+        }
+        .admin-logout-btn:hover { background-color: #545b62; }
+        
+        .views-panel {
+            position: fixed; top: 80px; right: 20px; width: 400px; max-height: 750px;
+            background: white; border: 1px solid #ddd; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15); z-index: 1007;
+            display: none; overflow: hidden;
+        }
+        .views-panel-header {
+            padding: 12px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
+            font-weight: 600; display: flex; justify-content: space-between; align-items: center;
+        }
+        .views-panel-content {
+            max-height: 670px; overflow-y: auto; padding: 8px;
+        }
+        .views-summary {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+        }
+        .views-summary-card {
+            background: #f8f9fa; padding: 8px; border-radius: 4px; text-align: center;
+        }
+        .views-summary-number {
+            font-size: 18px; font-weight: 600; color: #2c3e50;
+        }
+        .views-summary-label {
+            font-size: 11px; color: #6c757d; margin-top: 2px;
+        }
+        
+        /* 관리자 로그인 모달 */
+        .admin-login-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 3000; display: none;
+            align-items: center; justify-content: center;
+        }
+        .admin-login-content {
+            background: white; padding: 30px; border-radius: 12px; max-width: 400px;
+            width: 90%; 
+        }
+        .admin-login-header {
+            font-size: 20px; font-weight: 600; margin-bottom: 20px;
+            color: #2c3e50; display: flex; align-items: center; gap: 10px;
+        }
+        .admin-input-group {
+            margin-bottom: 15px;
+        }
+        .admin-input-group label {
+            display: block; margin-bottom: 5px; font-weight: 500; color: #495057;
+        }
+        .admin-input-group input {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 14px;
+        }
+        .admin-login-buttons {
+            display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;
+        }
+        .admin-login-btn-modal {
+            padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;
+            font-weight: 600; transition: background-color 0.2s;
+        }
+        .admin-login-btn-modal.primary {
+            background: #007bff; color: white;
+        }
+        .admin-login-btn-modal.primary:hover {
+            background: #0056b3;
+        }
+        .admin-login-btn-modal.secondary {
+            background: #6c757d; color: white;
+        }
+        .admin-login-btn-modal.secondary:hover {
+            background: #545b62;
+        }
+        
+        /* Firebase 연결 상태 및 관리 */
+        .firebase-controls {
+            display: flex; flex-direction: column; gap: 8px; margin: 12px 0; 
+            padding: 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6;
+        }
+        .firebase-status-section {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .firebase-control-buttons {
+            display: flex; gap: 6px;
+        }
+        .firebase-btn {
+            padding: 6px 10px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 11px; font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .firebase-btn.sync {
+            background: #007bff; color: white;
+        }
+        .firebase-btn.sync:hover {
+            background: #0056b3;
+        }
+        .firebase-btn.backup {
+            background: #28a745; color: white;
+        }
+        .firebase-btn.backup:hover {
+            background: #1e7e34;
+        }
+        .firebase-btn.reset {
+            background: #dc3545; color: white;
+        }
+        .firebase-btn.reset:hover {
+            background: #bd2130;
+        }
+        .firebase-btn:disabled {
+            background: #6c757d; cursor: not-allowed; opacity: 0.6;
+        }
+        
+        .firebase-info {
+            font-size: 10px; color: #6c757d; text-align: center;
+            padding: 8px; background: #e9ecef; border-radius: 4px; margin-top: 8px;
+            line-height: 1.3;
+        }
+        
+        /* 달력 스타일 (개선된 버전) */
+        .calendar-container {
+            margin: 12px 0;
+        }
+        .calendar-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px; color: white;
+        }
+        .calendar-title {
+            font-weight: 700; font-size: 15px; color: white;
+        }
+        .calendar-nav {
+            display: flex; gap: 6px;
+        }
+        .calendar-nav-btn {
+            background: rgba(255,255,255,0.2); color: white; border: none;
+            border-radius: 6px; padding: 6px 10px; cursor: pointer;
+            font-size: 12px; transition: all 0.2s; font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+        .calendar-nav-btn:hover {
+            background: rgba(255,255,255,0.3); transform: scale(1.05);
+        }
+        .calendar-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            gap: 2px; background: #f8f9fa; border-radius: 8px; padding: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .calendar-day-header {
+            background: #e9ecef; padding: 6px 4px; text-align: center;
+            font-size: 11px; font-weight: 700; color: #495057;
+            border-radius: 4px; margin-bottom: 2px;
+        }
+        .calendar-day-header.sunday { color: #dc3545; }
+        .calendar-day-header.saturday { color: #28a745; }
+        
+        .calendar-day {
+            background: white; border-radius: 6px;
+            min-height: 32px; max-height: 32px; 
+            position: relative; cursor: pointer;
+            transition: all 0.2s; border: 1px solid #e9ecef;
+            display: flex; padding: 3px;
+        }
+        .calendar-day:hover {
+            background: #f8f9fa; transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .calendar-day.other-month {
+            background: #f8f9fa; opacity: 0.5;
+        }
+        .calendar-day.today {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white; border: 2px solid #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        .calendar-day.has-views {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+        .calendar-day.today.has-views {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .calendar-day-number {
+            position: absolute; top: 2px; right: 4px;
+            font-size: 11px; font-weight: 700; 
+            color: #495057;
+        }
+        .calendar-day.today .calendar-day-number {
+            color: white;
+        }
+        .calendar-day.sunday .calendar-day-number {
+            color: #dc3545;
+        }
+        .calendar-day.saturday .calendar-day-number {
+            color: #28a745;
+        }
+        
+        .calendar-day-views {
+            position: absolute; bottom: 2px; left: 4px;
+            font-size: 9px; display: flex; align-items: baseline;
+            line-height: 1;
+        }
+        .calendar-day-views .number {
+            font-weight: 700; color: #007bff; margin-right: 1px;
+        }
+        .calendar-day-views .unit {
+            font-weight: 500; color: #6c757d;
+        }
+        .calendar-day.today .calendar-day-views .number {
+            color: white;
+        }
+        .calendar-day.today .calendar-day-views .unit {
+            color: rgba(255,255,255,0.8);
+        }
+        .close-panel {
+            background: none; border: none; font-size: 16px; cursor: pointer;
+            color: #6c757d; padding: 0; width: 20px; height: 20px;
+        }
+        
+        .checkbox-group { display: flex; flex-direction: column; gap: 6px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 4px; border-radius: 4px; transition: background-color 0.2s; }
+        .checkbox-item:hover { background-color: #f8f9fa; }
+        .checkbox-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: #3498db; }
+        .checkbox-item label { flex: 1; font-size: 0.85em; color: #2c3e50; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .count { color: #7f8c8d; font-size: 0.75em; background: #f1f2f6; padding: 2px 5px; border-radius: 10px; }
+
+        #bottom-info-panel {
+            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 20px); max-width: 1200px;
+            background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px);
+            border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.12);
+            padding: 12px 15px; z-index: 1001;
+        }
+        #bottom-info-panel .section-title { 
+            font-size: 1em; font-weight: 600; color: #2c3e50; margin-bottom: 10px; 
+        }
+        #bottom-info-panel .stats-grid { 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; 
+        }
+        #bottom-info-panel .stat-card { 
+            background: white; padding: 12px; border-radius: 8px; text-align: center; 
+            box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-left-width: 4px; border-left-style: solid; 
+        }
+        #bottom-info-panel .stat-number { font-size: 1.3em; font-weight: 600; margin-bottom: 3px; }
+        #bottom-info-panel .stat-label { font-size: 0.75em; color: #7f8c8d; }
+
+        .map-controls { position: fixed; left: 15px; z-index: 999; display: flex; flex-direction: column; gap: 10px; bottom: 15px;}
+        .control-btn {
+            background: white; border: 2px solid #3498db; color: #3498db; padding: 8px;
+            border-radius: 50%; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease; width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .control-btn:hover { background: #3498db; color: white; transform: scale(1.1); }
+
+        .loading { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; padding: 30px; border-radius: 10px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 2000; text-align: center; 
+        }
+        .loading-spinner { 
+            border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
+            width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .status-complete { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-progress { background: #d1f2eb; color: #155724; border: 1px solid #c3e6cb; }
+        .status-proposal { background: #ff6b35; color: white; border: 1px solid #ff5722; }
+
+        .custom-div-icon { background: transparent !important; border: none !important; }
+
+        /* 팝업 스타일 개선 (모바일 대응) */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px !important;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.2) !important;
+        }
+        
+        .leaflet-popup-content {
+            margin: 0 !important;
+            line-height: 1.4 !important;
+            font-size: 13px !important;
+            overflow: hidden !important;
+        }
+        
+        .leaflet-popup-close-button {
+            color: #999 !important;
+            font-size: 16px !important;
+            padding: 4px 4px 0 0 !important;
+        }
+
+        /* 모바일용 팝업 컨테이너 스타일 */
+        .popup-container {
+            max-width: 100%;
+            overflow: hidden;
+        }
+        
+        .popup-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            border-bottom: 2px solid;
+            padding-bottom: 6px;
+            gap: 4px;
+            text-align: center;
+        }
+        
+        .popup-country-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .popup-flag {
+            width: 24px;
+            height: 16px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        
+        .popup-title {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+        }
+        
+        .popup-country-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+            word-wrap: break-word;
+        }
+        
+        .popup-category {
+            font-weight: 600;
+            font-size: 12px;
+            margin: 2px 0 0 0;
+        }
+        
+        .popup-projects {
+            max-height: 250px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .popup-project-item {
+            padding: 6px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .popup-project-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .popup-project-item.proposal {
+            border-left: 3px solid #ff6b35;
+            background: rgba(255, 107, 53, 0.05);
+        }
+        
+        .popup-project-item.progress {
+            border-left: 3px solid #28a745;
+            background: rgba(40, 167, 69, 0.05);
+        }
+        
+        .popup-project-title {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .popup-project-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 13px;
+            flex: 1;
+            min-width: 0;
+            word-break: break-word;
+        }
+        
+        .popup-project-details {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.3;
+        }
+        
+        .popup-project-details > div {
+            margin: 1px 0;
+            word-break: break-word;
+        }
+        
+        .popup-budget {
+            color: #e74c3c !important;
+            font-weight: 600 !important;
+        }
+
+        /* 범례 스타일 */
+        .legend {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1002;
+            font-size: 12px;
+            min-width: 180px;
+            transition: top 0.3s ease;
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+        
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .legend-marker {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid;
+            flex-shrink: 0;
+        }
+        
+        .legend-marker.oda {
+            border-color: #FF8C00;
+            background: rgba(255, 140, 0, 0.1);
+        }
+        
+        .legend-marker.consulting {
+            border-color: #4682B4;
+            background: rgba(70, 130, 180, 0.1);
+        }
+        
+        .legend-text {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .legend-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .legend-count {
+            font-weight: 600;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        #search-container {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            margin-left: 10px;
+            flex-grow: 1;
+            max-width: 300px;
+        }
+
+        #search-input {
+            padding: 7px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.85em;
+            flex-grow: 1;
+        }
+
+        #search-button {
+            padding: 7px 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background-color 0.2s;
+        }
+
+        #search-button:hover {
+            background-color: #2980b9;
+        }
+
+        /* 모바일 반응형 디자인 개선 */
+        @media (max-width: 768px) {
+            #company-logo {
+                top: 10px; left: 10px;
+                padding: 8px 12px; font-size: 14px;
+            }
+            #company-logo .logo-icon {
+                font-size: 16px;
+            }
+
+            #top-filter-bar {
+                top: 10px; left: 140px; right: 10px;
+                padding: 6px 10px;
+                flex-direction: row; /* 가로 배치 유지 */
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            /* 모바일에서 필터 버튼들 최적화 */
+            .filter-bar-button {
+                padding: 6px 8px;
+                font-size: 0.75em;
+                white-space: nowrap;
+            }
+
+            /* 검색 컨테이너 모바일 최적화 */
+            #search-container {
+                flex: 1;
+                min-width: 120px;
+                max-width: 200px;
+                margin: 0 4px;
+            }
+
+            #search-input {
+                padding: 6px 8px;
+                font-size: 0.75em;
+            }
+
+            #search-button {
+                padding: 6px 8px;
+                font-size: 0.7em;
+            }
+
+            .reset-all-filters-btn {
+                padding: 6px 8px;
+                font-size: 0.7em;
+                margin-left: 4px;
+            }
+
+            .daily-views-display {
+                padding: 6px 8px;
+                font-size: 0.7em;
+                margin-left: 4px;
+            }
+
+            .admin-login-btn, .admin-logout-btn {
+                padding: 6px 8px;
+                font-size: 0.7em;
+                margin-left: 4px;
+            }
+
+            #bottom-info-panel .stats-grid { 
+                grid-template-columns: repeat(5, 1fr); 
+                gap: 6px; 
+            }
+            #bottom-info-panel .stat-card { 
+                padding: 6px 4px; 
+            }
+            #bottom-info-panel .stat-number { 
+                font-size: 1em; 
+                margin-bottom: 2px; 
+            }
+            #bottom-info-panel .stat-label { 
+                font-size: 0.65em; 
+                line-height: 1.2;
+            }
+            #bottom-info-panel {
+                padding: 8px 10px;
+            }
+            #bottom-info-panel .section-title {
+                font-size: 0.9em;
+                margin-bottom: 6px;
+            }
+            
+            .legend {
+                top: 90px;
+                right: 10px;
+                padding: 10px;
+                min-width: 160px;
+                font-size: 11px;
+            }
+            
+            .legend-title {
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+            
+            .legend-item {
+                margin-bottom: 5px;
+            }
+            
+            .legend-marker {
+                width: 14px;
+                height: 14px;
+            }
+            
+            .legend-count {
+                font-size: 10px;
+                padding: 1px 4px;
+            }
+            
+            .views-panel { width: calc(100% - 40px); max-height: 80vh; }
+            .views-panel-content { max-height: calc(80vh - 60px); }
+
+            /* 모바일 팝업 크기 개선 */
+            .leaflet-popup-content-wrapper {
+                min-width: 280px !important;
+                max-width: calc(100vw - 40px) !important;
+                width: auto !important;
+            }
+            
+            .leaflet-popup-content {
+                font-size: 12px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .popup-country-name {
+                font-size: 14px !important;
+            }
+            
+            .popup-category {
+                font-size: 11px !important;
+            }
+            
+            .popup-project-name {
+                font-size: 12px !important;
+            }
+            
+            .popup-project-details {
+                font-size: 10px !important;
+            }
+            
+            .popup-projects {
+                max-height: 200px !important;
+            }
+            
+            .popup-flag {
+                width: 20px !important;
+                height: 14px !important;
+            }
+        }
+
+        /* 알림 위치 수정 */
+        .notification {
+            position: fixed; 
+            bottom: 150px;
+            left: 50%; 
+            transform: translateX(-50%);
+            background: #2c3e50; color: white;
+            padding: 12px 16px; border-radius: 8px; font-size: 13px; z-index: 2002;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-width: 350px;
+            animation: slideInBottom 0.3s ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+        @keyframes slideInBottom {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- 회사 로고 -->
+    <div id="company-logo" onclick="resetMapView()">
+        <span class="logo-icon">🌍</span>
+        <span>Global Projects</span>
+    </div>
+
+    <div class="legend" id="legend">
+        <div class="legend-item">
+            <div class="legend-marker consulting"></div>
+            <div class="legend-text">
+                <span class="legend-label">기술컨설팅</span>
+                <span class="legend-count" id="legend-consulting-summary">0개/0억원</span>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-marker oda"></div>
+            <div class="legend-text">
+                <span class="legend-label">ODA</span>
+                <span class="legend-count" id="legend-oda-summary">0개/0억원</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-login-modal" id="admin-login-modal">
+        <div class="admin-login-content">
+            <div class="admin-login-header">
+                🔐 관리자 로그인
+            </div>
+            <div class="admin-input-group">
+                <label for="admin-email">이메일:</label>
+                <input type="email" id="admin-email" placeholder="admin@company.com">
+            </div>
+            <div class="admin-input-group">
+                <label for="admin-password">비밀번호:</label>
+                <input type="password" id="admin-password" placeholder="관리자 비밀번호">
+            </div>
+            <div style="font-size: 12px; color: #6c757d; padding: 10px; background: #f8f9fa; border-radius: 6px; margin: 10px 0;">
+                <strong>📋 관리자 권한:</strong><br>
+                • 조회수 데이터 수정/삭제<br>
+                • 실시간 동기화 제어<br>
+                • 전체 사용자 통계 관리
+            </div>
+            <div class="admin-login-buttons">
+                <button class="admin-login-btn-modal secondary" onclick="closeAdminLogin()">취소</button>
+                <button class="admin-login-btn-modal primary" onclick="performAdminLogin()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="top-filter-bar">
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="projectTypeDropdown">사업 타입 ▾</button>
+            <div class="filter-dropdown" id="projectTypeDropdown">
+                <div class="filter-title">사업 타입 선택</div>
+                <div class="checkbox-group" id="projectTypeFilters"></div>
+            </div>
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="countryDropdown">국가 ▾</button>
+            <div class="filter-dropdown" id="countryDropdown">
+                <div class="filter-title">국가 선택</div>
+                <div class="checkbox-group" id="countryFilters"></div>
+            </div>
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="statusDropdown">진행상태 ▾</button>
+            <div class="filter-dropdown" id="statusDropdown">
+                <div class="filter-title">진행상태 선택</div>
+                <div class="checkbox-group" id="statusFilters"></div>
+            </div>
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="clientDropdown">발주처 ▾</button>
+            <div class="filter-dropdown" id="clientDropdown">
+                <div class="filter-title">발주처 선택</div>
+                <div class="checkbox-group" id="clientFilters"></div>
+            </div>
+        </div>
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="대륙, 국가, 사업명, 발주처 검색">
+            <button id="search-button">검색</button>
+        </div>
+        
+        <button class="reset-all-filters-btn" onclick="resetAllFilters()">🔄 전체 초기화</button>
+        <div class="daily-views-display" onclick="toggleViewsPanel()">
+            <span>👁️</span>
+            <span>오늘: <span id="daily-views">0</span> | 누적: <span id="total-views">0</span></span>
+            <span class="firebase-status" id="firebase-status">OFFLINE</span>
+            <span style="font-size: 10px;">▼</span>
+        </div>
+        <button class="admin-login-btn" id="admin-login-btn" onclick="showAdminLogin()">🔐 관리자</button>
+        <button class="admin-logout-btn" id="admin-logout-btn" onclick="performAdminLogout()" style="display: none;">🚪 로그아웃</button>
+    </div>
+
+    <div class="views-panel" id="views-panel">
+        <div class="views-panel-header">
+            <span>📊 조회수 통계</span>
+            <button class="close-panel" onclick="toggleViewsPanel()">✕</button>
+        </div>
+        <div class="views-panel-content">
+            <div class="views-summary">
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-today">0</div>
+                    <div class="views-summary-label">오늘</div>
+                </div>
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-total">0</div>
+                    <div class="views-summary-label">누적</div>
+                </div>
+            </div>
+            
+            <div class="firebase-controls" id="firebase-admin-controls" style="display: none;">
+                <div class="firebase-status-section">
+                    <div>
+                        <div style="font-size: 12px; font-weight: 600;">🔥 Firebase 연결</div>
+                        <div style="font-size: 10px; color: #6c757d;" id="firebase-connection-info">연결 대기 중...</div>
+                    </div>
+                    <div style="font-size: 10px; color: #6c757d;" id="user-role-info">관리자</div>
+                </div>
+                <div class="firebase-control-buttons" id="firebase-controls">
+                    <button class="firebase-btn sync" onclick="manualSync()" id="sync-btn">🔄 동기화</button>
+                    <button class="firebase-btn backup" onclick="exportFirebaseData()">💾 내보내기</button>
+                    <button class="firebase-btn reset" onclick="resetFirebaseData()" id="reset-btn">🗑️ 초기화</button>
+                </div>
+                <div class="firebase-info">
+                    <div id="last-sync-info">마지막 동기화: 없음</div>
+                    <div id="total-users-info">전체 사용자 수: 확인 중...</div>
+                    <div id="admin-status-info">현재 상태: 관리자 모드</div>
+                </div>
+            </div>
+            
+            <div class="calendar-container">
+                <div style="border-bottom: 1px solid #dee2e6; margin-bottom: 12px; padding-bottom: 8px;">
+                    <strong style="font-size: 13px; color: #495057;">📅 월별 조회수</strong>
+                </div>
+                <div class="calendar-header">
+                    <div class="calendar-title" id="calendar-title">2024년 6월</div>
+                    <div class="calendar-nav">
+                        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
+                        <button class="calendar-nav-btn" onclick="goToToday()">오늘</button>
+                        <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-info-panel">
+        <div class="section-title">📊 프로젝트현황(1972~현재)</div>
+        <div class="stats-grid">
+            <div class="stat-card" id="stat-total-projects">
+                <div class="stat-number" id="total-projects">-</div>
+                <div class="stat-label">총 프로젝트</div>
+            </div>
+            <div class="stat-card" id="stat-countries-count">
+                <div class="stat-number" id="countries-count">-</div>
+                <div class="stat-label">참여 국가</div>
+            </div>
+            <div class="stat-card" id="stat-consulting-projects">
+                <div class="stat-number" id="consulting-projects">-</div>
+                <div class="stat-label">컨설팅 사업</div>
+            </div>
+            <div class="stat-card" id="stat-oda-projects">
+                <div class="stat-number" id="oda-projects">-</div>
+                <div class="stat-label">ODA 사업</div>
+            </div>
+            <div class="stat-card" id="stat-total-budget">
+                <div class="stat-number" id="total-budget">-</div>
+                <div class="stat-label">총 사업비 (억원)</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="map-controls">
+        <button class="control-btn" onclick="goToMyLocation()" title="내 위치로 이동">📍</button>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div id="loading-text">Excel 파일에서 데이터를 불러오는 중...</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ===========================================
+        // 전역 변수
+        // ===========================================
+        let map = null;
+        let markersLayer = null;
+        let allProjects = [];
+        let filteredProjects = [];
+        let activeFilters = {
+            projectTypes: new Set(),
+            countries: new Set(),
+            statuses: new Set(),
+            clients: new Set(),
+            searchTerm: ''
+        };
+        
+        // Firebase 관련 변수
+        let firebaseApp = null;
+        let firebaseDatabase = null;
+        let firebaseAuth = null;
+        let firebaseConnected = false;
+        let isAdmin = false;
+        let currentUser = null;
+        let userId = 'readonly_user';
+        let dailyViews = 0;
+        let viewsHistory = {};
+        let totalViews = 0;
+        let currentCalendarDate = new Date();
+
+        let hasViewedSession = sessionStorage.getItem('hasViewedPage') === 'true'; 
+        let viewsRef = null;
+
+        // Firebase 설정
+        const firebaseConfig = {
+            "apiKey": "AIzaSyDelJ0v-idzA7-Cu-fX8KP8-Jr2Hau2h7M",
+            "authDomain": "global-mapview.firebaseapp.com",
+            "databaseURL": "https://global-mapview-default-rtdb.asia-southeast1.firebasedatabase.app",
+            "projectId": "global-mapview",
+            "storageBucket": "global-mapview.firebasestorage.app",
+            "messagingSenderId": "122573358864",
+            "appId": "1:122573358864:web:cad3496eae834a56ea8795",
+            "measurementId": "G-KF9SNVDDY1"
+        };
+
+        const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
+        
+        const countryCodeMap = {
+            "베트남": "vn", "라오스": "la", "캄보디아": "kh", "필리핀": "ph", "몽골": "mn", 
+            "우즈베키스탄": "uz", "키르기스스탄": "kg", "스리랑카": "lk", "미얀마": "mm", 
+            "방글라데시": "bd", "태국": "th", "인도네시아": "id", "인도": "in", "네팔": "np", 
+            "아프가니스탄": "af", "이란": "ir", "가나": "gh", "케냐": "ke", "탄자니아": "tz", 
+            "세네갈": "sn", "우간다": "ug", "카메룬": "cm", "모잠비크": "mz", "에티오피아": "et", 
+            "말라위": "mw", "앙골라": "ao", "감비아": "gm", "기니": "gn", "DR콩고": "cd", 
+            "콩고민주공화국": "cd", "코트디브아르": "ci", "볼리비아": "bo", "엘살바도르": "sv", 
+            "페루": "pe", "키리바시": "ki", "한국": "kr", "일본": "jp", "중국": "cn", 
+            "러시아": "ru", "미국": "us", "요르단": "jo", "알제리": "dz", "파라과이": "py", 
+            "말레이시아": "my", "브루나이": "bn", "과테말라": "gt", "파키스탄": "pk",
+            "아르헨티나": "ar"
+        };
+
+        const continentMap = {
+            "아시아": ["베트남", "라오스", "캄보디아", "필리핀", "몽골", "우즈베키스탄", "키르기스스탄", "스리랑카", "미얀마", "방글라데시", "태국", "인도네시아", "인도", "네팔", "파키스탄", "말레이시아", "브루나이", "일본", "중국", "한국"],
+            "아프리카": ["가나", "케냐", "탄자니아", "세네갈", "우간다", "카메룬", "모잠비크", "에티오피아", "말라위", "앙골라", "감비아", "기니", "DR콩고", "콩고민주공화국", "코트디브아르", "알제리"],
+            "남아메리카": ["볼리비아", "페루", "파라과이", "아르헨티나"],
+            "북아메리카": ["엘살바도르", "과테말라", "미국"],
+            "오세아니아": ["키리바시"],
+            "유럽": ["러시아"],
+            "중동": ["요르단", "이란", "아프가니스탄"]
+        };
+
+
+        // ===========================================
+        // Firebase 인증 및 권한 관리
+        // ===========================================
+        
+        function initializeFirebase() {
+            try {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                firebaseDatabase = firebase.database();
+                firebaseAuth = firebase.auth();
+                viewsRef = firebaseDatabase.ref('views');
+                
+                updateFirebaseStatus('connecting', '연결 중...');
+                
+                const connectedRef = firebaseDatabase.ref('.info/connected');
+                connectedRef.on('value', (snapshot) => {
+                    firebaseConnected = snapshot.val() === true;
+                    if (firebaseConnected) {
+                        updateFirebaseStatus('connected', '연결됨');
+                        syncViewsWithFirebase();
+                    } else {
+                        updateFirebaseStatus('disconnected', '연결 끊김');
+                    }
+                });
+                
+                firebaseAuth.onAuthStateChanged((user) => {
+                    currentUser = user;
+                    if (user) {
+                        userId = user.uid;
+                        isAdmin = true;
+                        updateAdminUI(true);
+                        showNotification(`관리자로 로그인되었습니다: ${user.email}`, 'success');
+                    } else {
+                        userId = 'readonly_user';
+                        isAdmin = false;
+                        updateAdminUI(false);
+                    }
+                });
+                
+                showNotification('Firebase에 연결 중입니다...', 'info');
+                
+            } catch (error) {
+                console.error('Firebase 초기화 실패:', error);
+                updateFirebaseStatus('disconnected', '연결 실패');
+                showNotification('Firebase 연결에 실패했습니다.', 'error');
+            }
+        }
+
+        function showAdminLogin() {
+            document.getElementById('admin-login-modal').style.display = 'flex';
+        }
+
+        function closeAdminLogin() {
+            document.getElementById('admin-login-modal').style.display = 'none';
+            document.getElementById('admin-email').value = '';
+            document.getElementById('admin-password').value = '';
+        }
+
+        async function performAdminLogin() {
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-password').value.trim();
+            
+            if (!email || !password) {
+                showNotification('이메일과 비밀번호를 모두 입력해주세요.', 'warning');
+                return;
+            }
+            
+            try {
+                await firebaseAuth.signInWithEmailAndPassword(email, password);
+                closeAdminLogin();
+            } catch (error) {
+                console.error('로그인 실패:', error);
+                let errorMessage = '로그인에 실패했습니다.';
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = '등록되지 않은 이메일입니다.';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = '비밀번호가 올바르지 않습니다.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = '이메일 형식이 올바르지 않습니다.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                        break;
+                    default:
+                        errorMessage += ` (${error.code})`;
+                }
+                
+                showNotification(errorMessage, 'error');
+            }
+        }
+
+        async function performAdminLogout() {
+            try {
+                await firebaseAuth.signOut();
+                showNotification('로그아웃되었습니다.', 'success');
+                sessionStorage.removeItem('hasViewedPage'); 
+                hasViewedSession = false;
+            } catch (error) {
+                console.error('로그아웃 실패:', error);
+                showNotification('로그아웃에 실패했습니다.', 'error');
+            }
+        }
+
+        function updateAdminUI(adminStatus) {
+            const loginBtn = document.getElementById('admin-login-btn');
+            const logoutBtn = document.getElementById('admin-logout-btn');
+            const syncBtn = document.getElementById('sync-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const statusBadge = document.getElementById('firebase-status');
+            const adminControls = document.getElementById('firebase-admin-controls');
+            
+            if (adminStatus) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                statusBadge.className = 'firebase-status firebase-admin';
+                statusBadge.textContent = 'ADMIN';
+                adminControls.style.display = 'block';
+                
+                if (syncBtn) syncBtn.disabled = false;
+                if (resetBtn) resetBtn.disabled = false;
+            } else {
+                loginBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                statusBadge.className = 'firebase-status firebase-readonly';
+                statusBadge.textContent = 'READONLY';
+                adminControls.style.display = 'none';
+                
+                if (syncBtn) syncBtn.disabled = true;
+                if (resetBtn) resetBtn.disabled = true;
+            }
+        }
+
+        function updateFirebaseStatus(status, message) {
+            const infoElement = document.getElementById('firebase-connection-info');
+            const statusBadge = document.getElementById('firebase-status');
+            
+            if (infoElement) {
+                infoElement.textContent = message;
+            }
+            
+            if (!isAdmin) {
+                if (status === 'connected') {
+                    statusBadge.className = 'firebase-status firebase-connected';
+                    statusBadge.textContent = 'LIVE';
+                } else if (status === 'disconnected') {
+                    statusBadge.className = 'firebase-status firebase-disconnected';
+                    statusBadge.textContent = 'OFFLINE';
+                } else if (status === 'syncing') {
+                    statusBadge.className = 'firebase-status firebase-syncing';
+                    statusBadge.textContent = 'SYNCING';
+                }
+            }
+        }
+
+        // ===========================================
+        // 조회수 관리 시스템
+        // ===========================================
+        
+        function initializeViewsSystem() {
+            loadLocalViews();
+            
+            if (!hasViewedSession) {
+                incrementDailyViews();
+                hasViewedSession = true;
+                sessionStorage.setItem('hasViewedPage', 'true');
+                showNotification('페이지 조회수가 1 증가했습니다! 👁️', 'success');
+            }
+            
+            initializeFirebase();
+        }
+
+        function loadLocalViews() {
+            const savedViews = localStorage.getItem('globalMapViews');
+            if (savedViews) {
+                try {
+                    viewsHistory = JSON.parse(savedViews);
+                } catch (error) {
+                    console.error('로컬 조회수 데이터 파싱 실패:', error);
+                    viewsHistory = {};
+                }
+            } else {
+                viewsHistory = {};
+            }
+            
+            calculateViewsStats();
+            updateViewsDisplay();
+            updateCalendar();
+        }
+
+        function saveLocalViews() {
+            try {
+                localStorage.setItem('globalMapViews', JSON.stringify(viewsHistory));
+            } catch (error) {
+                console.error('로컬 조회수 데이터 저장 실패:', error);
+            }
+        }
+
+        function incrementDailyViews() {
+            const today = getTodayString();
+            viewsHistory[today] = (viewsHistory[today] || 0) + 1;
+            
+            calculateViewsStats();
+            updateViewsDisplay();
+            updateCalendar();
+            saveLocalViews();
+            
+            console.log(`조회수 증가: ${today} = ${viewsHistory[today]}`);
+        }
+
+        function syncViewsWithFirebase() {
+            if (!firebaseConnected || !viewsRef) {
+                console.log('Firebase 연결 안됨 - 동기화 건너뛰기');
+                return;
+            }
+            
+            viewsRef.once('value')
+                .then((snapshot) => {
+                    const firebaseData = snapshot.val();
+                    
+                    const aggregatedViews = {};
+                    if (firebaseData) {
+                        Object.values(firebaseData).forEach(userData => {
+                            if (userData.history) {
+                                Object.keys(userData.history).forEach(date => {
+                                    aggregatedViews[date] = (aggregatedViews[date] || 0) + userData.history[date];
+                                });
+                            }
+                        });
+                    }
+                    
+                    Object.keys(aggregatedViews).forEach(date => {
+                        viewsHistory[date] = Math.max(viewsHistory[date] || 0, aggregatedViews[date]);
+                    });
+                    
+                    uploadLocalViewsToFirebase();
+                    
+                    calculateViewsStats();
+                    updateViewsDisplay();
+                    updateCalendar();
+                    saveLocalViews();
+                    updateTotalUsersCount();
+                    
+                    console.log('Firebase와 조회수 동기화 완료');
+                })
+                .catch((error) => {
+                    console.error('Firebase 조회수 동기화 실패:', error);
+                });
+        }
+
+        function uploadLocalViewsToFirebase() {
+            if (!firebaseConnected || !viewsRef) {
+                console.log('Firebase 연결 안됨 - 업로드 건너뛰기');
+                return;
+            }
+            
+            const userRef = firebaseDatabase.ref(`views/${userId}`);
+            
+            const dataToSave = {
+                history: viewsHistory,
+                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
+                totalViews: Object.values(viewsHistory).reduce((sum, count) => sum + count, 0),
+                userId: userId,
+                userType: isAdmin ? 'admin' : 'readonly'
+            };
+            
+            userRef.update(dataToSave)
+                .then(() => {
+                    console.log(`로컬 조회수 데이터를 Firebase의 ${userId} 경로에 업로드 완료`);
+                    updateLastSyncInfo();
+                })
+                .catch((error) => {
+                    console.error('Firebase 업로드 실패:', error);
+                });
+        }
+
+        function manualSync() {
+            if (!isAdmin) {
+                showNotification('관리자만 수동 동기화를 실행할 수 있습니다.', 'warning');
+                return;
+            }
+            
+            if (!firebaseConnected) {
+                showNotification('Firebase에 연결되지 않았습니다.', 'warning');
+                return;
+            }
+            
+            updateFirebaseStatus('syncing', '동기화 중...');
+            syncViewsWithFirebase();
+            showNotification('수동 동기화가 완료되었습니다.', 'success');
+            updateFirebaseStatus('connected', '동기화 완료');
+        }
+
+        function calculateViewsStats() {
+            totalViews = Object.values(viewsHistory).reduce((sum, count) => sum + count, 0);
+            const today = getTodayString();
+            dailyViews = viewsHistory[today] || 0;
+        }
+
+        function updateLastSyncInfo() {
+            const syncElement = document.getElementById('last-sync-info');
+            if (syncElement) {
+                const now = new Date();
+                syncElement.textContent = `마지막 동기화: ${now.toLocaleTimeString()}`;
+            }
+        }
+
+        function updateTotalUsersCount() {
+            if (!firebaseDatabase) return;
+            
+            const viewsRootRef = firebaseDatabase.ref('views');
+            viewsRootRef.once('value')
+                .then((snapshot) => {
+                    const allUsersData = snapshot.val();
+                    const userCount = allUsersData ? Object.keys(allUsersData).length : 0;
+                    
+                    const usersElement = document.getElementById('total-users-info');
+                    if (usersElement) {
+                        usersElement.textContent = `전체 사용자 수: ${userCount}명`;
+                    }
+                })
+                .catch((error) => {
+                    console.error('사용자 수 조회 실패:', error);
+                });
+        }
+
+        function exportFirebaseData() {
+            if (!isAdmin) {
+                showNotification('관리자만 내보내기를 할 수 있습니다.', 'warning');
+                return;
+            }
+            
+            const exportData = {
+                exportedBy: currentUser ? currentUser.email : 'unknown_admin',
+                viewsHistory: viewsHistory,
+                totalViews: totalViews,
+                exportDate: new Date().toISOString(),
+                source: 'Aggregated_Firebase_Export'
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `조회수_백업_${new Date().toISOString().split('T')[0]}.json`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('조회수 데이터가 내보내기되었습니다!', 'success');
+        }
+
+        function resetFirebaseData() {
+            if (!isAdmin) {
+                showNotification('관리자만 데이터를 초기화할 수 있습니다.', 'warning');
+                return;
+            }
+            
+            const confirmed = confirm(
+                '⚠️ 경고: 모든 조회수 데이터가 삭제됩니다.\n\n' +
+                '이 작업은 되돌릴 수 없습니다.\n' +
+                '정말로 초기화하시겠습니까?'
+            );
+            
+            if (confirmed) {
+                viewsHistory = {};
+                totalViews = 0;
+                dailyViews = 0;
+                localStorage.removeItem('globalMapViews');
+                sessionStorage.removeItem('hasViewedPage');
+                hasViewedSession = false;
+                
+                if (firebaseConnected && viewsRef) {
+                    viewsRef.remove()
+                        .then(() => {
+                            showNotification('모든 조회수 데이터가 초기화되었습니다.', 'success');
+                        })
+                        .catch((error) => {
+                            console.error('Firebase 데이터 초기화 실패:', error);
+                            showNotification('Firebase 데이터 초기화에 실패했습니다.', 'error');
+                        });
+                } else {
+                    showNotification('로컬 조회수 데이터가 초기화되었습니다.', 'success');
+                }
+                
+                updateViewsDisplay();
+                updateCalendar();
+            }
+        }
+
+        function getTodayString() {
+            const today = new Date();
+            return today.getFullYear() + '-' + 
+                                String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                                String(today.getDate()).padStart(2, '0');
+        }
+
+        function updateViewsDisplay() {
+            const dailyElement = document.getElementById('daily-views');
+            const totalElement = document.getElementById('total-views');
+            
+            if (dailyElement) dailyElement.textContent = dailyViews.toLocaleString();
+            if (totalElement) totalElement.textContent = totalViews.toLocaleString();
+            
+            const summaryToday = document.getElementById('summary-today');
+            const summaryTotal = document.getElementById('summary-total');
+            
+            if (summaryToday) summaryToday.textContent = dailyViews.toLocaleString();
+            if (summaryTotal) summaryTotal.textContent = totalViews.toLocaleString();
+        }
+
+        function toggleViewsPanel() {
+            const panel = document.getElementById('views-panel');
+            const isVisible = panel.style.display === 'block';
+            
+            if (isVisible) {
+                panel.style.display = 'none';
+            } else {
+                updateCalendar();
+                updateTotalUsersCount();
+                panel.style.display = 'block';
+            }
+        }
+
+        // ===========================================
+        // 달력 시스템
+        // ===========================================
+
+        function updateCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', 
+                                 '7월', '8월', '9월', '10월', '11월', '12월'];
+            document.getElementById('calendar-title').textContent = `${year}년 ${monthNames[month]}`;
+            
+            generateCalendarGrid(year, month);
+        }
+
+        function generateCalendarGrid(year, month) {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+            
+            const dayHeaders = [
+                { name: '일', class: 'sunday' },
+                { name: '월', class: '' },
+                { name: '화', class: '' },
+                { name: '수', class: '' },
+                { name: '목', class: '' },
+                { name: '금', class: '' },
+                { name: '토', class: 'saturday' }
+            ];
+            
+            dayHeaders.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = `calendar-day-header ${day.class}`;
+                dayHeader.textContent = day.name;
+                calendarGrid.appendChild(dayHeader);
+            });
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            
+            const startDayOfWeek = firstDay.getDay();
+            
+            const prevMonthLastDay = new Date(year, month, 0);
+            const prevMonthDays = prevMonthLastDay.getDate();
+            
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const dayNum = prevMonthDays - i;
+                const dayOfWeek = (startDayOfWeek - 1 - i + 7) % 7;
+                const dayElement = createCalendarDay(dayNum, year, month - 1, true, dayOfWeek);
+                calendarGrid.appendChild(dayElement);
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayOfWeek = (startDayOfWeek + day - 1) % 7;
+                const dayElement = createCalendarDay(day, year, month, false, dayOfWeek);
+                calendarGrid.appendChild(dayElement);
+            }
+            
+            const totalCells = calendarGrid.children.length - 7;
+            const remainingCells = 42 - totalCells;
+            
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayOfWeek = (startDayOfWeek + daysInMonth + day - 1) % 7;
+                const dayElement = createCalendarDay(day, year, month + 1, true, dayOfWeek);
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        function createCalendarDay(day, year, month, isOtherMonth, dayOfWeek) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            
+            if (isOtherMonth) {
+                dayElement.classList.add('other-month');
+            }
+            
+            if (dayOfWeek === 0) {
+                dayElement.classList.add('sunday');
+            } else if (dayOfWeek === 6) {
+                dayElement.classList.add('saturday');
+            }
+            
+            const dateObj = new Date(year, month, day);
+            const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            const today = getTodayString();
+            
+            if (dateStr === today && !isOtherMonth) {
+                dayElement.classList.add('today');
+            }
+            
+            const viewCount = viewsHistory[dateStr] || 0;
+            
+            if (viewCount > 0) {
+                dayElement.classList.add('has-views');
+            }
+            
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'calendar-day-number';
+            dayNumber.textContent = day;
+            dayElement.appendChild(dayNumber);
+            
+            if (viewCount > 0) {
+                const viewsElement = document.createElement('div');
+                viewsElement.className = 'calendar-day-views';
+                viewsElement.innerHTML = `<span class="number">${viewCount}</span><span class="unit">회</span>`;
+                dayElement.appendChild(viewsElement);
+            }
+            
+            dayElement.addEventListener('click', () => {
+                const formattedDate = formatDateForDisplay(dateStr);
+                const message = viewCount > 0 
+                    ? `${formattedDate}: ${viewCount}회 조회`
+                    : `${formattedDate}: 조회 기록 없음`;
+                showNotification(message, 'info');
+            });
+            
+            return dayElement;
+        }
+
+        function changeMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            updateCalendar();
+        }
+
+        function goToToday() {
+            currentCalendarDate = new Date();
+            updateCalendar();
+        }
+
+        function formatDateForDisplay(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (dateString === getTodayString()) {
+                return '오늘';
+            } else if (dateString === yesterday.getFullYear() + '-' + 
+                                 String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + 
+                                 String(yesterday.getDate()).padStart(2, '0')) {
+                return '어제';
+            } else {
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                const weekday = weekdays[date.getDay()];
+                return `${month}월 ${day}일 (${weekday})`;
+            }
+        }
+
+        // ===========================================
+        // 기타 공통 함수들
+        // ===========================================
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            if (type === 'success') notification.style.background = '#27ae60';
+            else if (type === 'warning') notification.style.background = '#f39c12';
+            else if (type === 'error') notification.style.background = '#e74c3c';
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; text-align: center;">
+                    <span>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 500);
+            }, 4000);
+        }
+
+        function hideLoading() {
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        function updateLoadingText(text) {
+            const loadingTextEl = document.getElementById('loading-text');
+            if (loadingTextEl) {
+                loadingTextEl.textContent = text;
+            }
+        }
+
+        // 로고 클릭 시 지도 초기화
+        function resetMapView() {
+            if (map) {
+                map.setView([30, 0], 4);
+                showNotification('지도 뷰가 초기화되었습니다.', 'info');
+            }
+        }
+
+        // ===========================================
+        // Excel 파일 로딩 및 데이터 처리
+        // ===========================================
+
+        function getValueFromRow(row, possibleNames) {
+            for (const name of possibleNames) {
+                if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+                    return row[name];
+                }
+                
+                const cleanName = name.toLowerCase().replace(/\s/g, '');
+                for (const key in row) {
+                    if (key && typeof key === 'string') {
+                        const cleanKey = key.toLowerCase().replace(/\s/g, '');
+                        if (cleanKey.includes(cleanName) || cleanName.includes(cleanKey)) {
+                            if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                                return row[key];
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function getDefaultCoordinates(countryName) {
+            const defaultCoords = {
+                "베트남": { lat: 14.0583, lng: 108.2772 },
+                "라오스": { lat: 19.8563, lng: 102.4955 },
+                "캄보디아": { lat: 12.5657, lng: 104.9910 },
+                "필리핀": { lat: 12.8797, lng: 121.7740 },
+                "몽골": { lat: 47.8864, lng: 106.9057 },
+                "우즈베키스탄": { lat: 41.3775, lng: 64.5853 },
+                "키르기스스탄": { lat: 41.2044, lng: 74.7661 },
+                "스리랑카": { lat: 7.8731, lng: 80.7718 },
+                "미얀마": { lat: 21.9162, lng: 95.9560 },
+                "방글라데시": { lat: 23.6850, lng: 90.3563 },
+                "태국": { lat: 15.8700, lng: 100.9925 },
+                "인도네시아": { lat: -0.7893, lng: 113.9213 },
+                "인도": { lat: 20.5937, lng: 78.9629 },
+                "네팔": { lat: 28.3949, lng: 84.1240 },
+                "아프가니스탄": { lat: 33.9391, lng: 67.7100 },
+                "이란": { lat: 32.4279, lng: 53.6880 },
+                "가나": { lat: 7.9465, lng: -1.0232 },
+                "케냐": { lat: -0.0236, lng: 37.9062 },
+                "탄자니아": { lat: -6.3690, lng: 34.8888 },
+                "세네갈": { lat: 14.4974, lng: -14.4524 },
+                "우간다": { lat: 1.3733, lng: 32.2903 },
+                "카메룬": { lat: 7.3697, lng: 12.3547 },
+                "모잠비크": { lat: -18.6657, lng: 35.5296 },
+                "에티오피아": { lat: 9.1450, lng: 40.4897 },
+                "말라위": { lat: -13.2543, lng: 34.3015 },
+                "앙골라": { lat: -11.2027, lng: 17.8739 },
+                "감비아": { lat: 13.4432, lng: -15.3101 },
+                "기니": { lat: 9.9456, lng: -9.6966 },
+                "DR콩고": { lat: -4.0383, lng: 21.7587 },
+                "콩고민주공화국": { lat: -4.0383, lng: 21.7587 },
+                "코트디브아르": { lat: 7.5400, lng: -5.5471 },
+                "볼리비아": { lat: -16.2902, lng: -63.5887 },
+                "엘살바도르": { lat: 13.7942, lng: -88.8965 },
+                "페루": { lat: -9.1900, lng: -75.0152 },
+                "키리바시": { lat: -3.3704, lng: -168.7340 },
+                "한국": { lat: 35.9078, lng: 127.7669 },
+                "일본": { lat: 36.2048, lng: 138.2529 },
+                "중국": { lat: 35.8617, lng: 104.1954 },
+                "러시아": { lat: 61.5240, lng: 105.3188 },
+                "미국": { lat: 37.0902, lng: -95.7129 },
+                "요르단": { lat: 30.5852, lng: 36.2384 },
+                "알제리": { lat: 28.0339, lng: 1.6596 },
+                "파라과이": { lat: -23.4425, lng: -58.4438 },
+                "말레이시아": { lat: 4.2105, lng: 101.9758 },
+                "브루나이": { lat: 4.5353, lng: 114.7277 },
+                "과테말라": { lat: 15.7835, lng: -90.2308 },
+                "파키스탄": { lat: 30.3753, lng: 69.3451 },
+                "아르헨티나": { lat: -34.6037, lng: -58.3816 }
+            };
+            
+            return defaultCoords[countryName] || { lat: 0, lng: 0 };
+        }
+
+        async function loadExcelFiles() {
+            console.log('Excel 파일 로딩 시작');
+            const projects = [];
+            
+            try {
+                updateLoadingText('ODA 파일을 읽는 중...');
+                try {
+                    const odaResponse = await fetch('global ODA.xlsx');
+                    if (odaResponse.ok) {
+                        const odaArrayBuffer = await odaResponse.arrayBuffer();
+                        const odaWorkbook = XLSX.read(odaArrayBuffer, { type: 'array' });
+                        const odaProjects = processODAFile(odaWorkbook);
+                        projects.push(...odaProjects);
+                        console.log(`ODA 프로젝트 ${odaProjects.length}개 로드`);
+                    } else {
+                        throw new Error('ODA 파일을 찾을 수 없습니다');
+                    }
+                } catch (error) {
+                    console.warn('ODA 파일 로딩 실패:', error.message);
+                }
+
+                updateLoadingText('Consulting 파일을 읽는 중...');
+                try {
+                    const consultingResponse = await fetch('global consulting.xlsx');
+                    if (consultingResponse.ok) {
+                        const consultingArrayBuffer = await consultingResponse.arrayBuffer();
+                        const consultingWorkbook = XLSX.read(consultingArrayBuffer, { type: 'array' });
+                        const consultingProjects = processConsultingFile(consultingWorkbook);
+                        projects.push(...consultingProjects);
+                        console.log(`Consulting 프로젝트 ${consultingProjects.length}개 로드`);
+                    } else {
+                        throw new Error('Consulting 파일을 찾을 수 없습니다');
+                    }
+                } catch (error) {
+                    console.warn('Consulting 파일 로딩 실패:', error.message);
+                }
+
+                return projects;
+
+            } catch (error) {
+                console.error('Excel 파일 로딩 오류:', error);
+                throw error;
+            }
+        }
+
+        function processODAFile(workbook) {
+            console.log('ODA 파일 처리 시작');
+            console.log('사용 가능한 시트:', workbook.SheetNames);
+            
+            const projects = [];
+            
+            let targetSheetName = null;
+            for (const sheetName of workbook.SheetNames) {
+                if (sheetName.includes('ODA') || sheetName.includes('양자계속')) {
+                    targetSheetName = sheetName;
+                    break;
+                }
+            }
+            
+            if (!targetSheetName) {
+                console.log('ODA 시트를 찾을 수 없습니다');
+                return projects;
+            }
+            
+            console.log(`ODA 시트 선택: ${targetSheetName}`);
+            
+            const sheet = workbook.Sheets[targetSheetName];
+            const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
+            
+            console.log(`데이터 행 수: ${rawData.length}`);
+            
+            if (rawData.length < 2) {
+                console.log('유효한 데이터가 없습니다');
+                return projects;
+            }
+            
+            const headers = rawData[0];
+            console.log('헤더:', headers);
+            
+            let processedCount = 0;
+            
+            for (let i = 1; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row || !Array.isArray(row)) continue;
+                
+                try {
+                    const country = row[1];
+                    const x = parseFloat(row[2]) || 0;
+                    const y = parseFloat(row[3]) || 0;
+                    const projectName = row[4];
+                    const projectContent = row[5];
+                    const period = row[6];
+                    const type = row[7];
+                    const budget = parseFloat(row[8]) || 0;
+                    const continent = row[9];
+                    
+                    if (country && projectName && 
+                        country.toString().trim() !== '' && 
+                        projectName.toString().trim() !== '') {
+                        
+                        let lat = y;
+                        let lng = x;
+                        
+                        if (!lat || !lng || lat === 0 || lng === 0) {
+                            const defaultCoords = getDefaultCoordinates(country.toString().trim());
+                            lat = defaultCoords.lat;
+                            lng = defaultCoords.lng;
+                        }
+                        
+                        const project = {
+                            name: country.toString().trim(),
+                            lat: lat,
+                            lng: lng,
+                            description: projectName.toString().trim(),
+                            category: 'Consulting',
+                            status: status ? status.toString().trim() : '',
+                            budget: budget || 0,
+                            client: client ? client.toString().trim() : '',
+                            startDate: startDate ? startDate.toString().trim() : '',
+                            endDate: endDate ? endDate.toString().trim() : '',
+                            projectType: projectType ? projectType.toString().trim() : '',
+                            englishName: englishName ? englishName.toString().trim() : '',
+                            number: processedCount + 1,
+                            sheet: targetSheetName
+                        };
+                        
+                        projects.push(project);
+                        processedCount++;
+                    }
+                } catch (error) {
+                    console.warn(`행 ${i + 1} 처리 중 오류:`, error.message);
+                }
+            }
+            
+            console.log(`Consulting 프로젝트 처리 완료: ${processedCount}개`);
+            return projects;
+        }
+
+        async function loadData() {
+            try {
+                console.log('데이터 로드 시작');
+                
+                allProjects = await loadExcelFiles();
+                
+                if (allProjects.length === 0) {
+                    throw new Error('Excel 파일에서 데이터를 읽을 수 없습니다');
+                }
+                
+                const odaCount = allProjects.filter(p => p.category === 'ODA').length;
+                const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
+                
+                console.log(`데이터 로드 완료: ODA ${odaCount}개, Consulting ${consultingCount}개 (총 ${allProjects.length}개)`);
+                
+                if (odaCount === 30 && consultingCount === 178) {
+                    showNotification(`✅ 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개 (목표 달성!)`, 'success');
+                } else {
+                    showNotification(`📊 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
+                }
+                
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+                showNotification('Excel 파일을 읽을 수 없습니다. 파일을 확인해주세요.', 'error');
+                
+                allProjects = [
+                    {name: "베트남", lat: 14.0583, lng: 108.2772, description: "샘플 ODA 프로젝트", category: "ODA", period: "'20-'25", budget: 5365, type: "양자무상", number: 1},
+                    {name: "라오스", lat: 19.8563, lng: 102.4955, description: "샘플 컨설팅 프로젝트", category: "Consulting", status: "준공", budget: 658, client: "KOICA", number: 1},
+                    {name: "아르헨티나", lat: -34.6037, lng: -58.3816, description: "샘플 아르헨티나 프로젝트", category: "Consulting", status: "시행중", budget: 1234, client: "ABC", number: 2}
+                ];
+            }
+        }
+
+        function initMap() {
+            console.log('지도 초기화');
+            map = L.map('map', { center: [30, 0], zoom: 4 }); 
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                attribution: '© OpenStreetMap contributors' 
+            }).addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+        }
+
+        function initializeFilters() {
+            console.log('필터 초기화');
+            initProjectTypeFilters();
+            initCountryFilters();
+            initStatusFilters();
+            initClientFilters();
+            applyFilters();
+            setupFilterDropdowns();
+            setupSearchFunctionality();
+            
+            setTimeout(adjustLegendPosition, 100);
+        }
+
+        function initProjectTypeFilters() {
+            const container = document.getElementById('projectTypeFilters');
+            container.innerHTML = '';
+            const types = [...new Set(allProjects.map(p => p.category))].sort();
+            types.forEach(type => {
+                const count = allProjects.filter(p => p.category === type).length;
+                container.appendChild(createCheckboxItem(type, count, 'projectType'));
+            });
+        }
+
+        function initCountryFilters() {
+            const container = document.getElementById('countryFilters');
+            container.innerHTML = '';
+            const countries = [...new Set(allProjects.map(p => p.name.trim()))].sort();
+            countries.forEach(country => {
+                const count = allProjects.filter(p => p.name.trim() === country).length;
+                container.appendChild(createCheckboxItem(country, count, 'country'));
+            });
+        }
+
+        function initStatusFilters() {
+            const container = document.getElementById('statusFilters');
+            container.innerHTML = '';
+            const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
+            const statuses = [...new Set(consultingProjects.map(p => p.status).filter(s => s))].sort();
+            statuses.forEach(status => {
+                const count = consultingProjects.filter(p => p.status === status).length;
+                container.appendChild(createCheckboxItem(status, count, 'status'));
+            });
+        }
+
+        function initClientFilters() {
+            const container = document.getElementById('clientFilters');
+            container.innerHTML = '';
+            const consultingProjects = allProjects.filter(p => p.category === 'Consulting' && p.client);
+            const clients = [...new Set(consultingProjects.map(p => p.client.trim()))].sort();
+            clients.forEach(client => {
+                const count = consultingProjects.filter(p => p.client && p.client.trim() === client).length;
+                container.appendChild(createCheckboxItem(client, count, 'client'));
+            });
+        }
+
+        function createCheckboxItem(value, count, type) {
+            const item = document.createElement('div');
+            item.className = 'checkbox-item';
+            const checkboxId = `${type}_${value.toString().replace(/[^a-zA-Z0-9]/g, '_')}_${Math.random().toString(36).substr(2, 5)}`;
+            item.innerHTML = `
+                <input type="checkbox" id="${checkboxId}" value="${value}">
+                <label for="${checkboxId}">
+                    <span>${value}</span>
+                    <span class="count">${count}</span>
+                </label>
+            `;
+            item.querySelector('input[type="checkbox"]').onchange = (e) => updateFilter(type, value, e.target.checked);
+            return item;
+        }
+
+        function updateFilter(type, value, checked) {
+            const filterMap = { projectType: 'projectTypes', country: 'countries', status: 'statuses', client: 'clients' };
+            const filterSet = activeFilters[filterMap[type]];
+            const val = (typeof value === 'number') ? value.toString() : value;
+            
+            if (checked) {
+                filterSet.add(val);
+            } else {
+                filterSet.delete(val);
+            }
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
+            filteredProjects = allProjects.filter(project => {
+                if (activeFilters.projectTypes.size > 0 && !activeFilters.projectTypes.has(project.category)) {
+                    return false;
+                }
+                
+                if (activeFilters.countries.size > 0 && !activeFilters.countries.has(project.name.trim())) {
+                    return false;
+                }
+                
+                if (project.category === 'Consulting') {
+                    if (activeFilters.statuses.size > 0 && !activeFilters.statuses.has(project.status)) {
+                        return false;
+                    }
+                    if (activeFilters.clients.size > 0 && (!project.client || !activeFilters.clients.has(project.client.trim()))) {
+                        return false;
+                    }
+                } else {
+                    if (activeFilters.statuses.size > 0 || activeFilters.clients.size > 0) {
+                        return false;
+                    }
+                }
+
+                const searchTerm = activeFilters.searchTerm.toLowerCase();
+                if (searchTerm) {
+                    const countryMatch = project.name.toLowerCase().includes(searchTerm);
+                    const projectNameMatch = project.description.toLowerCase().includes(searchTerm);
+                    const clientMatch = project.client?.toLowerCase().includes(searchTerm) || false;
+                    
+                    let continentMatch = false;
+                    for (const continent in continentMap) {
+                        if (continent.toLowerCase().includes(searchTerm)) {
+                            if (continentMap[continent].includes(project.name.trim())) {
+                                continentMatch = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!(countryMatch || projectNameMatch || clientMatch || continentMatch)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            updateMapMarkers();
+            updateStats();
+        }
+
+        function setupSearchFunctionality() {
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+
+            const performSearch = () => {
+                activeFilters.searchTerm = searchInput.value.trim();
+                applyFilters();
+            };
+
+            searchButton.addEventListener('click', performSearch);
+            searchInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        }
+
+        function updateMapMarkers() {
+            if (!markersLayer) return;
+            
+            markersLayer.clearLayers();
+            
+            const countryGroups = {};
+            filteredProjects.forEach(project => {
+                const countryName = project.name.trim();
+                if (!countryGroups[countryName]) {
+                    countryGroups[countryName] = { ODA: [], Consulting: [] };
+                }
+                countryGroups[countryName][project.category].push(project);
+            });
+            
+            const newMarkers = [];
+
+            Object.keys(countryGroups).forEach(countryName => {
+                const countryData = countryGroups[countryName];
+                
+                const projectCoords = [];
+                if (countryData.ODA.length > 0) {
+                    const avgLat = countryData.ODA.reduce((sum, p) => sum + p.lat, 0) / countryData.ODA.length;
+                    const avgLng = countryData.ODA.reduce((sum, p) => sum + p.lng, 0) / countryData.ODA.length;
+                    const marker = createCountryMarker(countryName, 'ODA', countryData.ODA, avgLat, avgLng);
+                    newMarkers.push(marker);
+                    projectCoords.push([avgLat, avgLng]);
+                }
+                
+                if (countryData.Consulting.length > 0) {
+                    const avgLat = countryData.Consulting.reduce((sum, p) => sum + p.lat, 0) / countryData.Consulting.length;
+                    const avgLng = countryData.Consulting.reduce((sum, p) => sum + p.lng, 0) / countryData.Consulting.length;
+                    
+                    const offsetLat = countryData.ODA.length > 0 ? avgLat + 0.1 : avgLat;
+                    const offsetLng = countryData.ODA.length > 0 ? avgLng + 0.1 : avgLng;
+                    
+                    const marker = createCountryMarker(countryName, 'Consulting', countryData.Consulting, offsetLat, offsetLng);
+                    newMarkers.push(marker);
+                    projectCoords.push([offsetLat, offsetLng]);
+                }
+                
+                newMarkers.forEach(marker => markersLayer.addLayer(marker));
+            });
+            
+            if (newMarkers.length > 0) {
+                const group = new L.featureGroup(newMarkers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            } else {
+                map.setView([30, 0], 2);
+            }
+        }
+
+        function createCountryMarker(countryName, category, projects, lat, lng) {
+            const borderColor = projectColors[category];
+            const countryCode = countryCodeMap[countryName] || 'un';
+            const flagUrl = `https://flagcdn.com/w20/${countryCode}.png`;
+            
+            const iconHtml = `
+                <div style="width: 24px; height: 24px; border: 3px solid ${borderColor}; border-radius: 50%;
+                            background-image: url('${flagUrl}'); background-size: cover; background-position: center;
+                            background-color: ${borderColor}; box-shadow: 0 3px 8px rgba(0,0,0,0.4); cursor: pointer;
+                            display: flex; align-items: center; justify-content: center; color: white;
+                            font-size: 10px; font-weight: bold; position: relative;"> 
+                    ${countryCode === 'un' ? countryName.charAt(0) : ''}
+                    <div style="position: absolute; bottom: -8px; right: -8px; background: ${borderColor}; 
+                                color: white; border-radius: 10px; padding: 2px 5px; font-size: 8px; 
+                                font-weight: bold; min-width: 16px; text-align: center;">${projects.length}</div>
+                </div>`;
+            
+            const customIcon = L.divIcon({ 
+                html: iconHtml, 
+                className: 'custom-div-icon', 
+                iconSize: [30, 30], 
+                iconAnchor: [15, 15], 
+                popupAnchor: [0, -15] 
+            });
+            
+            const marker = L.marker([lat, lng], { icon: customIcon });
+            marker.bindPopup(createPopupContent(countryName, category, projects), { 
+                maxWidth: 320, 
+                minWidth: 280,
+                className: 'custom-popup'
+            });
+            
+            return marker;
+        }
+
+        function createPopupContent(countryName, category, projects) {
+            const countryCode = countryCodeMap[countryName] || 'un';
+            const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
+            const categoryColor = projectColors[category];
+            const categoryName = category === 'ODA' ? 'ODA 사업' : '컨설팅 사업';
+            
+            const sortedProjects = [...projects].sort((a, b) => {
+                if (category === 'Consulting') {
+                    const aIsProgress = a.status === '시행중';
+                    const bIsProgress = b.status === '시행중';
+                    const aIsProposal = a.status === '제안중';
+                    const bIsProposal = b.status === '제안중';
+                    const aIsComplete = a.status === '준공';
+                    const bIsComplete = b.status === '준공';
+                    
+                    if (aIsProgress && !bIsProgress) return -1;
+                    if (!aIsProgress && bIsProgress) return 1;
+                    
+                    if (aIsProposal && !bIsProposal && !bIsProgress) return -1;
+                    if (!aIsProposal && bIsProposal && !aIsProgress) return 1;
+                    
+                    if (aIsComplete && !bIsComplete && !bIsProgress && !bIsProposal) return -1;
+                    if (!aIsComplete && bIsComplete && !aIsProgress && !aIsProposal) return 1;
+                    
+                    return a.description.localeCompare(b.description);
+                } else {
+                    return a.description.localeCompare(b.description);
+                }
+            });
+            
+            let content = `
+                <div class="popup-container">
+                    <div class="popup-header" style="border-color: ${categoryColor};">
+                        <div class="popup-country-row">
+                            <img src="${flagUrl}" alt="${countryName}" class="popup-flag" onerror="this.src='https://flagcdn.com/w40/un.png'">
+                            <div class="popup-country-name">${countryName}</div>
+                        </div>
+                        <div class="popup-category" style="color: ${categoryColor};">${categoryName} (${projects.length}개)</div>
+                    </div>
+                    <div class="popup-projects">`;
+            
+            sortedProjects.forEach((project, index) => {
+                const isProposal = project.status === '제안중';
+                const isProgress = project.status === '시행중';
+                
+                let itemClass = 'popup-project-item';
+                if (isProposal) {
+                    itemClass += ' proposal';
+                } else if (isProgress) {
+                    itemClass += ' progress';
+                }
+                
+                content += `<div class="${itemClass}">`;
+                
+                content += `<div class="popup-project-title">`;
+                content += `<div class="popup-project-name">${project.description}</div>`;
+                if (isProposal) {
+                    content += `<span class="status-badge status-proposal">제안중</span>`;
+                } else if (isProgress) {
+                    content += `<span class="status-badge status-progress">시행중</span>`;
+                }
+                content += `</div>`;
+                
+                content += `<div class="popup-project-details">`;
+                
+                if (project.category === 'ODA') {
+                    if (project.type) content += `<div><strong>형태:</strong> ${project.type}</div>`;
+                    if (project.period) content += `<div><strong>기간:</strong> ${project.period}</div>`;
+                    if (project.budget > 0) {
+                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
+                        content += `<div class="popup-budget"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
+                    }
+                } else {
+                    if (project.status && !isProposal && !isProgress) {
+                        let statusClass = 'status-complete';
+                        content += `<div><strong>상태:</strong> <span class="status-badge ${statusClass}">${project.status}</span></div>`;
+                    }
+                    if (project.startDate && project.endDate) content += `<div><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
+                    if (project.budget > 0) {
+                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
+                        content += `<div class="popup-budget"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
+                    }
+                    if (project.client) content += `<div><strong>발주처:</strong> ${project.client}</div>`;
+                }
+                
+                content += `</div></div>`;
+            });
+            
+            content += `</div></div>`;
+            return content;
+        }
+
+        function updateStats() {
+            const totalCount = allProjects.length;
+            const odaCount = allProjects.filter(p => p.category === 'ODA').length;
+            const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
+            const countryCount = new Set(allProjects.map(p => p.name.trim())).size;
+            
+            let totalBudget = 0;
+            allProjects.forEach(p => {
+                if (p.budget && !isNaN(p.budget)) {
+                    totalBudget += p.budget;
+                }
+            });
+            
+            const budgetInBillion = Math.round(totalBudget / 100).toLocaleString('ko-KR');
+            
+            document.getElementById('total-projects').textContent = totalCount.toLocaleString();
+            document.getElementById('countries-count').textContent = countryCount.toLocaleString();
+            document.getElementById('oda-projects').textContent = odaCount.toLocaleString();
+            document.getElementById('consulting-projects').textContent = consultingCount.toLocaleString();
+            document.getElementById('total-budget').textContent = budgetInBillion;
+            
+            document.getElementById('stat-total-projects').style.borderColor = '#2c3e50';
+            document.getElementById('stat-countries-count').style.borderColor = '#e74c3c';
+            document.getElementById('stat-oda-projects').style.borderColor = '#FF8C00';
+            document.getElementById('stat-consulting-projects').style.borderColor = '#4682B4';
+            document.getElementById('stat-total-budget').style.borderColor = '#27ae60';
+            
+            updateLegend();
+        }
+
+        function updateLegend() {
+            const consultingProjects = filteredProjects.filter(p => p.category === 'Consulting');
+            const odaProjects = filteredProjects.filter(p => p.category === 'ODA');
+            
+            const consultingCount = consultingProjects.length;
+            const odaCount = odaProjects.length;
+            
+            let consultingBudget = 0;
+            let odaBudget = 0;
+            
+            consultingProjects.forEach(p => {
+                if (p.budget && !isNaN(p.budget)) {
+                    consultingBudget += p.budget;
+                }
+            });
+            
+            odaProjects.forEach(p => {
+                if (p.budget && !isNaN(p.budget)) {
+                    odaBudget += p.budget;
+                }
+            });
+            
+            const consultingBudgetInBillion = Math.round(consultingBudget / 100).toLocaleString('ko-KR');
+            const odaBudgetInBillion = Math.round(odaBudget / 100).toLocaleString('ko-KR');
+            
+            const consultingSummaryEl = document.getElementById('legend-consulting-summary');
+            const odaSummaryEl = document.getElementById('legend-oda-summary');
+            
+            if (consultingSummaryEl) consultingSummaryEl.textContent = `${consultingCount.toLocaleString()}개/${consultingBudgetInBillion}억원`;
+            if (odaSummaryEl) odaSummaryEl.textContent = `${odaCount.toLocaleString()}개/${odaBudgetInBillion}억원`;
+            
+            adjustLegendPosition();
+        }
+
+        function adjustLegendPosition() {
+            const filterBar = document.getElementById('top-filter-bar');
+            const legend = document.getElementById('legend');
+            
+            if (filterBar && legend) {
+                const filterBarHeight = filterBar.offsetHeight;
+                const safeMargin = 15;
+                const newTop = filterBarHeight + safeMargin;
+                
+                legend.style.top = `${newTop}px`;
+            }
+        }
+
+        function handleResize() {
+            setTimeout(adjustLegendPosition, 100);
+        }
+
+        function setupFilterDropdowns() {
+            const filterButtons = document.querySelectorAll('.filter-bar-button');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const dropdownId = this.dataset.dropdown;
+                    const currentDropdown = document.getElementById(dropdownId);
+                    const isActive = this.classList.contains('active');
+
+                    document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+
+                    if (!isActive) {
+                        currentDropdown.style.display = 'block';
+                        this.classList.add('active');
+                    }
+                    
+                    setTimeout(adjustLegendPosition, 50);
+                });
+            });
+            
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.filter-button-group') && !event.target.closest('#search-container')) {
+                    document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
+                    document.querySelectorAll('.filter-bar-button').forEach(btn => btn.classList.remove('active'));
+                    setTimeout(adjustLegendPosition, 50);
+                }
+            });
+        }
+
+        function resetAllFilters() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+            activeFilters = { 
+                projectTypes: new Set(), 
+                countries: new Set(), 
+                statuses: new Set(), 
+                clients: new Set(),
+                searchTerm: ''
+            };
+            document.getElementById('search-input').value = '';
+            applyFilters();
+            document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
+            document.querySelectorAll('.filter-bar-button').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function goToMyLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        map.setView([lat, lng], 10);
+                        const marker = L.marker([lat, lng]).addTo(map).bindPopup('📍 내 위치').openPopup();
+                        setTimeout(() => { if(map.hasLayer(marker)) map.removeLayer(marker); }, 5000);
+                    },
+                    (error) => { 
+                        console.error('위치 정보 오류:', error);
+                        showNotification('위치 정보를 가져올 수 없습니다.', 'warning');
+                    }
+                );
+            } else { 
+                showNotification('이 브라우저는 위치 서비스를 지원하지 않습니다.', 'warning');
+            }
+        }
+
+        async function initialize() {
+            try {
+                console.log('애플리케이션 초기화 시작');
+                
+                initializeViewsSystem();
+                
+                initMap();
+                await loadData();
+                initializeFilters();
+                hideLoading();
+                
+                console.log('애플리케이션 초기화 완료');
+                
+            } catch (error) {
+                console.error('초기화 실패:', error);
+                hideLoading();
+                showNotification('초기화 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+
+        window.addEventListener('resize', handleResize);
+        
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    setTimeout(adjustLegendPosition, 50);
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterDropdowns = document.querySelectorAll('.filter-dropdown');
+            filterDropdowns.forEach(dropdown => {
+                observer.observe(dropdown, { attributes: true, attributeFilter: ['style'] });
+            });
+        });
+
+        window.resetAllFilters = resetAllFilters;
+        window.goToMyLocation = goToMyLocation;
+        window.toggleViewsPanel = toggleViewsPanel;
+        window.showAdminLogin = showAdminLogin;
+        window.closeAdminLogin = closeAdminLogin;
+        window.performAdminLogin = performAdminLogin;
+        window.performAdminLogout = performAdminLogout;
+        window.manualSync = manualSync;
+        window.exportFirebaseData = exportFirebaseData;
+        window.resetFirebaseData = resetFirebaseData;
+        window.changeMonth = changeMonth;
+        window.goToToday = goToToday;
+        window.resetMapView = resetMapView;
+    </script>
+</body>
+</html>
