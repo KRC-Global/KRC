@@ -610,75 +610,165 @@
         @media (max-width: 768px) {
             /* 로고 모바일 조정 */
             .logo-container {
-                min-width: 30px;
-                height: 30px;
-                margin-right: 8px;
+                min-width: 24px;
+                height: 24px;
+                margin-right: 5px;
+                padding: 2px;
             }
             
             .logo-container img {
-                width: 22px;
-                height: 22px;
+                width: 18px;
+                height: 18px;
             }
             
             /* 지도 컨트롤 모바일 위치 조정 */
             .map-controls {
-                top: 60px; /* 모바일에서 필터바 높이에 맞춰 조정 */
+                top: 55px; /* 모바일에서 필터바 높이에 맞춰 조정 */
             }
             
             /* 필터바 모바일 조정 - 가로 배열 유지 */
             #top-filter-bar {
-                padding: 6px 8px;
+                padding: 4px 6px;
                 flex-wrap: nowrap; /* 가로 배열 강제 */
                 overflow-x: auto; /* 가로 스크롤 허용 */
-                gap: 5px;
+                gap: 3px;
+                min-height: 40px; /* 최소 높이 설정 */
             }
             
-            /* 필터 버튼들 크기 축소 */
+            /* 사업필터링 제목 모바일 최적화 */
+            #top-filter-bar > div:first-of-type {
+                font-size: 12px !important;
+                margin-right: 5px !important;
+                white-space: nowrap;
+            }
+            
+            /* 필터 버튼들 크기 축소 및 텍스트 최적화 */
             .filter-bar-button {
-                padding: 5px 8px;
-                font-size: 0.75em;
+                padding: 3px 6px;
+                font-size: 10px;
                 white-space: nowrap; /* 텍스트 줄바꿈 방지 */
                 min-width: max-content; /* 최소 너비 보장 */
+                border-radius: 4px;
+            }
+            
+        /* 데스크톱/모바일 텍스트 전환 */
+        .btn-text-mobile, .views-text-mobile, .filter-title-mobile {
+            display: none;
+        }
+        
+        .btn-text-desktop, .views-text-desktop, .filter-title-desktop {
+            display: inline;
+        }
+        
+        /* 모바일 반응형 스타일 개선 */
+        @media (max-width: 768px) {
+            /* 텍스트 전환 */
+            .btn-text-desktop, .views-text-desktop, .filter-title-desktop {
+                display: none !important;
+            }
+            
+            .btn-text-mobile, .views-text-mobile, .filter-title-mobile {
+                display: inline !important;
+            }
+            
+            /* 로고 모바일 조정 */
+            .logo-container {
+                min-width: 24px;
+                height: 24px;
+                margin-right: 5px;
+                padding: 2px;
+            }
+            
+            .logo-container img {
+                width: 18px;
+                height: 18px;
+            }
+            
+            /* 지도 컨트롤 모바일 위치 조정 */
+            .map-controls {
+                top: 50px; /* 모바일에서 필터바 높이에 맞춰 조정 */
+            }
+            
+            /* 필터바 모바일 조정 - 가로 배열 유지 */
+            #top-filter-bar {
+                padding: 4px 6px;
+                flex-wrap: nowrap; /* 가로 배열 강제 */
+                overflow-x: auto; /* 가로 스크롤 허용 */
+                gap: 3px;
+                min-height: 36px; /* 최소 높이 설정 */
+                -webkit-overflow-scrolling: touch; /* iOS 스크롤 개선 */
+                scrollbar-width: none; /* Firefox 스크롤바 숨김 */
+                -ms-overflow-style: none; /* IE 스크롤바 숨김 */
+            }
+            
+            #top-filter-bar::-webkit-scrollbar {
+                display: none; /* Chrome/Safari 스크롤바 숨김 */
+            }
+            
+            /* 필터 버튼들 크기 축소 및 텍스트 최적화 */
+            .filter-bar-button {
+                padding: 4px 6px;
+                font-size: 10px;
+                white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+                min-width: max-content; /* 최소 너비 보장 */
+                border-radius: 4px;
+                flex-shrink: 0; /* 축소 방지 */
             }
             
             /* 검색 컨테이너 크기 조정 */
             #search-container {
-                max-width: 150px;
-                margin-left: 5px;
+                max-width: 80px;
+                margin-left: 3px;
                 flex-shrink: 0; /* 축소 방지 */
             }
             
             #search-input {
-                padding: 5px 8px;
-                font-size: 0.75em;
-                min-width: 80px;
+                padding: 4px 6px;
+                font-size: 10px;
+                min-width: 40px;
+                border-radius: 4px;
             }
             
             #search-button {
-                padding: 5px 8px;
-                font-size: 0.75em;
+                padding: 4px 6px;
+                font-size: 10px;
+                border-radius: 4px;
+                min-width: 24px;
             }
             
             /* 초기화 버튼 크기 조정 */
             .reset-all-filters-btn {
-                padding: 5px 8px;
-                font-size: 0.7em;
+                padding: 4px 6px;
+                font-size: 10px;
                 white-space: nowrap;
-                margin-left: 5px;
+                margin-left: 3px;
+                border-radius: 4px;
+                flex-shrink: 0;
             }
             
             /* 조회수 표시 크기 조정 */
             .daily-views-display {
-                font-size: 0.7em;
-                padding: 4px 6px;
-                margin-left: 5px;
+                font-size: 9px;
+                padding: 4px 5px;
+                margin-left: 3px;
+                border-radius: 4px;
+                flex-shrink: 0;
             }
             
             /* 관리자 버튼 크기 조정 */
             .admin-login-btn, .admin-logout-btn {
-                padding: 5px 8px;
-                font-size: 0.7em;
-                margin-left: 5px;
+                padding: 4px 6px;
+                font-size: 10px;
+                margin-left: 3px;
+                border-radius: 4px;
+                flex-shrink: 0;
+            }
+            
+            /* Firebase 상태 뱃지 크기 조정 */
+            .firebase-status {
+                padding: 2px 4px;
+                font-size: 8px;
+                margin-left: 2px;
             }
             
             /* 하단 정보 패널 조정 */
@@ -707,11 +797,11 @@
             
             /* 범례 모바일 조정 */
             .legend {
-                top: 110px; /* 지도 컨트롤과 겹치지 않도록 조정 */
+                top: 100px; /* 지도 컨트롤과 겹치지 않도록 조정 */
                 right: 10px;
-                padding: 10px;
-                min-width: 160px;
-                font-size: 11px;
+                padding: 8px;
+                min-width: 140px;
+                font-size: 10px;
             }
             
             .legend-title {
@@ -858,51 +948,77 @@
             <img src="icon-192x192.png" alt="Company Logo" onerror="this.style.display='none'">
         </div>
         
-        <div style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-right: 15px; display: flex; align-items: center;">
+        <div style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-right: 15px; display: flex; align-items: center;" class="filter-title-desktop">
             🔍 사업필터링
         </div>
+        <div style="font-size: 12px; font-weight: 600; color: #2c3e50; margin-right: 5px; display: none; align-items: center;" class="filter-title-mobile">
+            🔍
+        </div>
+        
         <div class="filter-button-group">
-            <button class="filter-bar-button" data-dropdown="projectTypeDropdown">사업 타입 ▾</button>
+            <button class="filter-bar-button" data-dropdown="projectTypeDropdown">
+                <span class="btn-text-desktop">사업 타입 ▾</span>
+                <span class="btn-text-mobile">타입 ▾</span>
+            </button>
             <div class="filter-dropdown" id="projectTypeDropdown">
                 <div class="filter-title">사업 타입 선택</div>
                 <div class="checkbox-group" id="projectTypeFilters"></div>
             </div>
         </div>
         <div class="filter-button-group">
-            <button class="filter-bar-button" data-dropdown="countryDropdown">국가 ▾</button>
+            <button class="filter-bar-button" data-dropdown="countryDropdown">
+                <span class="btn-text-desktop">국가 ▾</span>
+                <span class="btn-text-mobile">국가 ▾</span>
+            </button>
             <div class="filter-dropdown" id="countryDropdown">
                 <div class="filter-title">국가 선택</div>
                 <div class="checkbox-group" id="countryFilters"></div>
             </div>
         </div>
         <div class="filter-button-group">
-            <button class="filter-bar-button" data-dropdown="statusDropdown">진행상태 ▾</button>
+            <button class="filter-bar-button" data-dropdown="statusDropdown">
+                <span class="btn-text-desktop">진행상태 ▾</span>
+                <span class="btn-text-mobile">상태 ▾</span>
+            </button>
             <div class="filter-dropdown" id="statusDropdown">
                 <div class="filter-title">진행상태 선택</div>
                 <div class="checkbox-group" id="statusFilters"></div>
             </div>
         </div>
         <div class="filter-button-group">
-            <button class="filter-bar-button" data-dropdown="clientDropdown">발주처 ▾</button>
+            <button class="filter-bar-button" data-dropdown="clientDropdown">
+                <span class="btn-text-desktop">발주처 ▾</span>
+                <span class="btn-text-mobile">발주처 ▾</span>
+            </button>
             <div class="filter-dropdown" id="clientDropdown">
                 <div class="filter-title">발주처 선택</div>
                 <div class="checkbox-group" id="clientFilters"></div>
             </div>
         </div>
         <div id="search-container">
-            <input type="text" id="search-input" placeholder="대륙, 국가, 사업명, 발주처 검색">
-            <button id="search-button">검색</button>
+            <input type="text" id="search-input" placeholder="검색">
+            <button id="search-button">🔍</button>
         </div>
         
-        <button class="reset-all-filters-btn" onclick="resetAllFilters()">🔄 전체 초기화</button>
+        <button class="reset-all-filters-btn" onclick="resetAllFilters()">
+            <span class="btn-text-desktop">🔄 전체 초기화</span>
+            <span class="btn-text-mobile">🔄</span>
+        </button>
         <div class="daily-views-display" onclick="toggleViewsPanel()">
             <span>👁️</span>
-            <span>오늘: <span id="daily-views">0</span> | 누적: <span id="total-views">0</span></span>
+            <span class="views-text-desktop">오늘: <span id="daily-views">0</span> | 누적: <span id="total-views">0</span></span>
+            <span class="views-text-mobile"><span id="daily-views-mobile">0</span>/<span id="total-views-mobile">0</span></span>
             <span class="firebase-status" id="firebase-status">OFFLINE</span>
             <span style="font-size: 10px;">▼</span>
         </div>
-        <button class="admin-login-btn" id="admin-login-btn" onclick="showAdminLogin()">🔐 관리자</button>
-        <button class="admin-logout-btn" id="admin-logout-btn" onclick="performAdminLogout()" style="display: none;">🚪 로그아웃</button>
+        <button class="admin-login-btn" id="admin-login-btn" onclick="showAdminLogin()">
+            <span class="btn-text-desktop">🔐 관리자</span>
+            <span class="btn-text-mobile">🔐</span>
+        </button>
+        <button class="admin-logout-btn" id="admin-logout-btn" onclick="performAdminLogout()" style="display: none;">
+            <span class="btn-text-desktop">🚪 로그아웃</span>
+            <span class="btn-text-mobile">🚪</span>
+        </button>
     </div>
     <div class="views-panel" id="views-panel">
         <div class="views-panel-header">
@@ -1460,12 +1576,19 @@
                                 String(today.getDate()).padStart(2, '0');
         }
         function updateViewsDisplay() {
-            // 상단바 표시 업데이트
+            // 상단바 표시 업데이트 (데스크톱)
             const dailyElement = document.getElementById('daily-views');
             const totalElement = document.getElementById('total-views');
             
             if (dailyElement) dailyElement.textContent = dailyViews.toLocaleString();
             if (totalElement) totalElement.textContent = totalViews.toLocaleString();
+            
+            // 모바일 조회수 표시 업데이트
+            const dailyMobileElement = document.getElementById('daily-views-mobile');
+            const totalMobileElement = document.getElementById('total-views-mobile');
+            
+            if (dailyMobileElement) dailyMobileElement.textContent = dailyViews.toLocaleString();
+            if (totalMobileElement) totalMobileElement.textContent = totalViews.toLocaleString();
             
             // 패널 요약 정보 업데이트
             const summaryToday = document.getElementById('summary-today');
