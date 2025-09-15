@@ -42,7 +42,7 @@ PORT=8080 npm start         # 포트 변경
 
 ### 방법 2: Python 사용
 ```bash
-PORT=8000 bash KRC/scripts/serve.sh
+PORT=8000 bash scripts/serve.sh
 ```
 
 접속: http://localhost:8000
@@ -51,27 +51,28 @@ PORT=8000 bash KRC/scripts/serve.sh
 
 ```
 KRCglobal/
-├── KRC/
-│   ├── index.html                 # 메인 애플리케이션 (단일 파일)
-│   ├── data/
-│   │   ├── global_oda.json        # ODA 프로젝트 데이터
-│   │   ├── global_consulting.json # 컨설팅 프로젝트 데이터
-│   │   └── *.xlsx                 # 원본 Excel 파일들
-│   ├── scripts/
-│   │   ├── convert_xlsx_to_json.py # Excel → JSON 변환
-│   │   ├── dev-server.js          # Node.js 개발 서버
-│   │   └── serve.sh               # Python 서버 스크립트
-│   └── archive/                   # 이전 버전 아카이브
+├── index.html                     # 메인 애플리케이션 (단일 파일)
+├── data/
+│   ├── global_oda.json            # ODA 프로젝트 데이터
+│   ├── global_consulting.json     # 컨설팅 프로젝트 데이터
+│   └── *.xlsx                     # 원본 Excel 파일들
+├── scripts/
+│   ├── convert_xlsx_to_json.py    # Excel → JSON 변환
+│   ├── dev-server.js              # Node.js 개발 서버
+│   └── serve.sh                   # Python 서버 스크립트
+├── archive/                       # 이전 버전 아카이브
+├── icon-*.png                     # PWA 아이콘들
+├── manifest.json                  # PWA 매니페스트
 ├── package.json                   # Node.js 프로젝트 설정
+├── CLAUDE.md                      # 개발자 가이드
 └── README.md                      # 프로젝트 문서
 ```
 
 ## 🔄 데이터 업데이트
 
-1. **Excel 파일 준비**: `KRC/data/` 폴더에 최신 Excel 파일 배치
+1. **Excel 파일 준비**: `data/` 폴더에 최신 Excel 파일 배치
 2. **JSON 변환 실행**:
    ```bash
-   cd KRC
    python3 scripts/convert_xlsx_to_json.py
    ```
 3. **브라우저 새로고침**: 변경사항 자동 반영

@@ -13,25 +13,25 @@
 
 핵심 파일/디렉터리
 
-- `KRC/index.html`: 단일 파일에 HTML/CSS/JS가 모두 포함(지도, 편집, 패널 로직).
-- `KRC/data/global_oda.json`, `KRC/data/global_consulting.json`: 데이터 소스.
-- `KRC/scripts/convert_xlsx_to_json.py`: Excel → JSON 변환 스크립트(openpyxl 사용).
-- `package.json`, `KRC/scripts/dev-server.js`, `KRC/scripts/serve.sh`: 로컬 서버 실행 도구.
-- `KRC/archive/versions/`: 과거 스냅샷(레거시 Firebase 코드 포함, 런타임에 사용 안 함).
+- `index.html`: 단일 파일에 HTML/CSS/JS가 모두 포함(지도, 편집, 패널 로직).
+- `data/global_oda.json`, `data/global_consulting.json`: 데이터 소스.
+- `scripts/convert_xlsx_to_json.py`: Excel → JSON 변환 스크립트(openpyxl 사용).
+- `package.json`, `scripts/dev-server.js`, `scripts/serve.sh`: 로컬 서버 실행 도구.
+- `archive/versions/`: 과거 스냅샷(레거시 Firebase 코드 포함, 런타임에 사용 안 함).
 
 실행 방법
 
 - npm: `npm start` (포트 변경: `PORT=8080 npm start`)
-- Python: `PORT=8000 bash KRC/scripts/serve.sh`
-- 접속: `http://localhost:8000/` (루트에서 `/KRC/index.html`로 리다이렉트)
+- Python: `PORT=8000 bash scripts/serve.sh`
+- 접속: `http://localhost:8000/` (루트에서 `index.html` 직접 서빙)
 
 데이터 플로우
 
-- Excel → JSON: `python3 KRC/scripts/convert_xlsx_to_json.py`
+- Excel → JSON: `python3 scripts/convert_xlsx_to_json.py`
 - 앱 로드 → `data/*.json` 로딩 → 프로젝트별 마커 표시.
 - 편집 모드: “✏️ 편집 모드” → 팝업의 “편집” → 모달에서 저장.
 - 좌표 조정: 선택된 마커를 직접 드래그(모달 위/경도 실시간 반영, 저장 시 확정).
-- JSON 내보내기/불러오기: 우측 패널에서 실행(내보낸 파일은 `KRC/data/`에 반영하여 배포).
+- JSON 내보내기/불러오기: 우측 패널에서 실행(내보낸 파일은 `data/`에 반영하여 배포).
 
 UI 구조(최신)
 
@@ -47,7 +47,7 @@ UI 구조(최신)
 
 코딩 원칙
 
-- 변경은 `KRC/index.html`에 최소 침습적으로 적용(불필요한 구조 변경 지양).
+- 변경은 `index.html`에 최소 침습적으로 적용(불필요한 구조 변경 지양).
 - 스타일 톤 유지: 상아색(#FFF8E7) 바탕 + 진한 파랑(#0A3D62) 테두리.
 - 외부 의존성 추가 금지(빌드/번들 없이 동작해야 함).
 - 아카이브(archive)는 참고용이며, 동기화/수정 대상이 아님.

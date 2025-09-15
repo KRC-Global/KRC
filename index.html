@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global Projects Map - Secure Edition</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512x512.png">
@@ -41,12 +36,25 @@
             object-fit: contain;
         }
         
-        #top-filter-bar {
-            position: fixed; top: 0; left: 0; width: 100%;
-            background-color: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);
-            padding: 8px 15px; z-index: 1005; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-            display: flex; gap: 8px; align-items: center; flex-wrap: wrap; 
-        }
+        /* Top control panel (deprecated, merged into country hub) */
+        #control-panel { display: none !important; }
+        .edit-controls { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+        .edit-btn { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .edit-btn.toggle.on { background: #ffe8a1; border-color: #e0c66b; }
+        .edit-file { display:none; }
+        .address-search-group { position: relative; }
+        .address-suggestions { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; z-index: 2000; max-height: 240px; overflow-y: auto; }
+        .address-suggestion { padding: 8px; cursor: pointer; font-size: 12px; }
+        .address-suggestion:hover { background: #f1f3f5; }
+        .edit-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .edit-modal-content { background: #fff; width: 520px; max-width: 95vw; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); }
+        .edit-modal-header { padding: 12px 16px; border-bottom: 1px solid #eee; font-weight: 700; display:flex; justify-content: space-between; align-items:center; }
+        .edit-modal-body { padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+        .edit-modal-body label { font-size: 12px; color: #555; }
+        .edit-modal-body input, .edit-modal-body select, .edit-modal-body textarea { width: 100%; padding: 8px; font-size: 12px; border: 1px solid #ddd; border-radius: 6px; }
+        .edit-modal-footer { padding: 12px 16px; border-top: 1px solid #eee; display:flex; gap:8px; justify-content:flex-end; }
+        .small-note { font-size: 11px; color: #777; grid-column: 1 / -1; }
+        /* pickbar 제거됨: 마커 드래그로 좌표 조정 */
         
         .filter-button-group { position: relative; }
         .filter-bar-button {
@@ -72,51 +80,7 @@
         }
         .reset-all-filters-btn:hover { background-color: #c0392b; }
         
-        .daily-views-display {
-            margin-left: 10px; padding: 7px 12px; background-color: #f8f9fa; 
-            border: 1px solid #ddd; border-radius: 6px; font-size: 0.8em; color: #495057; 
-            display: flex; align-items: center; gap: 5px; cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .daily-views-display:hover {
-            background-color: #e9ecef;
-        }
-        .firebase-status {
-            margin-left: 5px; padding: 4px 8px; border-radius: 12px; font-size: 0.7em;
-            font-weight: 600; text-transform: uppercase;
-        }
-        .firebase-connected { background: #d4edda; color: #155724; }
-        .firebase-disconnected { background: #f8d7da; color: #721c24; }
-        .firebase-syncing { background: #fff3cd; color: #856404; }
-        .firebase-readonly { background: #e2e3e5; color: #383d41; }
-        .firebase-admin { background: #b3d7ff; color: #004085; }
-        
-        .admin-login-btn {
-            margin-left: 10px; padding: 7px 12px; background-color: #007bff; 
-            color: white; border: none; border-radius: 6px; cursor: pointer;
-            font-size: 0.8em; transition: background-color 0.2s;
-        }
-        .admin-login-btn:hover { background-color: #0056b3; }
-        .admin-logout-btn {
-            margin-left: 10px; padding: 7px 12px; background-color: #6c757d; 
-            color: white; border: none; border-radius: 6px; cursor: pointer;
-            font-size: 0.8em; transition: background-color 0.2s;
-        }
-        .admin-logout-btn:hover { background-color: #545b62; }
-        
-        .views-panel {
-            position: fixed; top: 60px; right: 20px; width: 400px; max-height: 750px;
-            background: white; border: 1px solid #ddd; border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.15); z-index: 1007;
-            display: none; overflow: hidden;
-        }
-        .views-panel-header {
-            padding: 12px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
-            font-weight: 600; display: flex; justify-content: space-between; align-items: center;
-        }
-        .views-panel-content {
-            max-height: 670px; overflow-y: auto; padding: 8px;
-        }
+        /* 조회수 UI 제거됨 */
         .views-summary {
             display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
         }
@@ -130,49 +94,6 @@
             font-size: 11px; color: #6c757d; margin-top: 2px;
         }
         
-        /* 관리자 로그인 모달 */
-        .admin-login-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); z-index: 3000; display: none;
-            align-items: center; justify-content: center;
-        }
-        .admin-login-content {
-            background: white; padding: 30px; border-radius: 12px; max-width: 400px;
-            width: 90%; 
-        }
-        .admin-login-header {
-            font-size: 20px; font-weight: 600; margin-bottom: 20px;
-            color: #2c3e50; display: flex; align-items: center; gap: 10px;
-        }
-        .admin-input-group {
-            margin-bottom: 15px;
-        }
-        .admin-input-group label {
-            display: block; margin-bottom: 5px; font-weight: 500; color: #495057;
-        }
-        .admin-input-group input {
-            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
-            font-size: 14px;
-        }
-        .admin-login-buttons {
-            display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;
-        }
-        .admin-login-btn-modal {
-            padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;
-            font-weight: 600; transition: background-color 0.2s;
-        }
-        .admin-login-btn-modal.primary {
-            background: #007bff; color: white;
-        }
-        .admin-login-btn-modal.primary:hover {
-            background: #0056b3;
-        }
-        .admin-login-btn-modal.secondary {
-            background: #6c757d; color: white;
-        }
-        .admin-login-btn-modal.secondary:hover {
-            background: #545b62;
-        }
         
         /* Firebase 연결 상태 및 관리 */
         .firebase-controls {
@@ -319,25 +240,613 @@
             color: #6c757d; padding: 0; width: 20px; height: 20px;
         }
         
-        #bottom-info-panel {
-            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
-            width: calc(100% - 20px); max-width: 1200px;
-            background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px);
-            border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.12);
-            padding: 12px 15px; z-index: 1001;
+        /* Country Hub (bottom panel) */
+        .country-hub { position: fixed; right: 0; top: 0; bottom: 0; z-index: 1002;
+            width: min(33vw, 560px); min-width: 360px; background: #FFF8E7; border-left: 2px solid #0A3D62;
+            box-shadow: -4px 0 22px rgba(10,61,98,0.2); padding: 12px 14px; display:flex; flex-direction: column; }
+
+        /* 모바일 반응형 - 오른쪽 패널을 아래쪽으로 이동 */
+        @media (max-width: 768px) {
+            .country-hub {
+                position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+                width: 100%; min-width: unset; height: 40vh;
+                border-left: none; border-top: 2px solid #0A3D62;
+                box-shadow: 0 -4px 22px rgba(10,61,98,0.2);
+            }
         }
-        #bottom-info-panel .section-title { 
-            font-size: 1em; font-weight: 600; color: #2c3e50; margin-bottom: 10px; 
+        .country-hub-header { display:flex; flex-direction: column; gap:12px; }
+        .country-hub-main-toolbar { display:flex; justify-content: space-between; align-items:center; gap:8px; }
+        .category-filters { display: flex; gap: 8px; }
+        .category-filter-btn {
+            padding: 8px 12px; border: 2px solid #ddd; border-radius: 8px;
+            background: #fff; cursor: pointer; font-size: 12px; font-weight: 600;
+            transition: all 0.2s; color: #666;
         }
-        #bottom-info-panel .stats-grid { 
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; 
+        .category-filter-btn:hover {
+            border-color: #bbb; background: #f8f9fa;
         }
-        #bottom-info-panel .stat-card { 
-            background: white; padding: 12px; border-radius: 8px; text-align: center; 
-            box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-left-width: 4px; border-left-style: solid; 
+        .category-filter-btn.active.consulting {
+            background: #E3F2FD; border-color: #0A3D62; color: #0A3D62;
         }
-        #bottom-info-panel .stat-number { font-size: 1.3em; font-weight: 600; margin-bottom: 3px; }
-        #bottom-info-panel .stat-label { font-size: 0.75em; color: #7f8c8d; }
+        .category-filter-btn.active.oda {
+            background: #FFF3E0; border-color: #E65100; color: #E65100;
+        }
+        .country-hub-summary { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin:8px 0; }
+        .mini-sum { background:#fff; border:1px solid #d6e4ef; border-radius:8px; padding:8px; text-align:center; }
+        .mini-sum .h { font-size:11px; color:#0A3D62; font-weight:800; }
+        .mini-sum .v { font-size:14px; color:#153A5B; font-weight:800; margin-top:2px; }
+        .country-hub-body { overflow-y: auto; padding-right: 4px; }
+        .country-flags { display:flex; flex-direction: column; gap:10px; }
+        .flag-quadrant { border:2px solid #0A3D62; border-radius:10px; padding:6px; }
+        .flag-quadrant-title { font-size:12px; color:#0A3D62; font-weight:800; margin-bottom:6px; }
+        .flag-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+        .flag-chip { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
+        .flag-chip .flag-icon { width: 44px; height: 28px; border-radius: 6px; border: 2px solid #0A3D62; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-size: cover; background-position:center; }
+        .flag-chip .flag-label { font-size: 11px; color: #0A3D62; font-weight: 700; text-align:center; max-width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .flag-chip.active .flag-icon { outline: 3px solid #1B79C9; }
+        .country-stats { margin-top: 10px; display:grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .stat-box { background: #FFFFFF; border: 1px solid #d6e4ef; border-radius: 10px; padding: 10px; box-shadow: 0 2px 10px rgba(10,61,98,0.06); }
+        .stat-box .stat-header { font-size: 12px; color:#0A3D62; font-weight:800; margin-bottom:6px; }
+        .stat-box .stat-value { font-size: 18px; font-weight:800; color:#153A5B; }
+        .stat-box .stat-sub { font-size: 11px; color:#5b7a99; margin-top:2px; }
+        .stat-list { display:flex; flex-wrap: wrap; gap:6px; }
+        .pill { padding: 4px 8px; background:#f0f6fb; color:#0A3D62; border: 1px solid #cfe0ee; border-radius: 999px; font-size: 11px; font-weight:700; }
+        /* 국가 통계 팝업 모달 */
+        .country-stats-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5); z-index: 3500;
+            display: none; align-items: center; justify-content: center;
+        }
+        .country-stats-modal-content {
+            background: #FFF8E7; /* 상아색 배경 */
+            border: 3px solid #722F37; /* 레드와인색 테두리 */
+            border-radius: 15px;
+            max-width: 90vw; max-height: 90vh;
+            width: 600px; min-height: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+        .country-stats-modal-header {
+            padding: 20px 24px 16px;
+            border-bottom: 2px solid #722F37;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .country-stats-modal-title {
+            font-size: 20px; font-weight: 800; color: #722F37;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .country-stats-modal-close {
+            background: none; border: none; font-size: 24px;
+            color: #722F37; cursor: pointer; padding: 0;
+            width: 30px; height: 30px; display: flex;
+            align-items: center; justify-content: center;
+        }
+        .country-stats-modal-close:hover {
+            background: rgba(114, 47, 55, 0.1); border-radius: 50%;
+        }
+        .country-stats-modal-body {
+            padding: 20px 24px;
+        }
+        .country-stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px; margin-bottom: 20px;
+        }
+
+        /* 프로젝트 히스토리 컨테이너 */
+        .country-history-container {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            max-height: 65vh;
+            overflow: hidden;
+        }
+
+        /* 프로젝트 타임라인 */
+        .project-timeline {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #dee2e6;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .timeline-header h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .timeline-legend {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .timeline-legend .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid;
+        }
+
+        .legend-dot.consulting {
+            border-color: #0A3D62;
+            background: rgba(10, 61, 98, 0.2);
+        }
+
+        .legend-dot.oda {
+            border-color: #E65100;
+            background: rgba(230, 81, 0, 0.2);
+        }
+
+        .timeline-container {
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .timeline-track {
+            display: flex;
+            gap: 24px;
+            min-width: max-content;
+            padding: 8px 0;
+        }
+
+        .timeline-year-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 180px;
+        }
+
+        .year-label {
+            background: #495057;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .year-projects {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .timeline-project {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            border-left: 4px solid;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
+        }
+
+        .timeline-project:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        .timeline-project.consulting {
+            border-left-color: #0A3D62;
+        }
+
+        .timeline-project.oda {
+            border-left-color: #E65100;
+        }
+
+        .timeline-project.proposal {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        }
+
+        .timeline-project.in-progress {
+            background: linear-gradient(135deg, #d1ecf1 0%, #a8e6cf 100%);
+        }
+
+        .project-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+
+        .project-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            font-size: 11px;
+        }
+
+        .project-meta span {
+            background: rgba(0,0,0,0.05);
+            padding: 2px 6px;
+            border-radius: 6px;
+            color: #6c757d;
+        }
+
+        .project-meta .budget {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .project-meta .status {
+            background: rgba(255, 193, 7, 0.2);
+            color: #856404;
+        }
+
+        .project-meta .client {
+            background: rgba(0, 123, 255, 0.1);
+            color: #0056b3;
+        }
+
+        .no-timeline {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px dashed #dee2e6;
+        }
+
+        /* 프로젝트 리스트 */
+        .project-list-section {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #dee2e6;
+            overflow: hidden;
+        }
+
+        .list-header {
+            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+            color: white;
+            padding: 20px 24px;
+        }
+
+        .list-header h3 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .list-summary {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .summary-item.consulting {
+            background: rgba(10, 61, 98, 0.2);
+            color: #E3F2FD;
+            border: 1px solid rgba(10, 61, 98, 0.3);
+        }
+
+        .summary-item.oda {
+            background: rgba(230, 81, 0, 0.2);
+            color: #FFF3E0;
+            border: 1px solid rgba(230, 81, 0, 0.3);
+        }
+
+        .project-list-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 8px 8px 16px 8px; /* 하단 여백 추가 */
+        }
+
+        /* 스크롤바 스타일 개선 */
+        .project-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .project-list-container::-webkit-scrollbar-track {
+            background: #f1f3f4;
+            border-radius: 4px;
+        }
+
+        .project-list-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+            border: 1px solid #f1f3f4;
+        }
+
+        .project-list-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .project-list-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            margin: 8px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .project-list-item:last-child {
+            margin-bottom: 16px; /* 마지막 프로젝트에 여백 추가 */
+        }
+
+        .project-list-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border-color: #ced4da;
+        }
+
+        .project-list-item.consulting {
+            border-left: 4px solid #0A3D62;
+        }
+
+        .project-list-item.oda {
+            border-left: 4px solid #E65100;
+        }
+
+        .project-list-item.proposal {
+            background: linear-gradient(135deg, #fffbf0 0%, #fff8e1 100%);
+        }
+
+        .project-list-item.in-progress {
+            background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
+        }
+
+        .project-number {
+            background: #495057;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .project-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .project-title {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .project-badges {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .category-badge, .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .category-badge.consulting {
+            background: rgba(10, 61, 98, 0.1);
+            color: #0A3D62;
+            border: 1px solid rgba(10, 61, 98, 0.2);
+        }
+
+        .category-badge.oda {
+            background: rgba(230, 81, 0, 0.1);
+            color: #E65100;
+            border: 1px solid rgba(230, 81, 0, 0.2);
+        }
+
+        .status-badge.proposal {
+            background: rgba(255, 193, 7, 0.15);
+            color: #856404;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .status-badge.in-progress {
+            background: rgba(40, 167, 69, 0.15);
+            color: #155724;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .project-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #495057;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+        .country-stat-card {
+            border-radius: 12px; padding: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .country-stat-card.general {
+            background: #F8F9FA;
+            border: 2px solid #6C757D;
+        }
+        .country-stat-card.consulting {
+            background: #E3F2FD; /* 하늘색 배경 */
+            border: 2px solid #0A3D62; /* 진한파랑 테두리 */
+        }
+        .country-stat-card.oda {
+            background: #FFF3E0; /* 연한주황 배경 */
+            border: 2px solid #E65100; /* 진한주황 테두리 */
+        }
+        .country-stat-header {
+            font-size: 14px; font-weight: 800; margin-bottom: 8px;
+        }
+        .country-stat-card.general .country-stat-header { color: #495057; }
+        .country-stat-card.consulting .country-stat-header { color: #0A3D62; }
+        .country-stat-card.oda .country-stat-header { color: #E65100; }
+        .country-stat-value {
+            font-size: 24px; font-weight: 800; margin-bottom: 4px;
+        }
+        .country-stat-card.general .country-stat-value { color: #343A40; }
+        .country-stat-card.consulting .country-stat-value { color: #0A3D62; }
+        .country-stat-card.oda .country-stat-value { color: #E65100; }
+        .country-stat-sub {
+            font-size: 12px; color: #6C757D;
+        }
+        .country-stat-pills {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+        }
+        .country-stat-pill {
+            padding: 4px 8px; border-radius: 12px;
+            font-size: 11px; font-weight: 600;
+        }
+        .country-stat-card.consulting .country-stat-pill {
+            background: rgba(10, 61, 98, 0.1); color: #0A3D62;
+            border: 1px solid rgba(10, 61, 98, 0.2);
+        }
+        .country-stat-card.oda .country-stat-pill {
+            background: rgba(230, 81, 0, 0.1); color: #E65100;
+            border: 1px solid rgba(230, 81, 0, 0.2);
+        }
+        .country-stat-card.general .country-stat-pill {
+            background: rgba(108, 117, 125, 0.1); color: #495057;
+            border: 1px solid rgba(108, 117, 125, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .country-stats-modal-content {
+                width: 95vw; max-height: 85vh; margin: 10px;
+            }
+            .country-stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .country-stats-modal-header {
+                padding: 16px 20px 12px;
+            }
+            .country-stats-modal-title {
+                font-size: 18px;
+            }
+            .country-stats-modal-body {
+                padding: 16px 20px;
+            }
+            .country-flags { max-height: 100px; }
+
+            /* 모바일용 프로젝트 히스토리 스타일 */
+            .country-history-container {
+                max-height: 70vh;
+            }
+
+            .timeline-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .timeline-header h3 {
+                font-size: 16px;
+            }
+
+            .timeline-legend {
+                gap: 12px;
+            }
+
+            .timeline-year-section {
+                min-width: 140px;
+            }
+
+            .project-timeline {
+                padding: 16px;
+            }
+
+            .project-list-container {
+                max-height: 300px;
+            }
+
+            .project-details {
+                grid-template-columns: 1fr;
+            }
+
+            .project-title {
+                font-size: 14px;
+            }
+
+            .list-header {
+                padding: 16px 20px;
+            }
+
+            .list-header h3 {
+                font-size: 16px;
+            }
+
+            .summary-item {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+
+            .project-list-item {
+                padding: 12px;
+                margin: 6px;
+            }
+
+            .project-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .category-badge, .status-badge {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+        }
         
         .map-controls { 
             position: fixed; 
@@ -372,8 +881,25 @@
         .custom-div-icon { background: transparent !important; border: none !important; }
         /* 팝업 스타일 개선 (모바일 대응) */
         .leaflet-popup-content-wrapper {
-            border-radius: 8px !important;
+            border-radius: 12px !important;
             box-shadow: 0 3px 15px rgba(0,0,0,0.2) !important;
+        }
+
+        /* 카테고리별 팝업 테두리 스타일 - 강한 테두리 (우선순위 강화) */
+        .leaflet-popup.consulting-popup .leaflet-popup-content-wrapper,
+        .leaflet-container .leaflet-popup.consulting-popup .leaflet-popup-content-wrapper {
+            border: 5px solid #0A3D62 !important; /* 진한파랑색 테두리 */
+            background: #ffffff !important;
+            box-shadow: 0 0 0 2px #0A3D62, 0 3px 15px rgba(0,0,0,0.2) !important;
+            border-radius: 12px !important;
+        }
+
+        .leaflet-popup.oda-popup .leaflet-popup-content-wrapper,
+        .leaflet-container .leaflet-popup.oda-popup .leaflet-popup-content-wrapper {
+            border: 5px solid #E65100 !important; /* 진한주황색 테두리 */
+            background: #ffffff !important;
+            box-shadow: 0 0 0 2px #E65100, 0 3px 15px rgba(0,0,0,0.2) !important;
+            border-radius: 12px !important;
         }
         
         .leaflet-popup-content {
@@ -387,6 +913,12 @@
             color: #999 !important;
             font-size: 16px !important;
             padding: 4px 4px 0 0 !important;
+        }
+
+        /* 팝업 삼각형(화살표) 완전히 숨기기 */
+        .leaflet-popup-tip-container,
+        .leaflet-popup-tip {
+            display: none !important;
         }
         /* 모바일용 팝업 컨테이너 스타일 */
         .popup-container {
@@ -518,6 +1050,7 @@
             font-size: 12px;
             min-width: 180px;
             transition: top 0.3s ease;
+            display: none !important; /* moved into Country Hub */
         }
         
         .legend-title {
@@ -656,21 +1189,7 @@
                 bottom: 120px; /* 모바일에서 프로젝트현황 패널 위 */
             }
             
-            /* 필터바 모바일 조정 - 가로 배열 유지 */
-            #top-filter-bar {
-                padding: 4px 6px;
-                flex-wrap: nowrap; /* 가로 배열 강제 */
-                overflow-x: auto; /* 가로 스크롤 허용 */
-                gap: 3px;
-                min-height: 36px; /* 최소 높이 설정 */
-                -webkit-overflow-scrolling: touch; /* iOS 스크롤 개선 */
-                scrollbar-width: none; /* Firefox 스크롤바 숨김 */
-                -ms-overflow-style: none; /* IE 스크롤바 숨김 */
-            }
-            
-            #top-filter-bar::-webkit-scrollbar {
-                display: none; /* Chrome/Safari 스크롤바 숨김 */
-            }
+            /* control panel is compact by default; no special mobile tweaks needed */
             
             /* 필터 버튼들 크기 축소 및 텍스트 최적화 */
             .filter-bar-button {
@@ -714,29 +1233,9 @@
             }
             
             /* 조회수 표시 크기 조정 */
-            .daily-views-display {
-                font-size: 9px;
-                padding: 4px 5px;
-                margin-left: 3px;
-                border-radius: 4px;
-                flex-shrink: 0;
-            }
+            /* 조회수 UI 제거됨 */
             
-            /* 관리자 버튼 크기 조정 */
-            .admin-login-btn, .admin-logout-btn {
-                padding: 4px 6px;
-                font-size: 10px;
-                margin-left: 3px;
-                border-radius: 4px;
-                flex-shrink: 0;
-            }
-            
-            /* Firebase 상태 뱃지 크기 조정 */
-            .firebase-status {
-                padding: 2px 4px;
-                font-size: 8px;
-                margin-left: 2px;
-            }
+
             
             /* 모바일에서 필터 드롭다운 개선 */
             .filter-dropdown {
@@ -804,28 +1303,7 @@
                 justify-content: center;
             }
             
-            #bottom-info-panel .stats-grid { 
-                grid-template-columns: repeat(5, 1fr); 
-                gap: 6px; 
-            }
-            #bottom-info-panel .stat-card { 
-                padding: 6px 4px; 
-            }
-            #bottom-info-panel .stat-number { 
-                font-size: 1em; 
-                margin-bottom: 2px; 
-            }
-            #bottom-info-panel .stat-label { 
-                font-size: 0.65em; 
-                line-height: 1.2;
-            }
-            #bottom-info-panel {
-                padding: 8px 10px;
-            }
-            #bottom-info-panel .section-title {
-                font-size: 0.9em;
-                margin-bottom: 6px;
-            }
+            /* country hub: responsive tweaks handled above */
             
             /* 범례 모바일 조정 */
             .legend {
@@ -856,14 +1334,7 @@
             }
             
             /* 조회수 패널 모바일 조정 */
-            .views-panel { 
-                width: calc(100% - 20px); 
-                max-height: 80vh; 
-                top: 70px;
-            }
-            .views-panel-content { 
-                max-height: calc(80vh - 60px); 
-            }
+            /* 조회수 패널 제거됨 */
             
             /* 모바일 팝업 크기 개선 */
             .leaflet-popup-content-wrapper {
@@ -968,199 +1439,62 @@
             </div>
         </div>
     </div>
-    <div class="admin-login-modal" id="admin-login-modal">
-        <div class="admin-login-content">
-            <div class="admin-login-header">
-                🔐 관리자 로그인
-            </div>
-            <div class="admin-input-group">
-                <label for="admin-email">이메일:</label>
-                <input type="email" id="admin-email" placeholder="admin@company.com">
-            </div>
-            <div class="admin-input-group">
-                <label for="admin-password">비밀번호:</label>
-                <input type="password" id="admin-password" placeholder="관리자 비밀번호">
-            </div>
-            <div style="font-size: 12px; color: #6c757d; padding: 10px; background: #f8f9fa; border-radius: 6px; margin: 10px 0;">
-                <strong>📋 관리자 권한:</strong><br>
-                • 조회수 데이터 수정/삭제<br>
-                • 실시간 동기화 제어<br>
-                • 전체 사용자 통계 관리
-            </div>
-            <div class="admin-login-buttons">
-                <button class="admin-login-btn-modal secondary" onclick="closeAdminLogin()">취소</button>
-                <button class="admin-login-btn-modal primary" onclick="performAdminLogin()">로그인</button>
-            </div>
-        </div>
-    </div>
-    <div id="top-filter-bar">
-        <!-- 로고 -->
-        <div class="logo-container">
-            <img src="icon-192x192.png" alt="Company Logo" onerror="this.style.display='none'">
-        </div>
-        
-        <div style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-right: 15px; display: flex; align-items: center;" class="filter-title-desktop">
-            🔍 사업필터링
-        </div>
-        <div style="font-size: 12px; font-weight: 600; color: #2c3e50; margin-right: 5px; display: none; align-items: center;" class="filter-title-mobile">
-            🔍
-        </div>
-        
-        <div class="filter-button-group">
-            <button class="filter-bar-button" data-dropdown="projectTypeDropdown">
-                <span class="btn-text-desktop">사업 타입 ▾</span>
-                <span class="btn-text-mobile">타입 ▾</span>
-            </button>
-            <div class="filter-dropdown" id="projectTypeDropdown">
-                <div class="filter-title">사업 타입 선택</div>
-                <div class="checkbox-group" id="projectTypeFilters"></div>
-            </div>
-        </div>
-        
-        <!-- 모바일에서 숨길 필터들 -->
-        <div class="filter-button-group mobile-hidden">
-            <button class="filter-bar-button" data-dropdown="countryDropdown">
-                <span class="btn-text-desktop">국가 ▾</span>
-                <span class="btn-text-mobile">국가 ▾</span>
-            </button>
-            <div class="filter-dropdown" id="countryDropdown">
-                <div class="filter-title">국가 선택</div>
-                <div class="checkbox-group" id="countryFilters"></div>
-            </div>
-        </div>
-        <div class="filter-button-group mobile-hidden">
-            <button class="filter-bar-button" data-dropdown="statusDropdown">
-                <span class="btn-text-desktop">진행상태 ▾</span>
-                <span class="btn-text-mobile">상태 ▾</span>
-            </button>
-            <div class="filter-dropdown" id="statusDropdown">
-                <div class="filter-title">진행상태 선택</div>
-                <div class="checkbox-group" id="statusFilters"></div>
-            </div>
-        </div>
-        <div class="filter-button-group mobile-hidden">
-            <button class="filter-bar-button" data-dropdown="clientDropdown">
-                <span class="btn-text-desktop">발주처 ▾</span>
-                <span class="btn-text-mobile">발주처 ▾</span>
-            </button>
-            <div class="filter-dropdown" id="clientDropdown">
-                <div class="filter-title">발주처 선택</div>
-                <div class="checkbox-group" id="clientFilters"></div>
-            </div>
-        </div>
-        
-        <div id="search-container">
-            <input type="text" id="search-input" placeholder="검색">
-            <button id="search-button">🔍</button>
-        </div>
-        
-        <button class="reset-all-filters-btn" onclick="resetAllFilters()">
-            <span class="btn-text-desktop">🔄 전체 초기화</span>
-            <span class="btn-text-mobile">🔄</span>
-        </button>
-        <div class="daily-views-display" onclick="toggleViewsPanel()">
-            <span>👁️</span>
-            <span class="views-text-desktop">오늘: <span id="daily-views">0</span> | 누적: <span id="total-views">0</span></span>
-            <span class="views-text-mobile"><span id="daily-views-mobile">0</span>/<span id="total-views-mobile">0</span></span>
-            <span class="firebase-status" id="firebase-status">OFFLINE</span>
-            <span style="font-size: 10px;">▼</span>
-        </div>
-        <button class="admin-login-btn" id="admin-login-btn" onclick="showAdminLogin()">
-            <span class="btn-text-desktop">🔐 관리자</span>
-            <span class="btn-text-mobile">🔐</span>
-        </button>
-        <button class="admin-logout-btn" id="admin-logout-btn" onclick="performAdminLogout()" style="display: none;">
-            <span class="btn-text-desktop">🚪 로그아웃</span>
-            <span class="btn-text-mobile">🚪</span>
-        </button>
-    </div>
-    <div class="views-panel" id="views-panel">
-        <div class="views-panel-header">
-            <span>📊 조회수 통계</span>
-            <button class="close-panel" onclick="toggleViewsPanel()">✕</button>
-        </div>
-        <div class="views-panel-content">
-            <div class="views-summary">
-                <div class="views-summary-card">
-                    <div class="views-summary-number" id="summary-today">0</div>
-                    <div class="views-summary-label">오늘</div>
-                </div>
-                <div class="views-summary-card">
-                    <div class="views-summary-number" id="summary-total">0</div>
-                    <div class="views-summary-label">누적</div>
-                </div>
-            </div>
-            
-            <div class="firebase-controls" id="firebase-admin-controls" style="display: none;">
-                <div class="firebase-status-section">
-                    <div>
-                        <div style="font-size: 12px; font-weight: 600;">🔥 Firebase 연결</div>
-                        <div style="font-size: 10px; color: #6c757d;" id="firebase-connection-info">연결 대기 중...</div>
-                    </div>
-                    <div style="font-size: 10px; color: #6c757d;" id="user-role-info">관리자</div>
-                </div>
-                <div class="firebase-control-buttons" id="firebase-controls">
-                    <button class="firebase-btn sync" onclick="manualSync()" id="sync-btn">🔄 동기화</button>
-                    <button class="firebase-btn backup" onclick="exportFirebaseData()">💾 내보내기</button>
-                    <button class="firebase-btn reset" onclick="resetFirebaseData()" id="reset-btn">🗑️ 초기화</button>
-                </div>
-                <div class="firebase-info">
-                    <div id="last-sync-info">마지막 동기화: 없음</div>
-                    <div id="total-users-info">전체 사용자 수: 확인 중...</div>
-                    <div id="admin-status-info">현재 상태: 관리자 모드</div>
-                </div>
-            </div>
-            
-            <div class="calendar-container">
-                <div style="border-bottom: 1px solid #dee2e6; margin-bottom: 12px; padding-bottom: 8px;">
-                    <strong style="font-size: 13px; color: #495057;">📅 월별 조회수</strong>
-                </div>
-                <div class="calendar-header">
-                    <div class="calendar-title" id="calendar-title">2024년 6월</div>
-                    <div class="calendar-nav">
-                        <button class="calendar-nav-btn" onclick="changeMonth(-1)">◀</button>
-                        <button class="calendar-nav-btn" onclick="goToToday()">오늘</button>
-                        <button class="calendar-nav-btn" onclick="changeMonth(1)">▶</button>
-                    </div>
-                </div>
-                <div class="calendar-grid" id="calendar-grid">
-                    </div>
-            </div>
-        </div>
-    </div>
-    <div id="bottom-info-panel">
-        <div class="section-title">📊 프로젝트현황(1972~현재)</div>
-        <div class="stats-grid">
-            <div class="stat-card" id="stat-total-projects">
-                <div class="stat-number" id="total-projects">-</div>
-                <div class="stat-label">총 프로젝트</div>
-            </div>
-            <div class="stat-card" id="stat-countries-count">
-                <div class="stat-number" id="countries-count">-</div>
-                <div class="stat-label">참여 국가</div>
-            </div>
-            <div class="stat-card" id="stat-consulting-projects">
-                <div class="stat-number" id="consulting-projects">-</div>
-                <div class="stat-label">컨설팅 사업</div>
-            </div>
-            <div class="stat-card" id="stat-oda-projects">
-                <div class="stat-number" id="oda-projects">-</div>
-                <div class="stat-label">ODA 사업</div>
-            </div>
-            <div class="stat-card" id="stat-total-budget">
-                <div class="stat-number" id="total-budget">-</div>
-                <div class="stat-label">총 사업비 (억원)</div>
-            </div>
-        </div>
-    </div>
     
+    <!-- Control panel functionality moved to Country Hub -->
+    
+    <!-- Country Hub Panel -->
+    <div class="country-hub" id="country-hub">
+        <div class="country-hub-header">
+            <div class="country-hub-main-toolbar">
+                <div class="address-search-group" id="address-search-group">
+                    <div style="display: flex; gap: 4px;">
+                        <input type="text" id="address-input" placeholder="주소 또는 사업명 검색" style="padding:7px 10px; border:1px solid #ddd; border-radius:6px; width: 160px; font-size:12px;">
+                        <button class="filter-bar-button" id="address-search-btn">검색</button>
+                    </div>
+                    <div class="address-suggestions" id="address-suggestions" style="display:none;"></div>
+                </div>
+                <div class="edit-controls">
+                    <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드">✏️</button>
+                    <button class="edit-btn" id="new-point-btn" style="display:none;">➕ 새 지점</button>
+                    <button class="edit-btn" id="export-json-btn" style="display:none;">💾 JSON 내보내기</button>
+                    <label for="import-json-file" class="edit-btn" id="import-json-label" style="display:none; cursor:pointer;">📥 JSON 불러오기</label>
+                    <input type="file" id="import-json-file" class="edit-file" accept="application/json,.json" />
+                </div>
+            </div>
+            <div class="category-filters">
+                <button class="category-filter-btn" id="consulting-filter" data-category="consulting" onclick="toggleCategoryFilter('consulting')">🏢 기술컨설팅</button>
+                <button class="category-filter-btn" id="oda-filter" data-category="oda" onclick="toggleCategoryFilter('oda')">🌍 ODA</button>
+            </div>
+        </div>
+        <div class="country-hub-summary" id="country-hub-summary"></div>
+        <div class="country-hub-body">
+            <div class="country-flags" id="country-flags"></div>
+            <!-- 기존 하단 통계 영역 제거됨 -->
+        </div>
+    </div>
+
+    <!-- 국가 통계 팝업 모달 -->
+    <div class="country-stats-modal" id="country-stats-modal">
+        <div class="country-stats-modal-content">
+            <div class="country-stats-modal-header">
+                <div class="country-stats-modal-title" id="country-stats-modal-title">
+                    🌍 국가별 프로젝트 통계
+                </div>
+                <button class="country-stats-modal-close" onclick="closeCountryStatsModal()">×</button>
+            </div>
+            <div class="country-stats-modal-body" id="country-stats-modal-body">
+                <!-- 통계 내용이 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+    </div>
+
     <div class="map-controls">
         <button class="control-btn" onclick="goToMyLocation()" title="내 위치로 이동">📍</button>
     </div>
     
     <div class="loading" id="loading">
         <div class="loading-spinner"></div>
-        <div id="loading-text">Excel 파일에서 데이터를 불러오는 중...</div>
+        <div id="loading-text">데이터를 불러오는 중...</div>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -1171,6 +1505,7 @@
         let markersLayer = null;
         let allProjects = [];
         let filteredProjects = [];
+        let categoryFilters = new Set(); // 'consulting', 'oda' 카테고리 필터
         let activeFilters = {
             projectTypes: new Set(),
             countries: new Set(),
@@ -1179,36 +1514,22 @@
             searchTerm: ''
         };
         
-        // Firebase 관련 변수
-        let firebaseApp = null;
-        let firebaseDatabase = null;
-        let firebaseAuth = null;
-        let firebaseConnected = false;
-        let isAdmin = false;
+        // Firebase 제거됨
+        let isAdmin = false; // 관리자 기능 비활성화
         let currentUser = null;
-        let userId = 'readonly_user'; // 기본값: 읽기 전용 (로그아웃 상태)
+        let userId = 'readonly_user';
         let dailyViews = 0;
         let viewsHistory = {}; // 로컬 조회수 기록
         let totalViews = 0;
         let currentCalendarDate = new Date(); // 현재 달력에 표시되는 월
         
         // 세션별 페이지 조회 여부 (새로고침 시 중복 방지)
-        let hasViewedSession = sessionStorage.getItem('hasViewedPage') === 'true'; 
-        let viewsRef = null; // Firebase 'views' 경로에 대한 참조
-        let realTimeListener = null; // 실시간 리스너 참조
-        
-        // Firebase 설정 (하드코딩된 설정)
-        const firebaseConfig = {
-            "apiKey": "AIzaSyDelJ0v-idzA7-Cu-fX8KP8-Jr2Hau2h7M",
-            "authDomain": "global-mapview.firebaseapp.com",
-            "databaseURL": "https://global-mapview-default-rtdb.asia-southeast1.firebasedatabase.app",
-            "projectId": "global-mapview",
-            "storageBucket": "global-mapview.firebasestorage.app",
-            "messagingSenderId": "122573358864",
-            "appId": "1:122573358864:web:cad3496eae834a56ea8795",
-            "measurementId": "G-KF9SNVDDY1"
-        };
+        let hasViewedSession = sessionStorage.getItem('hasViewedPage') === 'true';
         const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
+        let editMode = false;
+        let activeEditProjectId = null; // 내부 편집 대상 ID
+        let isCreatingNew = false; // 새 지점 생성 중 여부
+        // pick marker 제거: 선택된 프로젝트의 마커를 직접 드래그
         
         const countryCodeMap = {
             "베트남": "vn", "라오스": "la", "캄보디아": "kh", "필리핀": "ph", "몽골": "mn", 
@@ -1237,235 +1558,20 @@
         // Firebase 인증 및 권한 관리
         // ===========================================
         
-        function initializeFirebase() {
-            try {
-                // Firebase 초기화
-                firebaseApp = firebase.initializeApp(firebaseConfig);
-                firebaseDatabase = firebase.database();
-                firebaseAuth = firebase.auth();
-                viewsRef = firebaseDatabase.ref('views'); // viewsRef 설정
-                
-                updateFirebaseStatus('connecting', '연결 중...');
-                
-                // 연결 상태 모니터링
-                const connectedRef = firebaseDatabase.ref('.info/connected');
-                connectedRef.on('value', (snapshot) => {
-                    firebaseConnected = snapshot.val() === true;
-                    if (firebaseConnected) {
-                        updateFirebaseStatus('connected', '연결됨');
-                        // Firebase 연결 시 조회수 동기화 및 실시간 리스너 설정
-                        syncViewsWithFirebase();
-                        setupRealTimeListener();
-                    } else {
-                        updateFirebaseStatus('disconnected', '연결 끊김');
-                        // 연결이 끊어지면 리스너 제거
-                        removeRealTimeListener();
-                    }
-                });
-                
-                // 인증 상태 모니터링
-                firebaseAuth.onAuthStateChanged((user) => {
-                    currentUser = user;
-                    if (user) {
-                        // 관리자 로그인 상태
-                        userId = user.uid;
-                        isAdmin = true;
-                        updateAdminUI(true);
-                        showNotification(`관리자로 로그인되었습니다: ${user.email}`, 'success');
-                    } else {
-                        // 로그아웃 또는 익명 사용자 상태
-                        userId = 'readonly_user';
-                        isAdmin = false;
-                        updateAdminUI(false);
-                    }
-                });
-                
-                showNotification('Firebase에 연결 중입니다...', 'info');
-                
-            } catch (error) {
-                console.error('Firebase 초기화 실패:', error);
-                updateFirebaseStatus('disconnected', '연결 실패');
-                showNotification('Firebase 연결에 실패했습니다.', 'error');
-            }
-        }
+        function initializeFirebase() { /* Firebase removed */ }
 
         // 실시간 리스너 설정 (핵심 개선사항)
-        function setupRealTimeListener() {
-            if (!firebaseConnected || !viewsRef || realTimeListener) {
-                return; // 이미 리스너가 설정되어 있으면 중복 설정 방지
-            }
-            
-            console.log('실시간 조회수 리스너 설정 중...');
-            
-            // Firebase의 실시간 데이터베이스 리스너 설정
-            realTimeListener = viewsRef.on('value', (snapshot) => {
-                console.log('🔥 Firebase 실시간 데이터 변경 감지!');
-                
-                const firebaseData = snapshot.val();
-                let hasChanges = false;
-                
-                // 모든 사용자의 조회수를 합산
-                const aggregatedViews = {};
-                if (firebaseData) {
-                    Object.values(firebaseData).forEach(userData => {
-                        if (userData.history) {
-                            Object.keys(userData.history).forEach(date => {
-                                const newCount = userData.history[date];
-                                const currentCount = aggregatedViews[date] || 0;
-                                aggregatedViews[date] = Math.max(currentCount, newCount);
-                            });
-                        }
-                    });
-                }
-                
-                // 로컬 데이터와 Firebase 합산 데이터 비교 및 업데이트
-                Object.keys(aggregatedViews).forEach(date => {
-                    const firebaseCount = aggregatedViews[date];
-                    const localCount = viewsHistory[date] || 0;
-                    
-                    if (firebaseCount > localCount) {
-                        viewsHistory[date] = firebaseCount;
-                        hasChanges = true;
-                        console.log(`📊 ${date} 조회수 업데이트: ${localCount} → ${firebaseCount}`);
-                    }
-                });
-                
-                // 변경사항이 있으면 UI 업데이트
-                if (hasChanges) {
-                    calculateViewsStats();
-                    updateViewsDisplay();
-                    updateCalendar();
-                    saveLocalViews();
-                    updateTotalUsersCount();
-                    
-                    // 실시간 알림 (너무 자주 표시되지 않도록 제한)
-                    const now = Date.now();
-                    const lastNotification = localStorage.getItem('lastViewsNotification');
-                    if (!lastNotification || now - parseInt(lastNotification) > 30000) { // 30초 간격
-                        showNotification('📊 조회수가 실시간으로 업데이트되었습니다!', 'success');
-                        localStorage.setItem('lastViewsNotification', now.toString());
-                    }
-                }
-            }, (error) => {
-                console.error('실시간 리스너 오류:', error);
-                showNotification('실시간 동기화 중 오류가 발생했습니다.', 'warning');
-            });
-        }
+        function setupRealTimeListener() { /* Firebase removed */ }
         
         // 실시간 리스너 제거
-        function removeRealTimeListener() {
-            if (realTimeListener && viewsRef) {
-                console.log('실시간 조회수 리스너 해제');
-                viewsRef.off('value', realTimeListener);
-                realTimeListener = null;
-            }
-        }
+        function removeRealTimeListener() { /* Firebase removed */ }
         
-        function showAdminLogin() {
-            document.getElementById('admin-login-modal').style.display = 'flex';
-        }
-        function closeAdminLogin() {
-            document.getElementById('admin-login-modal').style.display = 'none';
-            document.getElementById('admin-email').value = '';
-            document.getElementById('admin-password').value = '';
-        }
-        async function performAdminLogin() {
-            const email = document.getElementById('admin-email').value.trim();
-            const password = document.getElementById('admin-password').value.trim();
-            
-            if (!email || !password) {
-                showNotification('이메일과 비밀번호를 모두 입력해주세요.', 'warning');
-                return;
-            }
-            
-            try {
-                await firebaseAuth.signInWithEmailAndPassword(email, password);
-                closeAdminLogin();
-            } catch (error) {
-                console.error('로그인 실패:', error);
-                let errorMessage = '로그인에 실패했습니다.';
-                
-                switch (error.code) {
-                    case 'auth/user-not-found':
-                        errorMessage = '등록되지 않은 이메일입니다.';
-                        break;
-                    case 'auth/wrong-password':
-                        errorMessage = '비밀번호가 올바르지 않습니다.';
-                        break;
-                    case 'auth/invalid-email':
-                        errorMessage = '이메일 형식이 올바르지 않습니다.';
-                        break;
-                    case 'auth/too-many-requests':
-                        errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
-                        break;
-                    default:
-                        errorMessage += ` (${error.code})`;
-                }
-                
-                showNotification(errorMessage, 'error');
-            }
-        }
-        async function performAdminLogout() {
-            try {
-                await firebaseAuth.signOut();
-                showNotification('로그아웃되었습니다.', 'success');
-                // 로그아웃 시 hasViewedSession 초기화하여, 다시 접속하면 새로운 세션으로 간주하고 조회수 증가
-                sessionStorage.removeItem('hasViewedPage'); 
-                hasViewedSession = false;
-            } catch (error) {
-                console.error('로그아웃 실패:', error);
-                showNotification('로그아웃에 실패했습니다.', 'error');
-            }
-        }
-        function updateAdminUI(adminStatus) {
-            const loginBtn = document.getElementById('admin-login-btn');
-            const logoutBtn = document.getElementById('admin-logout-btn');
-            const syncBtn = document.getElementById('sync-btn');
-            const resetBtn = document.getElementById('reset-btn');
-            const statusBadge = document.getElementById('firebase-status');
-            const adminControls = document.getElementById('firebase-admin-controls');
-            
-            if (adminStatus) {
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = 'inline-block';
-                statusBadge.className = 'firebase-status firebase-admin';
-                statusBadge.textContent = 'ADMIN';
-                adminControls.style.display = 'block';
-                
-                if (syncBtn) syncBtn.disabled = false;
-                if (resetBtn) resetBtn.disabled = false;
-            } else {
-                loginBtn.style.display = 'inline-block';
-                logoutBtn.style.display = 'none';
-                statusBadge.className = 'firebase-status firebase-readonly';
-                statusBadge.textContent = 'READONLY';
-                adminControls.style.display = 'none';
-                
-                if (syncBtn) syncBtn.disabled = true;
-                if (resetBtn) resetBtn.disabled = true;
-            }
-        }
-        function updateFirebaseStatus(status, message) {
-            const infoElement = document.getElementById('firebase-connection-info');
-            const statusBadge = document.getElementById('firebase-status');
-            
-            if (infoElement) {
-                infoElement.textContent = message;
-            }
-            
-            if (!isAdmin) {
-                if (status === 'connected') {
-                    statusBadge.className = 'firebase-status firebase-connected';
-                    statusBadge.textContent = 'LIVE';
-                } else if (status === 'disconnected') {
-                    statusBadge.className = 'firebase-status firebase-disconnected';
-                    statusBadge.textContent = 'OFFLINE';
-                } else if (status === 'syncing') {
-                    statusBadge.className = 'firebase-status firebase-syncing';
-                    statusBadge.textContent = 'SYNCING';
-                }
-            }
-        }
+        function showAdminLogin() { /* 관리자 기능 제거됨 */ }
+        function closeAdminLogin() { /* 관리자 기능 제거됨 */ }
+        async function performAdminLogin() { /* Firebase/관리자 기능 제거됨 */ }
+        async function performAdminLogout() { /* Firebase/관리자 기능 제거됨 */ }
+        function updateAdminUI() { /* Firebase removed */ }
+        function updateFirebaseStatus() { /* Firebase removed */ }
         // ===========================================
         // 조회수 관리 시스템 (개선됨)
         // ===========================================
@@ -1482,8 +1588,7 @@
                 showNotification('페이지 조회수가 1 증가했습니다! 👁️', 'success');
             }
             
-            // Firebase 초기화 (비동기)
-            initializeFirebase();
+            // Firebase 제거됨
         }
         function loadLocalViews() {
             // localStorage에서 조회수 데이터 로드
@@ -1522,96 +1627,11 @@
             
             console.log(`조회수 증가: ${today} = ${viewsHistory[today]}`);
             
-            // Firebase에 업로드 (연결되어 있다면)
-            uploadLocalViewsToFirebase();
+            // Firebase 제거됨
         }
-        function syncViewsWithFirebase() {
-            if (!firebaseConnected || !viewsRef) {
-                console.log('Firebase 연결 안됨 - 동기화 건너뛰기');
-                return;
-            }
-            
-            console.log('Firebase와 조회수 동기화 시작...');
-            
-            // Firebase에서 전체 조회수 데이터 가져오기 (한 번만)
-            viewsRef.once('value')
-                .then((snapshot) => {
-                    const firebaseData = snapshot.val();
-                    
-                    // 모든 사용자의 조회수를 합산
-                    const aggregatedViews = {};
-                    if (firebaseData) {
-                        Object.values(firebaseData).forEach(userData => {
-                            if (userData.history) {
-                                Object.keys(userData.history).forEach(date => {
-                                    aggregatedViews[date] = (aggregatedViews[date] || 0) + userData.history[date];
-                                });
-                            }
-                        });
-                    }
-                    
-                    // 로컬 데이터와 Firebase 전체 합산 데이터 병합 (최대값 사용)
-                    Object.keys(aggregatedViews).forEach(date => {
-                        viewsHistory[date] = Math.max(viewsHistory[date] || 0, aggregatedViews[date]);
-                    });
-                    
-                    // 로컬에만 있는 새로운 데이터를 Firebase에 업로드 (현재 사용자 경로에)
-                    uploadLocalViewsToFirebase();
-                    
-                    calculateViewsStats();
-                    updateViewsDisplay();
-                    updateCalendar();
-                    saveLocalViews(); // 로컬 데이터도 최신 상태로 저장
-                    updateTotalUsersCount(); // 사용자 수 업데이트
-                    
-                    console.log('✅ Firebase와 조회수 동기화 완료');
-                })
-                .catch((error) => {
-                    console.error('Firebase 조회수 동기화 실패:', error);
-                });
-        }
-        function uploadLocalViewsToFirebase() {
-            if (!firebaseConnected || !viewsRef) {
-                console.log('Firebase 연결 안됨 - 업로드 건너뛰기');
-                return;
-            }
-            
-            // 현재 로그인된 사용자의 ID를 사용하여 경로 설정
-            const userRef = firebaseDatabase.ref(`views/${userId}`);
-            
-            const dataToSave = {
-                history: viewsHistory, // viewsHistory는 이미 로컬에서 최신화된 전체 데이터
-                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
-                totalViews: Object.values(viewsHistory).reduce((sum, count) => sum + count, 0),
-                userId: userId,
-                userType: isAdmin ? 'admin' : 'readonly'
-            };
-            
-            userRef.update(dataToSave)
-                .then(() => {
-                    console.log(`✅ 로컬 조회수 데이터를 Firebase의 ${userId} 경로에 업로드 완료`);
-                    updateLastSyncInfo();
-                })
-                .catch((error) => {
-                    console.error('Firebase 업로드 실패:', error);
-                });
-        }
-        function manualSync() {
-            if (!isAdmin) {
-                showNotification('관리자만 수동 동기화를 실행할 수 있습니다.', 'warning');
-                return;
-            }
-            
-            if (!firebaseConnected) {
-                showNotification('Firebase에 연결되지 않았습니다.', 'warning');
-                return;
-            }
-            
-            updateFirebaseStatus('syncing', '동기화 중...');
-            syncViewsWithFirebase();
-            showNotification('수동 동기화가 완료되었습니다.', 'success');
-            updateFirebaseStatus('connected', '동기화 완료');
-        }
+        function syncViewsWithFirebase() { /* Firebase removed */ }
+        function uploadLocalViewsToFirebase() { /* Firebase removed */ }
+        function manualSync() { /* Firebase removed */ }
         function calculateViewsStats() {
             totalViews = Object.values(viewsHistory).reduce((sum, count) => sum + count, 0);
             const today = getTodayString();
@@ -1624,97 +1644,9 @@
                 syncElement.textContent = `마지막 동기화: ${now.toLocaleTimeString()}`;
             }
         }
-        function updateTotalUsersCount() {
-            if (!firebaseDatabase) return;
-            
-            const viewsRootRef = firebaseDatabase.ref('views');
-            viewsRootRef.once('value')
-                .then((snapshot) => {
-                    const allUsersData = snapshot.val();
-                    const userCount = allUsersData ? Object.keys(allUsersData).length : 0;
-                    
-                    const usersElement = document.getElementById('total-users-info');
-                    if (usersElement) {
-                        usersElement.textContent = `전체 사용자 수: ${userCount}명`;
-                    }
-                })
-                .catch((error) => {
-                    console.error('사용자 수 조회 실패:', error);
-                });
-        }
-        function exportFirebaseData() {
-            if (!isAdmin) {
-                showNotification('관리자만 내보내기를 할 수 있습니다.', 'warning');
-                return;
-            }
-            
-            const exportData = {
-                exportedBy: currentUser ? currentUser.email : 'unknown_admin',
-                viewsHistory: viewsHistory, // 현재 병합된 전체 히스토리
-                totalViews: totalViews,
-                exportDate: new Date().toISOString(),
-                source: 'Aggregated_Firebase_Export'
-            };
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = `조회수_백업_${new Date().toISOString().split('T')[0]}.json`;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showNotification('조회수 데이터가 내보내기되었습니다!', 'success');
-        }
-        function resetFirebaseData() {
-            if (!isAdmin) {
-                showNotification('관리자만 데이터를 초기화할 수 있습니다.', 'warning');
-                return;
-            }
-            
-            const confirmed = confirm(
-                '⚠️ 경고: 모든 조회수 데이터가 삭제됩니다.\n\n' +
-                '이 작업은 되돌릴 수 없습니다.\n' +
-                '정말로 초기화하시겠습니까?'
-            );
-            
-            if (confirmed) {
-                // 실시간 리스너 일시 중지
-                removeRealTimeListener();
-                
-                // 로컬 데이터 초기화
-                viewsHistory = {};
-                totalViews = 0;
-                dailyViews = 0;
-                localStorage.removeItem('globalMapViews');
-                sessionStorage.removeItem('hasViewedPage');
-                hasViewedSession = false;
-                
-                // Firebase 데이터 초기화
-                if (firebaseConnected && viewsRef) {
-                    viewsRef.remove()
-                        .then(() => {
-                            showNotification('모든 조회수 데이터가 초기화되었습니다.', 'success');
-                            // 실시간 리스너 다시 설정
-                            setupRealTimeListener();
-                        })
-                        .catch((error) => {
-                            console.error('Firebase 데이터 초기화 실패:', error);
-                            showNotification('Firebase 데이터 초기화에 실패했습니다.', 'error');
-                            // 에러가 발생해도 리스너는 다시 설정
-                            setupRealTimeListener();
-                        });
-                } else {
-                    showNotification('로컬 조회수 데이터가 초기화되었습니다.', 'success');
-                }
-                
-                updateViewsDisplay();
-                updateCalendar();
-            }
-        }
+        function updateTotalUsersCount() { /* Firebase removed */ }
+        function exportFirebaseData() { /* Firebase removed */ }
+        function resetFirebaseData() { /* Firebase removed */ }
         function getTodayString() {
             const today = new Date();
             return today.getFullYear() + '-' + 
@@ -1745,15 +1677,10 @@
         }
         function toggleViewsPanel() {
             const panel = document.getElementById('views-panel');
+            if (!panel) return;
             const isVisible = panel.style.display === 'block';
-            
-            if (isVisible) {
-                panel.style.display = 'none';
-            } else {
-                updateCalendar();
-                updateTotalUsersCount();
-                panel.style.display = 'block';
-            }
+            panel.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) updateCalendar();
         }
         // ===========================================
         // 달력 시스템
@@ -1765,13 +1692,16 @@
             // 달력 제목 업데이트
             const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', 
                                  '7월', '8월', '9월', '10월', '11월', '12월'];
-            document.getElementById('calendar-title').textContent = `${year}년 ${monthNames[month]}`;
+            const titleEl = document.getElementById('calendar-title');
+            if (!titleEl) return;
+            titleEl.textContent = `${year}년 ${monthNames[month]}`;
             
             // 달력 그리드 생성
             generateCalendarGrid(year, month);
         }
         function generateCalendarGrid(year, month) {
             const calendarGrid = document.getElementById('calendar-grid');
+            if (!calendarGrid) return;
             calendarGrid.innerHTML = '';
             
             // 요일 헤더 추가
@@ -2278,37 +2208,53 @@
             console.log(`Consulting 프로젝트 처리 완료: ${processedCount}개`);
             return projects;
         }
-        // 메인 데이터 로드 함수
+        // JSON 데이터 로드
         async function loadData() {
             try {
-                console.log('데이터 로드 시작');
+                console.log('데이터 로드 시작 (JSON)');
+                const projects = [];
                 
-                allProjects = await loadExcelFiles();
+                // ODA
+                try {
+                    const resOda = await fetch('data/global_oda.json');
+                    if (resOda.ok) {
+                        const oda = await resOda.json();
+                        projects.push(...oda);
+                    } else {
+                        console.warn('global_oda.json 로드 실패');
+                    }
+                } catch (e) {
+                    console.warn('global_oda.json 파싱 실패:', e);
+                }
+                // Consulting
+                try {
+                    const resCon = await fetch('data/global_consulting.json');
+                    if (resCon.ok) {
+                        const consulting = await resCon.json();
+                        projects.push(...consulting);
+                    } else {
+                        console.warn('global_consulting.json 로드 실패');
+                    }
+                } catch (e) {
+                    console.warn('global_consulting.json 파싱 실패:', e);
+                }
                 
+                allProjects = projects;
                 if (allProjects.length === 0) {
-                    throw new Error('Excel 파일에서 데이터를 읽을 수 없습니다');
+                    throw new Error('JSON 데이터가 비어있습니다');
                 }
                 
                 const odaCount = allProjects.filter(p => p.category === 'ODA').length;
                 const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
-                
                 console.log(`데이터 로드 완료: ODA ${odaCount}개, Consulting ${consultingCount}개 (총 ${allProjects.length}개)`);
-                
-                if (odaCount === 30 && consultingCount === 178) {
-                    showNotification(`✅ 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개 (목표 달성!)`, 'success');
-                } else {
-                    showNotification(`📊 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
-                }
-                
+                showNotification(`📊 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
             } catch (error) {
                 console.error('데이터 로드 실패:', error);
-                showNotification('Excel 파일을 읽을 수 없습니다. 파일을 확인해주세요.', 'error');
-                
-                // 최소한의 샘플 데이터로 진행 (에러 발생 시 대체)
+                showNotification('데이터를 불러올 수 없습니다. 파일을 확인해주세요.', 'error');
+                // 샘플 데이터
                 allProjects = [
                     {name: "베트남", lat: 14.0583, lng: 108.2772, description: "샘플 ODA 프로젝트", category: "ODA", period: "'20-'25", budget: 5365, type: "양자무상", number: 1},
-                    {name: "라오스", lat: 19.8563, lng: 102.4955, description: "샘플 컨설팅 프로젝트", category: "Consulting", status: "준공", budget: 658, client: "KOICA", number: 1},
-                    {name: "아르헨티나", lat: -34.6037, lng: -58.3816, description: "샘플 아르헨티나 프로젝트", category: "Consulting", status: "시행중", budget: 1234, client: "ABC", number: 2}
+                    {name: "라오스", lat: 19.8563, lng: 102.4955, description: "샘플 컨설팅 프로젝트", category: "Consulting", status: "준공", budget: 658, client: "KOICA", number: 1}
                 ];
             }
         }
@@ -2320,6 +2266,7 @@
                 attribution: '© OpenStreetMap contributors' 
             }).addTo(map);
             markersLayer = L.layerGroup().addTo(map);
+            // 지도 클릭으로 위치 선택 기능 제거: 선택된 마커를 직접 드래그
         }
         // 필터 관련 함수들
         function initializeFilters() {
@@ -2337,6 +2284,7 @@
         }
         function initProjectTypeFilters() {
             const container = document.getElementById('projectTypeFilters');
+            if (!container) return; // 필터 UI 없음
             container.innerHTML = '';
             const types = [...new Set(allProjects.map(p => p.category))].sort();
             types.forEach(type => {
@@ -2346,6 +2294,7 @@
         }
         function initCountryFilters() {
             const container = document.getElementById('countryFilters');
+            if (!container) return;
             container.innerHTML = '';
             const countries = [...new Set(allProjects.map(p => p.name.trim()))].sort();
             countries.forEach(country => {
@@ -2355,6 +2304,7 @@
         }
         function initStatusFilters() {
             const container = document.getElementById('statusFilters');
+            if (!container) return;
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
             const statuses = [...new Set(consultingProjects.map(p => p.status).filter(s => s))].sort();
@@ -2365,6 +2315,7 @@
         }
         function initClientFilters() {
             const container = document.getElementById('clientFilters');
+            if (!container) return;
             container.innerHTML = '';
             const consultingProjects = allProjects.filter(p => p.category === 'Consulting' && p.client);
             const clients = [...new Set(consultingProjects.map(p => p.client.trim()))].sort();
@@ -2402,6 +2353,14 @@
         }
         function applyFilters() {
             filteredProjects = allProjects.filter(project => {
+                // Apply category filters first
+                if (categoryFilters.size > 0) {
+                    const category = project.category === 'Consulting' ? 'consulting' : 'oda';
+                    if (!categoryFilters.has(category)) {
+                        return false;
+                    }
+                }
+
                 // Apply type, country, status, client filters
                 if (activeFilters.projectTypes.size > 0 && !activeFilters.projectTypes.has(project.category)) {
                     return false;
@@ -2450,11 +2409,13 @@
             });
             
             updateMapMarkers();
-            updateStats();
+            updateLegend();
+            updateCountryHub();
         }
         function setupSearchFunctionality() {
             const searchInput = document.getElementById('search-input');
             const searchButton = document.getElementById('search-button');
+            if (!searchInput || !searchButton) return; // 검색 UI 없음
             const performSearch = () => {
                 activeFilters.searchTerm = searchInput.value.trim();
                 applyFilters();
@@ -2468,197 +2429,414 @@
         }
         function updateMapMarkers() {
             if (!markersLayer) return;
-            
             markersLayer.clearLayers();
-            
-            const countryGroups = {};
-            filteredProjects.forEach(project => {
-                const countryName = project.name.trim();
-                if (!countryGroups[countryName]) {
-                    countryGroups[countryName] = { ODA: [], Consulting: [] };
-                }
-                countryGroups[countryName][project.category].push(project);
-            });
-            
+
             const newMarkers = [];
-            Object.keys(countryGroups).forEach(countryName => {
-                const countryData = countryGroups[countryName];
-                
-                if (countryData.ODA.length > 0) {
-                    const avgLat = countryData.ODA.reduce((sum, p) => sum + p.lat, 0) / countryData.ODA.length;
-                    const avgLng = countryData.ODA.reduce((sum, p) => sum + p.lng, 0) / countryData.ODA.length;
-                    const marker = createCountryMarker(countryName, 'ODA', countryData.ODA, avgLat, avgLng);
-                    newMarkers.push(marker);
-                }
-                
-                if (countryData.Consulting.length > 0) {
-                    const avgLat = countryData.Consulting.reduce((sum, p) => sum + p.lat, 0) / countryData.Consulting.length;
-                    const avgLng = countryData.Consulting.reduce((sum, p) => sum + p.lng, 0) / countryData.Consulting.length;
-                    
-                    // ODA와 컨설팅 마커가 겹치지 않도록 약간의 오프셋 적용
-                    const offsetLat = countryData.ODA.length > 0 ? avgLat + 0.1 : avgLat;
-                    const offsetLng = countryData.ODA.length > 0 ? avgLng + 0.1 : avgLng;
-                    
-                    const marker = createCountryMarker(countryName, 'Consulting', countryData.Consulting, offsetLat, offsetLng);
-                    newMarkers.push(marker);
-                }
+            filteredProjects.forEach(project => {
+                const m = createProjectMarker(project);
+                if (m) newMarkers.push(m);
             });
-            
-            // Add all new markers to the layer
+
             newMarkers.forEach(marker => markersLayer.addLayer(marker));
-            
-            // Adjust map view with appropriate zoom level
+
             if (newMarkers.length > 0) {
                 const group = new L.featureGroup(newMarkers);
                 const bounds = group.getBounds();
-                
-                // 단일 국가인 경우 적절한 줌 레벨로 설정
-                if (Object.keys(countryGroups).length === 1) {
-                    const center = bounds.getCenter();
-                    map.setView([center.lat, center.lng], 6); // 국가 전체가 보이는 줌 레벨
-                } else {
-                    // 여러 국가인 경우 fitBounds 사용하되 최대 줌 레벨 제한
-                    map.fitBounds(bounds, { 
-                        padding: [20, 20],
-                        maxZoom: 8 // 최대 줌 레벨 제한
-                    });
-                }
+                map.fitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
             } else {
-                map.setView([30, 0], 3); // 기본 뷰
+                map.setView([30, 0], 3);
             }
         }
-        function createCountryMarker(countryName, category, projects, lat, lng) {
-            const borderColor = projectColors[category];
-            const countryCode = countryCodeMap[countryName] || 'un';
-            const flagUrl = `https://flagcdn.com/w20/${countryCode}.png`;
-            
+        function createProjectMarker(project) {
+            const category = project.category || 'Consulting';
+            const color = projectColors[category] || '#2c3e50';
+            const selected = editMode && activeEditProjectId && project.__id === activeEditProjectId;
+            const size = selected ? 24 : 18;
+            const border = selected ? 3 : 2;
+            const glow = selected ? '0 0 12px rgba(255,193,7,0.9), 0 0 20px rgba(255,193,7,0.6)' : '0 2px 6px rgba(0,0,0,0.4)';
+            const countryName = (project.name || '').trim();
+            const code = countryCodeMap[countryName] || 'un';
+            const flagSize = selected ? 40 : 20;
+            const flagUrl = `https://flagcdn.com/w${flagSize}/${code}.png`;
+            const bg = code === 'un' ? '#fff' : `url('${flagUrl}')`;
+            const bgExtra = code === 'un' ? '' : 'background-size: cover; background-position: center;';
             const iconHtml = `
-                <div style="width: 24px; height: 24px; border: 3px solid ${borderColor}; border-radius: 50%;
-                            background-image: url('${flagUrl}'); background-size: cover; background-position: center;
-                            background-color: ${borderColor}; box-shadow: 0 3px 8px rgba(0,0,0,0.4); cursor: pointer;
-                            display: flex; align-items: center; justify-content: center; color: white;
-                            font-size: 10px; font-weight: bold; position: relative;"> 
-                    ${countryCode === 'un' ? countryName.charAt(0) : ''}
-                    <div style="position: absolute; bottom: -8px; right: -8px; background: ${borderColor}; 
-                                color: white; border-radius: 10px; padding: 2px 5px; font-size: 8px; 
-                                font-weight: bold; min-width: 16px; text-align: center;">${projects.length}</div>
-                </div>`;
-            
-            const customIcon = L.divIcon({ 
-                html: iconHtml, 
-                className: 'custom-div-icon', 
-                iconSize: [30, 30], 
-                iconAnchor: [15, 15], 
-                popupAnchor: [0, -15] 
+                <div style="width: ${size}px; height: ${size}px; border: ${border}px solid ${color}; border-radius: 50%;
+                            background: ${bg}; ${bgExtra} box-shadow: ${glow}; cursor: pointer;"></div>`;
+            const customIcon = L.divIcon({
+                html: iconHtml,
+                className: 'custom-div-icon',
+                iconSize: [size + 2, size + 2],
+                iconAnchor: [Math.round((size + 2)/2), Math.round((size + 2)/2)],
+                popupAnchor: [0, -12]
             });
-            
-            const marker = L.marker([lat, lng], { icon: customIcon });
-            marker.bindPopup(createPopupContent(countryName, category, projects), { 
-                maxWidth: 320, 
-                minWidth: 280,
-                className: 'custom-popup'
+            const lat = parseFloat(project.lat) || 0;
+            const lng = parseFloat(project.lng) || 0;
+            const marker = L.marker([lat, lng], { icon: customIcon, draggable: !!selected, zIndexOffset: selected ? 1000 : 0 });
+            if (selected) {
+                marker.on('drag', () => {
+                    const ll = marker.getLatLng();
+                    setValue('edit-lat', ll.lat.toFixed(6));
+                    setValue('edit-lng', ll.lng.toFixed(6));
+                });
+            }
+            const popupClassName = project.category === 'Consulting' ? 'consulting-popup' : 'oda-popup';
+            const popup = L.popup({
+                maxWidth: 320,
+                minWidth: 260,
+                className: popupClassName,
+                closeButton: true
+            }).setContent(createProjectPopup(project));
+
+            marker.bindPopup(popup);
+
+            // 팝업이 열릴 때 스타일 직접 적용 (강화된 버전)
+            marker.on('popupopen', function(e) {
+                // 약간의 지연을 두어 DOM이 완전히 렌더링된 후 스타일 적용
+                setTimeout(function() {
+                    const popupElement = e.popup._container;
+                    if (popupElement) {
+                        const wrapper = popupElement.querySelector('.leaflet-popup-content-wrapper');
+                        const tip = popupElement.querySelector('.leaflet-popup-tip');
+
+                        if (wrapper) {
+                            const borderColor = project.category === 'Consulting' ? '#0A3D62' : '#E65100';
+
+                            // 기존 스타일 제거 및 새 스타일 강제 적용
+                            wrapper.style.cssText = '';
+                            wrapper.style.setProperty('border', `2px solid ${borderColor}`, 'important');
+                            wrapper.style.setProperty('border-radius', '12px', 'important');
+                            wrapper.style.setProperty('box-shadow', `0 3px 15px rgba(0,0,0,0.15)`, 'important');
+                            wrapper.style.setProperty('background', '#FFF8E7', 'important');
+
+                            // 팝업 tip(화살표) 완전히 숨기기
+                            if (tip) {
+                                tip.style.setProperty('display', 'none', 'important');
+                            }
+
+                            console.log(`팝업 스타일 적용됨: ${project.category} - ${borderColor}`);
+                        }
+                    }
+                }, 10);
             });
-            
             return marker;
         }
-        function createPopupContent(countryName, category, projects) {
+        function createProjectPopup(project) {
+            if (!project.__id) project.__id = `${project.category || 'UNK'}-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+            const category = project.category || 'Consulting';
+            const categoryColor = projectColors[category] || '#2c3e50';
+            const countryName = (project.name || '').trim();
             const countryCode = countryCodeMap[countryName] || 'un';
             const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
-            const categoryColor = projectColors[category];
-            const categoryName = category === 'ODA' ? 'ODA 사업' : '컨설팅 사업';
-            
-            // 프로젝트 정렬: 시행중이 맨 위, 그 다음 제안중, 그 다음 준공 순
-            const sortedProjects = [...projects].sort((a, b) => {
-                if (category === 'Consulting') {
-                    const aIsProgress = a.status === '시행중';
-                    const bIsProgress = b.status === '시행중';
-                    const aIsProposal = a.status === '제안중';
-                    const bIsProposal = b.status === '제안중';
-                    const aIsComplete = a.status === '준공';
-                    const bIsComplete = b.status === '준공';
-                    
-                    // 1. '시행중' 사업이 최우선 (맨 위로)
-                    if (aIsProgress && !bIsProgress) return -1;
-                    if (!aIsProgress && bIsProgress) return 1;
-                    
-                    // 2. '제안중' 사업이 두 번째 우선순위
-                    if (aIsProposal && !bIsProposal && !bIsProgress) return -1;
-                    if (!aIsProposal && bIsProposal && !aIsProgress) return 1;
-                    
-                    // 3. '준공' 사업이 세 번째 우선순위
-                    if (aIsComplete && !bIsComplete && !bIsProgress && !bIsProposal) return -1;
-                    if (!aIsComplete && bIsComplete && !aIsProgress && !aIsProposal) return 1;
-                    
-                    // 4. 같은 조건이면 사업명 오름차순
-                    return a.description.localeCompare(b.description);
-                } else {
-                    // ODA 사업은 사업명 오름차순
-                    return a.description.localeCompare(b.description);
-                }
-            });
-            
+            const isProposal = project.status === '제안중';
+            const isProgress = project.status === '시행중';
+            // 카테고리별 색상 정의
+            const borderColor = category === 'Consulting' ? '#0A3D62' : '#E65100';
+            const categoryTextColor = category === 'Consulting' ? '#0A3D62' : '#E65100';
+
             let content = `
                 <div class="popup-container">
-                    <div class="popup-header" style="border-color: ${categoryColor};">
+                    <div class="popup-header" style="border-color:${borderColor};">
                         <div class="popup-country-row">
-                            <img src="${flagUrl}" alt="${countryName}" class="popup-flag" onerror="this.src='https://flagcdn.com/w40/un.png'">
-                            <div class="popup-country-name">${countryName}</div>
+                            <img src="${flagUrl}" class="popup-flag" onerror="this.src='https://flagcdn.com/w40/un.png'">
+                            <div class="popup-country-name">${countryName || '국가 미지정'}</div>
                         </div>
-                        <div class="popup-category" style="color: ${categoryColor};">${categoryName} (${projects.length}개)</div>
+                        <div class="popup-category" style="color:${categoryTextColor};">${category}</div>
                     </div>
-                    <div class="popup-projects">`;
-            
-            sortedProjects.forEach((project, index) => {
-                const isProposal = project.status === '제안중';
-                const isProgress = project.status === '시행중';
-                
-                let itemClass = 'popup-project-item';
-                if (isProposal) {
-                    itemClass += ' proposal';
-                } else if (isProgress) {
-                    itemClass += ' progress';
+                    <div class="popup-projects">
+                        <div class="popup-project-item${isProposal?' proposal':''}${isProgress?' progress':''}">
+                            <div class="popup-project-title">
+                                <div class="popup-project-name">${project.description || '(사업명 없음)'}</div>
+                                ${isProposal?'<span class="status-badge status-proposal">제안중</span>': (isProgress?'<span class="status-badge status-progress">시행중</span>':'')}
+                                ${editMode?`<button style="margin-left:6px; font-size:11px; padding:4px 6px;" onclick="openEditor('${project.__id}')">편집</button>`:''}
+                            </div>
+                            <div class="popup-project-details">`;
+            if (category === 'ODA') {
+                if (project.type) content += `<div><strong>형태:</strong> ${project.type}</div>`;
+                if (project.period) content += `<div><strong>기간:</strong> ${project.period}</div>`;
+                if (project.budget > 0) {
+                    const b = Math.round(project.budget / 100).toLocaleString('ko-KR');
+                    content += `<div class="popup-budget"><strong>예산:</strong> ${b}억원</div>`;
                 }
-                
-                content += `<div class="${itemClass}">`;
-                
-                // 프로젝트명과 상태 뱃지
-                content += `<div class="popup-project-title">`;
-                content += `<div class="popup-project-name">${project.description}</div>`;
-                if (isProposal) {
-                    content += `<span class="status-badge status-proposal">제안중</span>`;
-                } else if (isProgress) {
-                    content += `<span class="status-badge status-progress">시행중</span>`;
+            } else {
+                if (project.status && !isProposal && !isProgress) {
+                    content += `<div><strong>상태:</strong> <span class="status-badge status-complete">${project.status}</span></div>`;
                 }
-                content += `</div>`;
-                
-                content += `<div class="popup-project-details">`;
-                
-                if (project.category === 'ODA') {
-                    if (project.type) content += `<div><strong>형태:</strong> ${project.type}</div>`;
-                    if (project.period) content += `<div><strong>기간:</strong> ${project.period}</div>`;
-                    if (project.budget > 0) {
-                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
-                        content += `<div class="popup-budget"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
-                    }
-                } else {
-                    // 제안중이나 시행중이 아닌 경우에만 상태 표시 (준공된 프로젝트)
-                    if (project.status && !isProposal && !isProgress) {
-                        let statusClass = 'status-complete'; // 준공은 붉은색
-                        content += `<div><strong>상태:</strong> <span class="status-badge ${statusClass}">${project.status}</span></div>`;
-                    }
-                    if (project.startDate && project.endDate) content += `<div><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
-                    if (project.budget > 0) {
-                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
-                        content += `<div class="popup-budget"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
-                    }
-                    if (project.client) content += `<div><strong>발주처:</strong> ${project.client}</div>`;
+                if (project.startDate && project.endDate) content += `<div><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
+                if (project.budget > 0) {
+                    const b = Math.round(project.budget / 100).toLocaleString('ko-KR');
+                    content += `<div class="popup-budget"><strong>용역비:</strong> ${b}억원</div>`;
                 }
-                
-                content += `</div></div>`;
-            });
-            
-            content += `</div></div>`;
+                if (project.client) content += `<div><strong>발주처:</strong> ${project.client}</div>`;
+            }
+            content += `</div></div></div>`;
             return content;
+        }
+
+        // ===== 편집 모드 / 에디터 =====
+        function ensureProjectIds() {
+            let i = 1;
+            allProjects.forEach(p => { if (!p.__id) { p.__id = `${p.category || 'UNK'}-${i++}-${(p.description||'').slice(0,16)}`; } });
+        }
+        function toggleEditMode() {
+            editMode = !editMode;
+            const btn = document.getElementById('toggle-edit-btn');
+            const newBtn = document.getElementById('new-point-btn');
+            const exp = document.getElementById('export-json-btn');
+            const imp = document.getElementById('import-json-label');
+            if (editMode) {
+                btn.classList.add('on');
+                btn.title = '편집 모드 ON';
+                if (newBtn) newBtn.style.display = 'inline-block';
+                if (exp) exp.style.display = 'inline-block';
+                if (imp) imp.style.display = 'inline-block';
+            } else {
+                btn.classList.remove('on');
+                btn.title = '편집 모드';
+                if (newBtn) newBtn.style.display = 'none';
+                if (exp) exp.style.display = 'none';
+                if (imp) imp.style.display = 'none';
+                activeEditProjectId = null;
+                isCreatingNew = false;
+                removePickingMarker();
+            }
+            applyFilters();
+        }
+        function openEditor(id) {
+            if (!editMode) return;
+            const p = allProjects.find(x => x.__id === id);
+            if (!p) return;
+            isCreatingNew = false;
+            activeEditProjectId = id;
+            const modal = document.getElementById('edit-modal');
+            setValue('edit-name', p.name || '');
+            setValue('edit-description', p.description || '');
+            setValue('edit-category', p.category || '');
+            setValue('edit-status', p.status || '');
+            setValue('edit-period', p.period || '');
+            setValue('edit-type', p.type || p.projectType || '');
+            setValue('edit-client', p.client || '');
+            setValue('edit-start', p.startDate || '');
+            setValue('edit-end', p.endDate || '');
+            setValue('edit-budget', p.budget != null ? p.budget : '');
+            setValue('edit-lat', p.lat != null ? p.lat : '');
+            setValue('edit-lng', p.lng != null ? p.lng : '');
+            modal.style.display = 'flex';
+            // 선택한 프로젝트 마커를 드래그 가능 + 강조 표시하도록 갱신
+            updateMapMarkers();
+            // 해당 마커로 화면 이동
+            if (typeof p.lat === 'number' && typeof p.lng === 'number') {
+                map.setView([p.lat, p.lng], Math.max(map.getZoom(), 8));
+            }
+        }
+        function closeEditor() { const modal = document.getElementById('edit-modal'); if (modal) modal.style.display = 'none'; }
+        function setValue(id, v){ const el = document.getElementById(id); if (el) el.value = v; }
+        function getValue(id){ const el = document.getElementById(id); return el ? el.value : ''; }
+        function saveEditor() {
+            if (isCreatingNew) {
+                const newItem = {};
+                newItem.name = getValue('edit-name').trim();
+                newItem.description = getValue('edit-description').trim();
+                newItem.category = getValue('edit-category');
+                newItem.status = getValue('edit-status');
+                newItem.period = getValue('edit-period');
+                const typ = getValue('edit-type');
+                if (newItem.category === 'Consulting') newItem.projectType = typ; else newItem.type = typ;
+                newItem.client = getValue('edit-client');
+                newItem.startDate = getValue('edit-start');
+                newItem.endDate = getValue('edit-end');
+                const budget = parseFloat(getValue('edit-budget')); newItem.budget = isNaN(budget) ? 0 : budget;
+                const lat = parseFloat(getValue('edit-lat')); newItem.lat = isNaN(lat) ? 0 : lat;
+                const lng = parseFloat(getValue('edit-lng')); newItem.lng = isNaN(lng) ? 0 : lng;
+                newItem.number = (allProjects?.length || 0) + 1;
+                if (!validateProject(newItem)) return;
+                allProjects.push(newItem);
+                ensureProjectIds();
+                isCreatingNew = false;
+            } else {
+                const id = activeEditProjectId; if (!id) return;
+                const p = allProjects.find(x => x.__id === id); if (!p) return;
+                p.name = getValue('edit-name').trim();
+                p.description = getValue('edit-description').trim();
+                p.category = getValue('edit-category');
+                p.status = getValue('edit-status');
+                p.period = getValue('edit-period');
+                const typ = getValue('edit-type');
+                if (p.category === 'Consulting') p.projectType = typ; else p.type = typ;
+                p.client = getValue('edit-client');
+                p.startDate = getValue('edit-start');
+                p.endDate = getValue('edit-end');
+                const budget = parseFloat(getValue('edit-budget')); p.budget = isNaN(budget) ? 0 : budget;
+                const lat = parseFloat(getValue('edit-lat')); if (!isNaN(lat)) p.lat = lat;
+                const lng = parseFloat(getValue('edit-lng')); if (!isNaN(lng)) p.lng = lng;
+                if (!validateProject(p)) return;
+            }
+            try { localStorage.setItem('krc_edits_snapshot', JSON.stringify(allProjects)); } catch {}
+            closeEditor();
+            applyFilters();
+        }
+        function validateProject(p) {
+            // 필수값: 국가명, 사업명, 카테고리, 좌표
+            const errs = [];
+            if (!p.name) errs.push('국가명');
+            if (!p.description) errs.push('사업명');
+            if (!p.category || (p.category !== 'ODA' && p.category !== 'Consulting')) errs.push('카테고리');
+            if (typeof p.lat !== 'number' || typeof p.lng !== 'number' || isNaN(p.lat) || isNaN(p.lng)) errs.push('좌표');
+            const latOk = p.lat >= -90 && p.lat <= 90;
+            const lngOk = p.lng >= -180 && p.lng <= 180;
+            if (!latOk || !lngOk) errs.push('좌표 범위');
+            highlightEditorErrors(errs);
+            if (errs.length) {
+                try { showNotification('필수 입력을 확인하세요: ' + errs.join(', '), 'warning'); } catch {}
+                return false;
+            }
+            return true;
+        }
+        function highlightEditorErrors(errs) {
+            function mark(id, bad) { const el = document.getElementById(id); if (!el) return; el.style.borderColor = bad? '#dc3545' : '#ddd'; }
+            mark('edit-name', errs.includes('국가명'));
+            mark('edit-description', errs.includes('사업명'));
+            mark('edit-category', errs.includes('카테고리'));
+            const coordBad = errs.includes('좌표') || errs.includes('좌표 범위');
+            mark('edit-lat', coordBad);
+            mark('edit-lng', coordBad);
+        }
+        function newProject() {
+            if (!editMode) toggleEditMode();
+            isCreatingNew = true;
+            activeEditProjectId = null;
+            const center = map.getCenter();
+            // 기본값 세팅
+            setValue('edit-name', '');
+            setValue('edit-description', '');
+            setValue('edit-category', 'Consulting');
+            setValue('edit-status', '');
+            setValue('edit-period', '');
+            setValue('edit-type', '');
+            setValue('edit-client', '');
+            setValue('edit-start', '');
+            setValue('edit-end', '');
+            setValue('edit-budget', '');
+            setValue('edit-lat', center.lat.toFixed(6));
+            setValue('edit-lng', center.lng.toFixed(6));
+            const modal = document.getElementById('edit-modal');
+            modal.style.display = 'flex';
+            // 선택 마커 없이, 저장 전까지는 지도의 드래그가 아니라 저장으로 반영
+            updateMapMarkers();
+        }
+        function pickOnMap() {
+            if (!activeEditProjectId) return;
+            const p = allProjects.find(x => x.__id === activeEditProjectId); if (!p) return;
+            ensurePickingMarker([p.lat, p.lng]);
+            const bar = document.getElementById('pickbar');
+            if (bar) bar.style.display = 'block';
+            map.setView([p.lat, p.lng], Math.max(map.getZoom(), 8));
+        }
+        // pick marker 관련 로직 제거됨 (선택 마커 드래그 사용)
+
+        // ===== 주소 검색 (Nominatim) =====
+        async function searchAddress() {
+            const input = document.getElementById('address-input');
+            const box = document.getElementById('address-suggestions');
+            if (!input || !box) return;
+            const q = input.value.trim();
+            if (!q) { box.style.display='none'; box.innerHTML=''; return; }
+            const lower = q.toLowerCase();
+            // Project name suggestions
+            const proj = allProjects.filter(p => (p.description||'').toLowerCase().includes(lower)).slice(0,6);
+            let projHtml = '';
+            if (proj.length) {
+                projHtml = '<div style="padding:6px 8px; font-size:11px; color:#5b7a99;">사업 결과</div>' +
+                    proj.map(p => `<div class="address-suggestion" data-lat="${p.lat}" data-lon="${p.lng}">📌 ${p.description}</div>`).join('');
+            }
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(q)}`;
+                const res = await fetch(url, { headers: { 'Accept-Language': 'ko,en' } });
+                const data = await res.json();
+                const addrHtml = (Array.isArray(data) ? data : []).map(item => `<div class="address-suggestion" data-lat="${item.lat}" data-lon="${item.lon}">📍 ${item.display_name}</div>`).join('');
+                const header = addrHtml ? '<div style="padding:6px 8px; font-size:11px; color:#5b7a99;">주소 결과</div>' : '';
+                const finalHtml = (projHtml || addrHtml) ? (projHtml + header + addrHtml) : '';
+                if (!finalHtml) { box.style.display='none'; box.innerHTML=''; return; }
+                box.innerHTML = finalHtml;
+                box.style.display = 'block';
+            } catch (e) {
+                console.warn('주소 검색 실패', e);
+                if (projHtml) { box.innerHTML = projHtml; box.style.display='block'; } else { box.style.display='none'; }
+            }
+        }
+
+        function unifiedSearch() {
+            const input = document.getElementById('address-input');
+            if (!input) return;
+            const q = input.value.trim().toLowerCase();
+            if (!q) return;
+            const match = allProjects.find(p => (p.description||'').toLowerCase().includes(q));
+            if (match && typeof match.lat === 'number' && typeof match.lng === 'number') {
+                map.setView([match.lat, match.lng], Math.max(map.getZoom(), 12));
+                L.popup().setLatLng([match.lat, match.lng]).setContent(`🔎 ${match.description}`).openOn(map);
+                const box = document.getElementById('address-suggestions'); if (box){ box.style.display='none'; box.innerHTML=''; }
+            } else {
+                searchAddress();
+            }
+        }
+        function handleSuggestionClick(e) {
+            const t = e.target.closest('.address-suggestion');
+            if (!t) return;
+            const lat = parseFloat(t.getAttribute('data-lat'));
+            const lon = parseFloat(t.getAttribute('data-lon'));
+            map.setView([lat, lon], 14);
+            // 선택 마커 드래그로 조정
+            const box = document.getElementById('address-suggestions');
+            if (box){ box.style.display='none'; box.innerHTML=''; }
+        }
+
+        // ===== JSON Export / Import =====
+        function exportJSON() {
+            const oda = allProjects.filter(p => p.category === 'ODA');
+            const con = allProjects.filter(p => p.category === 'Consulting');
+            downloadBlob('global_oda.json', JSON.stringify(oda, null, 2));
+            downloadBlob('global_consulting.json', JSON.stringify(con, null, 2));
+        }
+        function downloadBlob(filename, text) {
+            const blob = new Blob([text], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+        function importJSON(evt) {
+            const file = evt.target.files && evt.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    if (Array.isArray(data)) {
+                        // 배열이면 카테고리 기준으로 덮어쓰기 시도
+                        const newOda = data.filter(p => p.category === 'ODA');
+                        const newCon = data.filter(p => p.category === 'Consulting');
+                        if (newOda.length || newCon.length) {
+                            const others = allProjects.filter(p => p.category !== 'ODA' && p.category !== 'Consulting');
+                            allProjects = [...(newOda.length?newOda:allProjects.filter(p=>p.category==='ODA')), ...(newCon.length?newCon:allProjects.filter(p=>p.category==='Consulting')), ...others];
+                        } else {
+                            // 카테고리 없으면 전체 덮어쓰기
+                            allProjects = data;
+                        }
+                    } else if (data && typeof data === 'object') {
+                        if (Array.isArray(data.oda) || Array.isArray(data.consulting)) {
+                            const newOda = data.oda || [];
+                            const newCon = data.consulting || [];
+                            allProjects = [...newOda, ...newCon];
+                        }
+                    }
+                    ensureProjectIds();
+                    applyFilters();
+                    try { localStorage.setItem('krc_edits_snapshot', JSON.stringify(allProjects)); } catch {}
+                } catch (e) { console.error('JSON 불러오기 실패', e); }
+            };
+            reader.readAsText(file, 'utf-8');
         }
         function updateStats() {
             // 전체 프로젝트 현황 (필터링 무관)
@@ -2727,8 +2905,336 @@
             // 범례 위치 동적 조정
             adjustLegendPosition();
         }
+        // ===== Country Hub (flags + stats) =====
+        function flagUrlFor(code, w){ return `https://flagcdn.com/w${w}/${code}.png`; }
+        function getOperatingCountries() {
+            const set = new Set();
+            allProjects.forEach(p => { if (p && p.name) set.add(p.name.trim()); });
+            return Array.from(set).sort();
+        }
+        // 카테고리 필터 초기화 함수
+        function initializeCategoryFilters() {
+            // 두 카테고리 모두 활성화
+            categoryFilters.add('consulting');
+            categoryFilters.add('oda');
+
+            // 버튼 스타일 적용
+            const consultingBtn = document.getElementById('consulting-filter');
+            const odaBtn = document.getElementById('oda-filter');
+
+            if (consultingBtn) {
+                consultingBtn.classList.add('active', 'consulting');
+            }
+
+            if (odaBtn) {
+                odaBtn.classList.add('active', 'oda');
+            }
+
+            // 필터 적용하여 마커 업데이트
+            applyFilters();
+        }
+
+        // 카테고리 필터 관련 함수들
+        function toggleCategoryFilter(category) {
+            const btn = document.getElementById(`${category}-filter`);
+            if (!btn) return;
+
+            if (categoryFilters.has(category)) {
+                categoryFilters.delete(category);
+                btn.classList.remove('active', category);
+            } else {
+                categoryFilters.add(category);
+                btn.classList.add('active', category);
+            }
+
+            applyFilters(); // 마커 업데이트를 위해 필터 적용
+            updateCountryHub();
+        }
+
+        function getFilteredCountries() {
+            if (categoryFilters.size === 0) {
+                return []; // 아무 카테고리도 선택되지 않으면 빈 배열 반환
+            }
+
+            const projectsToShow = allProjects.filter(p => {
+                const category = p.category === 'Consulting' ? 'consulting' : 'oda';
+                return categoryFilters.has(category);
+            });
+
+            const countries = new Set();
+            projectsToShow.forEach(p => {
+                if (p && p.name && p.name.trim()) {
+                    countries.add(p.name.trim());
+                }
+            });
+
+            return Array.from(countries).sort();
+        }
+
+        function updateCountryHub() {
+            const flagsBox = document.getElementById('country-flags');
+            const sumBox = document.getElementById('country-hub-summary');
+            if (!flagsBox) return;
+
+            const countries = getFilteredCountries();
+            if (countries.length === 0) {
+                flagsBox.innerHTML = '<div style="font-size:12px; color:#5b7a99; text-align:center; padding:20px;">카테고리를 선택하세요</div>';
+                if (sumBox) sumBox.innerHTML = '';
+                return;
+            }
+            // Summary: 선택된 카테고리에 따른 통계 표시
+            if (sumBox) {
+                const projectsToShow = allProjects.filter(p => {
+                    const category = p.category === 'Consulting' ? 'consulting' : 'oda';
+                    return categoryFilters.has(category);
+                });
+                const consultingProjects = projectsToShow.filter(p => p.category === 'Consulting');
+                const odaProjects = projectsToShow.filter(p => p.category === 'ODA');
+                const conBudget = Math.round(consultingProjects.reduce((s,p)=> s + (parseFloat(p.budget)||0), 0) / 100).toLocaleString();
+                const odaBudget = Math.round(odaProjects.reduce((s,p)=> s + (parseFloat(p.budget)||0), 0) / 100).toLocaleString();
+
+                let summaryHtml = '';
+                if (categoryFilters.has('consulting')) {
+                    summaryHtml += `<div class="mini-sum"><div class="h">기술컨설팅</div><div class="v">${consultingProjects.length.toLocaleString()}개 / ${conBudget}억원</div></div>`;
+                }
+                if (categoryFilters.has('oda')) {
+                    summaryHtml += `<div class="mini-sum"><div class="h">ODA</div><div class="v">${odaProjects.length.toLocaleString()}개 / ${odaBudget}억원</div></div>`;
+                }
+                sumBox.innerHTML = summaryHtml;
+            }
+            // Group countries by 2x2 quadrants
+            const asia = new Set(continentMap['아시아']);
+            const africa = new Set(continentMap['아프리카']);
+            const americas = new Set([...(continentMap['북아메리카']||[]), ...(continentMap['남아메리카']||[])]);
+            const othersList = new Set([...(continentMap['유럽']||[]), ...(continentMap['오세아니아']||[]), ...(continentMap['중동']||[])]);
+            const groups = { '아시아': [], '아메리카': [], '아프리카': [], '기타': [] };
+            countries.forEach(c => {
+                if (asia.has(c)) groups['아시아'].push(c);
+                else if (americas.has(c)) groups['아메리카'].push(c);
+                else if (africa.has(c)) groups['아프리카'].push(c);
+                else groups['기타'].push(c);
+            });
+            function renderGroup(title, list){
+                const chips = list.map(c => {
+                    const code = countryCodeMap[c] || 'un';
+                    const url = flagUrlFor(code, 40);
+                    return `<div class="flag-chip" data-country="${c}">` +
+                           `<div class="flag-icon" style="background-image:url('${url}')"></div>` +
+                           `<div class="flag-label">${c}</div>` +
+                           `</div>`;
+                }).join('');
+                return `<div class="flag-quadrant"><div class="flag-quadrant-title">${title}</div><div class="flag-grid">${chips || '<div style="font-size:11px;color:#5b7a99;">없음</div>'}</div></div>`;
+            }
+            flagsBox.innerHTML = `
+                ${renderGroup('아시아', groups['아시아'])}
+                ${renderGroup('아메리카', groups['아메리카'])}
+                ${renderGroup('아프리카', groups['아프리카'])}
+                ${renderGroup('기타', groups['기타'])}`;
+        }
+        function attachCountryHubHandlers() {
+            const flagsBox = document.getElementById('country-flags');
+            if (!flagsBox) return;
+            flagsBox.addEventListener('click', (e) => {
+                const chip = e.target.closest('.flag-chip');
+                if (!chip) return;
+                const country = chip.getAttribute('data-country');
+                document.querySelectorAll('.flag-chip').forEach(el => el.classList.remove('active'));
+                chip.classList.add('active');
+                showCountryStats(country);
+            });
+        }
+        function showCountryStats(country) {
+            const modal = document.getElementById('country-stats-modal');
+            const modalTitle = document.getElementById('country-stats-modal-title');
+            const modalBody = document.getElementById('country-stats-modal-body');
+
+            if (!modal || !modalTitle || !modalBody) return;
+
+            const projectsToShow = allProjects.filter(p => {
+                const category = p.category === 'Consulting' ? 'consulting' : 'oda';
+                return categoryFilters.has(category);
+            });
+            const list = projectsToShow.filter(p => p.name.trim() === country);
+            if (list.length === 0) return;
+
+            // 국기 가져오기
+            const countryCode = countryCodeMap[country] || 'un';
+            const flagUrl = flagUrlFor(countryCode, 40);
+
+            // Aggregate 데이터
+            const oda = list.filter(p => p.category === 'ODA');
+            const con = list.filter(p => p.category === 'Consulting');
+            const odaBudget = Math.round(oda.reduce((s,p)=> s + (parseFloat(p.budget)||0), 0) / 100);
+            const conBudget = Math.round(con.reduce((s,p)=> s + (parseFloat(p.budget)||0), 0) / 100);
+
+            // 프로젝트를 시간순으로 정렬
+            function parseYear(s) {
+                if(!s) return null;
+                const m = String(s).match(/(19|20)\d{2}/);
+                return m ? parseInt(m[0], 10) : null;
+            }
+
+            function getProjectStartYear(p) {
+                if (p.category === 'Consulting') return parseYear(p.startDate);
+                if (p.category === 'ODA') return parseYear(p.period);
+                return null;
+            }
+
+            // 연도별 프로젝트 그룹핑
+            const projectsByYear = new Map();
+            const allYears = new Set();
+
+            list.forEach(p => {
+                const year = getProjectStartYear(p);
+                if (year) {
+                    allYears.add(year);
+                    if (!projectsByYear.has(year)) {
+                        projectsByYear.set(year, []);
+                    }
+                    projectsByYear.get(year).push(p);
+                }
+            });
+
+            const sortedYears = Array.from(allYears).sort((a, b) => a - b);
+            const minYear = sortedYears[0];
+            const maxYear = sortedYears[sortedYears.length - 1];
+
+            // 모달 제목 업데이트
+            modalTitle.innerHTML = `
+                <div style="background-image: url('${flagUrl}'); width: 32px; height: 20px; border-radius: 4px; background-size: cover; background-position: center;"></div>
+                ${country} 프로젝트 히스토리
+            `;
+
+            // 타임라인 HTML 생성
+            function generateTimeline() {
+                if (sortedYears.length === 0) return '<div class="no-timeline">프로젝트 기간 정보 없음</div>';
+
+                return `
+                    <div class="project-timeline">
+                        <div class="timeline-header">
+                            <h3>📅 프로젝트 연대기 (${minYear} ~ ${maxYear})</h3>
+                            <div class="timeline-legend">
+                                <span class="legend-item"><span class="legend-dot consulting"></span>기술컨설팅</span>
+                                <span class="legend-item"><span class="legend-dot oda"></span>ODA</span>
+                            </div>
+                        </div>
+                        <div class="timeline-container">
+                            <div class="timeline-track">
+                                ${sortedYears.map(year => `
+                                    <div class="timeline-year-section" data-year="${year}">
+                                        <div class="year-label">${year}</div>
+                                        <div class="year-projects">
+                                            ${projectsByYear.get(year).map(p => {
+                                                const categoryClass = p.category === 'Consulting' ? 'consulting' : 'oda';
+                                                const budget = p.budget ? Math.round(p.budget / 100) : 0;
+                                                const budgetLabel = budget > 0 ? `${budget.toLocaleString()}억원` : '';
+                                                const statusClass = p.status === '시행중' ? 'in-progress' : p.status === '제안중' ? 'proposal' : 'completed';
+
+                                                return `
+                                                    <div class="timeline-project ${categoryClass} ${statusClass}">
+                                                        <div class="project-name">${p.description || '프로젝트명 없음'}</div>
+                                                        <div class="project-meta">
+                                                            ${budgetLabel && `<span class="budget">${budgetLabel}</span>`}
+                                                            ${p.status && p.status !== '준공' ? `<span class="status">${p.status}</span>` : ''}
+                                                            ${p.client ? `<span class="client">${p.client}</span>` : ''}
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 프로젝트 리스트 HTML 생성
+            function generateProjectList() {
+                const sortedProjects = list.sort((a, b) => {
+                    const yearA = getProjectStartYear(a);
+                    const yearB = getProjectStartYear(b);
+
+                    // 날짜가 있는 프로젝트를 위에, 없는 프로젝트를 아래
+                    if (yearA && !yearB) return -1;
+                    if (!yearA && yearB) return 1;
+
+                    // 둘 다 날짜가 있으면 최신순 정렬
+                    if (yearA && yearB) return yearB - yearA;
+
+                    // 둘 다 날짜가 없으면 프로젝트명 순서로
+                    const nameA = (a.description || '').toLowerCase();
+                    const nameB = (b.description || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+
+                return `
+                    <div class="project-list-section">
+                        <div class="list-header">
+                            <h3>📋 전체 프로젝트 목록 (${list.length}건)</h3>
+                            <div class="list-summary">
+                                <span class="summary-item consulting">기술컨설팅 ${con.length}건 (${conBudget.toLocaleString()}억원)</span>
+                                <span class="summary-item oda">ODA ${oda.length}건 (${odaBudget.toLocaleString()}억원)</span>
+                            </div>
+                        </div>
+                        <div class="project-list-container">
+                            ${sortedProjects.map((p, idx) => {
+                                const categoryClass = p.category === 'Consulting' ? 'consulting' : 'oda';
+                                const budget = p.budget ? Math.round(p.budget / 100) : 0;
+                                const year = getProjectStartYear(p);
+                                const statusClass = p.status === '시행중' ? 'in-progress' : p.status === '제안중' ? 'proposal' : 'completed';
+
+                                return `
+                                    <div class="project-list-item ${categoryClass} ${statusClass}">
+                                        <div class="project-number">${idx + 1}</div>
+                                        <div class="project-content">
+                                            <div class="project-header">
+                                                <h4 class="project-title">${p.description || '프로젝트명 없음'}</h4>
+                                                <div class="project-badges">
+                                                    <span class="category-badge ${categoryClass}">${p.category}</span>
+                                                    ${p.status && p.status !== '준공' ? `<span class="status-badge ${statusClass}">${p.status}</span>` : ''}
+                                                </div>
+                                            </div>
+                                            <div class="project-details">
+                                                ${year ? `<div class="detail-item"><span class="detail-label">📅 연도:</span> ${year}</div>` : ''}
+                                                ${budget > 0 ? `<div class="detail-item"><span class="detail-label">💰 ${p.category === 'ODA' ? '예산' : '용역비'}:</span> ${budget.toLocaleString()}억원</div>` : ''}
+                                                ${p.client ? `<div class="detail-item"><span class="detail-label">🏢 발주처:</span> ${p.client}</div>` : ''}
+                                                ${p.category === 'Consulting' && p.startDate && p.endDate ? `<div class="detail-item"><span class="detail-label">⏱️ 기간:</span> ${p.startDate} ~ ${p.endDate}</div>` : ''}
+                                                ${p.category === 'ODA' && p.type ? `<div class="detail-item"><span class="detail-label">🔧 형태:</span> ${p.type}</div>` : ''}
+                                                ${p.category === 'ODA' && p.period ? `<div class="detail-item"><span class="detail-label">📋 기간:</span> ${p.period}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 모달 내용 생성
+            modalBody.innerHTML = `
+                <div class="country-history-container">
+                    ${generateTimeline()}
+                    ${generateProjectList()}
+                </div>
+            `;
+
+            // 모달 표시
+            modal.style.display = 'flex';
+        }
+
+        function closeCountryStatsModal() {
+            const modal = document.getElementById('country-stats-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            // 활성화된 국기 칩 해제
+            document.querySelectorAll('.flag-chip').forEach(el => el.classList.remove('active'));
+        }
         function adjustLegendPosition() {
-            const filterBar = document.getElementById('top-filter-bar');
+            const filterBar = document.getElementById('control-panel') || document.getElementById('top-filter-bar');
             const legend = document.getElementById('legend');
             
             if (filterBar && legend) {
@@ -2738,6 +3244,8 @@
                 const newTop = Math.max(filterBarHeight + safeMargin, mapControlsHeight);
                 
                 legend.style.top = `${newTop}px`;
+            } else if (legend) {
+                legend.style.top = '100px';
             }
         }
         // 윈도우 리사이즈 시에도 범례 위치 조정
@@ -2872,12 +3380,15 @@
             try {
                 console.log('애플리케이션 초기화 시작');
                 
-                // 조회수 시스템 초기화 (Firebase 포함)
-                initializeViewsSystem();
+                // 조회수 시스템 제거됨
                 
                 initMap();
                 await loadData();
+                // 로컬 스냅샷 반영 및 ID 보장
+                try { const snap = localStorage.getItem('krc_edits_snapshot'); if (snap){ const s = JSON.parse(snap); if (Array.isArray(s) && s.length){ allProjects = s; } } } catch {}
+                ensureProjectIds();
                 initializeFilters();
+                initializeCategoryFilters(); // 카테고리 필터 초기화
                 hideLoading();
                 
                 console.log('애플리케이션 초기화 완료');
@@ -2889,10 +3400,8 @@
             }
         }
         
-        // 페이지 언로드 시 리스너 정리
-        window.addEventListener('beforeunload', () => {
-            removeRealTimeListener();
-        });
+        // 페이지 언로드 시 정리 (Firebase 없음)
+        window.addEventListener('beforeunload', () => {});
         
         // DOM 로드 후 시작
         if (document.readyState === 'loading') {
@@ -2918,6 +3427,44 @@
             filterDropdowns.forEach(dropdown => {
                 observer.observe(dropdown, { attributes: true, attributeFilter: ['style'] });
             });
+            // 편집/주소검색/파일 이벤트
+            const tbtn = document.getElementById('toggle-edit-btn'); if (tbtn) tbtn.addEventListener('click', toggleEditMode);
+            const nbtn = document.getElementById('new-point-btn'); if (nbtn) nbtn.addEventListener('click', newProject);
+            const exp = document.getElementById('export-json-btn'); if (exp) exp.addEventListener('click', exportJSON);
+            const imp = document.getElementById('import-json-file'); if (imp) imp.addEventListener('change', importJSON);
+            const abtn = document.getElementById('address-search-btn'); if (abtn) abtn.addEventListener('click', unifiedSearch);
+            // 주소 자동완성: 디바운스
+            const ainput = document.getElementById('address-input');
+            if (ainput) {
+                let t = null;
+                ainput.addEventListener('input', () => {
+                    if (t) clearTimeout(t);
+                    t = setTimeout(searchAddress, 350);
+                });
+                ainput.addEventListener('keypress', (e) => { if (e.key === 'Enter') unifiedSearch(); });
+            }
+            const sug = document.getElementById('address-suggestions'); if (sug) sug.addEventListener('click', handleSuggestionClick);
+            attachCountryHubHandlers();
+
+            // 국가 통계 모달 이벤트 리스너
+            const countryStatsModal = document.getElementById('country-stats-modal');
+            if (countryStatsModal) {
+                countryStatsModal.addEventListener('click', (e) => {
+                    if (e.target === countryStatsModal) {
+                        closeCountryStatsModal();
+                    }
+                });
+            }
+
+            // 카테고리 필터 버튼은 onclick 이벤트로 처리됨
+            if (map && map.on) {
+                map.on('moveend zoomend', () => { updateCountryHub(); });
+            } else {
+                setTimeout(() => { if (map && map.on) map.on('moveend zoomend', updateCountryHub); }, 300);
+            }
+            updateCountryHub();
+            // Fallback: 로딩이 남아있다면 3초 후 강제 숨김
+            setTimeout(() => { hideLoading(); }, 3000);
         });
         // ===========================================
         // 전역 함수들
@@ -2925,16 +3472,74 @@
         
         window.resetAllFilters = resetAllFilters;
         window.goToMyLocation = goToMyLocation;
-        window.toggleViewsPanel = toggleViewsPanel;
-        window.showAdminLogin = showAdminLogin;
-        window.closeAdminLogin = closeAdminLogin;
-        window.performAdminLogin = performAdminLogin;
-        window.performAdminLogout = performAdminLogout;
-        window.manualSync = manualSync;
-        window.exportFirebaseData = exportFirebaseData;
-        window.resetFirebaseData = resetFirebaseData;
-        window.changeMonth = changeMonth;
-        window.goToToday = goToToday;
+        window.openEditor = openEditor;
     </script>
+    <!-- 편집 모달 -->
+    <div class="edit-modal" id="edit-modal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <div>프로젝트 편집</div>
+                <button onclick="document.getElementById('edit-modal').style.display='none'">✕</button>
+            </div>
+            <div class="edit-modal-body">
+                <div>
+                    <label>국가명</label>
+                    <input id="edit-name" />
+                </div>
+                <div>
+                    <label>카테고리</label>
+                    <select id="edit-category">
+                        <option value="ODA">ODA</option>
+                        <option value="Consulting">Consulting</option>
+                    </select>
+                </div>
+                <div>
+                    <label>사업명</label>
+                    <input id="edit-description" />
+                </div>
+                <div>
+                    <label>상태(컨설팅)</label>
+                    <input id="edit-status" />
+                </div>
+                <div>
+                    <label>기간(ODA)</label>
+                    <input id="edit-period" />
+                </div>
+                <div>
+                    <label>형태/유형</label>
+                    <input id="edit-type" />
+                </div>
+                <div>
+                    <label>발주처</label>
+                    <input id="edit-client" />
+                </div>
+                <div>
+                    <label>착수일</label>
+                    <input id="edit-start" />
+                </div>
+                <div>
+                    <label>준공일</label>
+                    <input id="edit-end" />
+                </div>
+                <div>
+                    <label>예산(백만원)</label>
+                    <input id="edit-budget" type="number" step="1" />
+                </div>
+                <div>
+                    <label>위도(lat)</label>
+                    <input id="edit-lat" />
+                </div>
+                <div>
+                    <label>경도(lng)</label>
+                    <input id="edit-lng" />
+                </div>
+                <div class="small-note">지도에서 해당 지점을 클릭 후 나타난 마커를 직접 드래그하여 위치를 조정하세요. (편집 모드에서 선택된 마커는 강조되고 드래그 가능)</div>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="edit-btn" onclick="saveEditor()">저장</button>
+                <button class="edit-btn" onclick="document.getElementById('edit-modal').style.display='none'">닫기</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
