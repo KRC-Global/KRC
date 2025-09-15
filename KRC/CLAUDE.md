@@ -1,0 +1,62 @@
+## KRC Global Map — Assistant Guide (요약)
+
+목적
+
+- 이 저장소에서 코드 보조 도구(assistant)가 작업할 때 필요한 개요와 규칙을 제공합니다.
+
+개요
+
+- 정적(Static) Leaflet 웹앱으로 ODA/Consulting 프로젝트를 세계 지도에 표시합니다.
+- 백엔드/Firebase 미사용. 데이터는 `KRC/data/`의 JSON 두 파일에서 로드합니다.
+- 브라우저 내 편집 모드(신규/수정/마커 드래그/JSON 내보내기·불러오기) 지원.
+- 주소+사업명 통합 검색(Nominatim + 부분 문자열 매칭).
+
+핵심 파일/디렉터리
+
+- `KRC/index.html`: 단일 파일에 HTML/CSS/JS가 모두 포함(지도, 편집, 패널 로직).
+- `KRC/data/global_oda.json`, `KRC/data/global_consulting.json`: 데이터 소스.
+- `KRC/scripts/convert_xlsx_to_json.py`: Excel → JSON 변환 스크립트(openpyxl 사용).
+- `package.json`, `KRC/scripts/dev-server.js`, `KRC/scripts/serve.sh`: 로컬 서버 실행 도구.
+- `KRC/archive/versions/`: 과거 스냅샷(레거시 Firebase 코드 포함, 런타임에 사용 안 함).
+
+실행 방법
+
+- npm: `npm start` (포트 변경: `PORT=8080 npm start`)
+- Python: `PORT=8000 bash KRC/scripts/serve.sh`
+- 접속: `http://localhost:8000/` (루트에서 `/KRC/index.html`로 리다이렉트)
+
+데이터 플로우
+
+- Excel → JSON: `python3 KRC/scripts/convert_xlsx_to_json.py`
+- 앱 로드 → `data/*.json` 로딩 → 프로젝트별 마커 표시.
+- 편집 모드: “✏️ 편집 모드” → 팝업의 “편집” → 모달에서 저장.
+- 좌표 조정: 선택된 마커를 직접 드래그(모달 위/경도 실시간 반영, 저장 시 확정).
+- JSON 내보내기/불러오기: 우측 패널에서 실행(내보낸 파일은 `KRC/data/`에 반영하여 배포).
+
+UI 구조(최신)
+
+- 우측 사이드 패널(오른쪽 1/3):
+  - 상단 툴바: 주소/사업명 검색 + 편집 컨트롤(새 지점/내보내기/불러오기)
+  - 요약 카드: 컨설팅/ODA 개수·합계 요약(필터/컨텍스트 기준)
+  - 2x2 대륙 그리드: 아시아/아메리카/아프리카/기타로 국기 칩 정리
+  - 국가 통계 카드: 총 프로젝트, 기간, ODA/컨설팅 합계, 상태 요약, 발주처 TOP3
+- 마커: 프로젝트별 단일 마커(카테고리 테두리색, 배경에 국가 국기)
+
+코딩 원칙
+
+- 변경은 `KRC/index.html`에 최소 침습적으로 적용(불필요한 구조 변경 지양).
+- 스타일 톤 유지: 상아색(#FFF8E7) 바탕 + 진한 파랑(#0A3D62) 테두리.
+- 외부 의존성 추가 금지(빌드/번들 없이 동작해야 함).
+- 아카이브(archive)는 참고용이며, 동기화/수정 대상이 아님.
+
+자주 겪는 이슈
+
+- 로딩만 보일 때: 콘솔 에러 확인(필터 DOM 부재 접근, 템플릿 문자열 구문 오류 등). 방어 코드로 우회 가능.
+- 포트 충돌/원격 접속: 포트 변경 또는 방화벽/보안그룹 개방.
+- 지도/검색 비어 보임: OSM 타일·Nominatim은 인터넷 필요(오프라인 환경에서 제한적).
+
+테스트 체크리스트
+
+- `npm start`로 서버 실행 후 마커 렌더링 확인.
+- 편집 모드에서 마커 드래그 → 모달 좌표 갱신 확인 → 저장 후 JSON 내보내기 확인.
+- 검색창에 사업명 일부(예: “까리안”) 입력 시 해당 프로젝트 위치로 이동 확인.

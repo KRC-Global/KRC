@@ -1,0 +1,11 @@
+{
+  "name": "krc-static-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev server to serve the KRC folder without external deps.",
+  "scripts": {
+    "start": "node KRC/scripts/dev-server.js",
+    "start:port": "PORT=8000 node KRC/scripts/dev-server.js"
+  }
+}
+
