@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Projects Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; height: 100vh; background-color: #f5f5f5; }
+        #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        #top-filter-bar {
+            position: fixed; top: 0; left: 0; width: 100%;
+            background-color: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);
+            padding: 8px 15px; z-index: 1005; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap; 
+        }
+        .filter-button-group { position: relative; }
+        .filter-bar-button {
+            padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px;
+            background-color: #fff; cursor: pointer; font-size: 0.85em;
+            transition: background-color 0.2s, border-color 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .filter-bar-button:hover, .filter-bar-button.active { background-color: #e9ecef; border-color: #bbb; }
+        .filter-dropdown {
+            position: absolute; top: calc(100% + 5px); left: 0;
+            background-color: white; border: 1px solid #ccc; box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border-radius: 8px; z-index: 1006; min-width: 280px; max-width: 350px;
+            max-height: 320px; overflow-y: auto; display: none; padding: 12px;
+        }
+        .filter-dropdown .filter-title {
+            font-weight: 600; color: #34495e; margin-bottom: 10px; font-size: 0.9em;
+            padding-bottom: 8px; border-bottom: 1px solid #eee;
+        }
+        .reset-all-filters-btn {
+            margin-left: auto; padding: 7px 12px; font-size: 0.8em; background-color: #e74c3c;
+            color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;
+        }
+        .reset-all-filters-btn:hover { background-color: #c0392b; }
+        
+        .daily-views-display {
+            margin-left: 10px; padding: 7px 12px; background-color: #f8f9fa; 
+            border: 1px solid #ddd; border-radius: 6px; font-size: 0.8em; color: #495057; 
+            display: flex; align-items: center; gap: 5px; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .daily-views-display:hover {
+            background-color: #e9ecef;
+        }
+        
+        .views-panel {
+            position: fixed; top: 60px; right: 20px; width: 350px; max-height: 400px;
+            background: white; border: 1px solid #ddd; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15); z-index: 1007;
+            display: none; overflow: hidden;
+        }
+        .views-panel-header {
+            padding: 12px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
+            font-weight: 600; display: flex; justify-content: space-between; align-items: center;
+        }
+        .views-panel-content {
+            max-height: 320px; overflow-y: auto; padding: 8px;
+        }
+        .views-summary {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+        }
+        .views-summary-card {
+            background: #f8f9fa; padding: 8px; border-radius: 4px; text-align: center;
+        }
+        .views-summary-number {
+            font-size: 18px; font-weight: 600; color: #2c3e50;
+        }
+        .views-summary-label {
+            font-size: 11px; color: #6c757d; margin-top: 2px;
+        }
+        .views-history-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 8px; border-radius: 4px; margin-bottom: 2px;
+            transition: background-color 0.2s;
+        }
+        .views-history-item:hover {
+            background-color: #f8f9fa;
+        }
+        .views-history-date {
+            font-size: 12px; color: #495057;
+        }
+        .views-history-count {
+            font-size: 12px; font-weight: 600; color: #007bff;
+        }
+        .views-history-today {
+            background-color: #e3f2fd;
+        }
+        .close-panel {
+            background: none; border: none; font-size: 16px; cursor: pointer;
+            color: #6c757d; padding: 0; width: 20px; height: 20px;
+        }
+        
+        #filter-result-display {
+            position: fixed; top: 65px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 102, 204, 0.85); color: white;
+            padding: 6px 12px; border-radius: 15px; font-size: 0.8em; z-index: 1004;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); white-space: nowrap;
+        }
+        
+        .checkbox-group { display: flex; flex-direction: column; gap: 6px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 4px; border-radius: 4px; transition: background-color 0.2s; }
+        .checkbox-item:hover { background-color: #f8f9fa; }
+        .checkbox-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: #3498db; }
+        .checkbox-item label { flex: 1; font-size: 0.85em; color: #2c3e50; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .count { color: #7f8c8d; font-size: 0.75em; background: #f1f2f6; padding: 2px 5px; border-radius: 10px; }
+
+        #bottom-info-panel {
+            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 20px); max-width: 1200px;
+            background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px);
+            border-radius: 12px; box-shadow: 0 -2px 20px rgba(0,0,0,0.12);
+            padding: 12px 15px; z-index: 1001;
+        }
+        #bottom-info-panel .section-title { 
+            font-size: 1em; font-weight: 600; color: #2c3e50; margin-bottom: 10px; 
+        }
+        #bottom-info-panel .stats-grid { 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; 
+        }
+        #bottom-info-panel .stat-card { 
+            background: white; padding: 12px; border-radius: 8px; text-align: center; 
+            box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-left-width: 4px; border-left-style: solid; 
+        }
+        #bottom-info-panel .stat-number { font-size: 1.3em; font-weight: 600; margin-bottom: 3px; }
+        #bottom-info-panel .stat-label { font-size: 0.75em; color: #7f8c8d; }
+
+        .map-controls { position: fixed; left: 15px; z-index: 999; display: flex; flex-direction: column; gap: 10px; bottom: 15px;}
+        .control-btn {
+            background: white; border: 2px solid #3498db; color: #3498db; padding: 8px;
+            border-radius: 50%; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease; width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .control-btn:hover { background: #3498db; color: white; transform: scale(1.1); }
+
+        .loading { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; padding: 30px; border-radius: 10px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 2000; text-align: center; 
+        }
+        .loading-spinner { 
+            border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; 
+            width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .status-complete { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status-progress { background: #d1f2eb; color: #155724; border: 1px solid #c3e6cb; }
+        .status-proposal { background: #ff6b35; color: white; border: 1px solid #ff5722; }
+
+        .custom-div-icon { background: transparent !important; border: none !important; }
+
+        @media (max-width: 768px) {
+            #bottom-info-panel .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .daily-views-display { font-size: 0.75em; padding: 5px 8px; }
+        }
+
+        .notification {
+            position: fixed; top: 20px; right: 20px; background: #2c3e50; color: white;
+            padding: 12px 16px; border-radius: 8px; font-size: 13px; z-index: 2002;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-width: 350px;
+            animation: slideInRight 0.3s ease;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div id="top-filter-bar">
+        <div style="font-size: 16px; font-weight: 600; color: #2c3e50; margin-right: 15px; display: flex; align-items: center;">
+            🔍 사업필터링
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="projectTypeDropdown">사업 타입 ▾</button>
+            <div class="filter-dropdown" id="projectTypeDropdown">
+                <div class="filter-title">사업 타입 선택</div>
+                <div class="checkbox-group" id="projectTypeFilters"></div>
+            </div>
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="countryDropdown">국가 ▾</button>
+            <div class="filter-dropdown" id="countryDropdown">
+                <div class="filter-title">국가 선택</div>
+                <div class="checkbox-group" id="countryFilters"></div>
+            </div>
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="yearDropdown">수주년도 ▾</button>
+            <div class="filter-dropdown" id="yearDropdown">
+                <div class="filter-title">수주년도 선택</div>
+                <div class="checkbox-group" id="yearFilters"></div>
+            </div>
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="statusDropdown">진행상태 ▾</button>
+            <div class="filter-dropdown" id="statusDropdown">
+                <div class="filter-title">진행상태 선택</div>
+                <div class="checkbox-group" id="statusFilters"></div>
+            </div>
+        </div>
+        <div class="filter-button-group">
+            <button class="filter-bar-button" data-dropdown="clientDropdown">발주처 ▾</button>
+            <div class="filter-dropdown" id="clientDropdown">
+                <div class="filter-title">발주처 선택</div>
+                <div class="checkbox-group" id="clientFilters"></div>
+            </div>
+        </div>
+        <button class="reset-all-filters-btn" onclick="resetAllFilters()">🔄 전체 초기화</button>
+        <div class="daily-views-display" onclick="toggleViewsPanel()">
+            <span>👁️</span>
+            <span>오늘: <span id="daily-views">0</span> | 누적: <span id="total-views">0</span></span>
+            <span style="font-size: 10px;">▼</span>
+        </div>
+    </div>
+
+    <div class="views-panel" id="views-panel">
+        <div class="views-panel-header">
+            <span>📊 조회수 통계</span>
+            <button class="close-panel" onclick="toggleViewsPanel()">✕</button>
+        </div>
+        <div class="views-panel-content">
+            <div class="views-summary">
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-today">0</div>
+                    <div class="views-summary-label">오늘</div>
+                </div>
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-total">0</div>
+                    <div class="views-summary-label">누적</div>
+                </div>
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-avg">0</div>
+                    <div class="views-summary-label">일평균</div>
+                </div>
+                <div class="views-summary-card">
+                    <div class="views-summary-number" id="summary-days">0</div>
+                    <div class="views-summary-label">기록일수</div>
+                </div>
+            </div>
+            <div style="border-bottom: 1px solid #dee2e6; margin-bottom: 8px; padding-bottom: 8px;">
+                <strong style="font-size: 13px; color: #495057;">📅 날짜별 기록</strong>
+            </div>
+            <div id="views-history"></div>
+        </div>
+    </div>
+
+    <div id="filter-result-display">
+        <span id="filterResultText">데이터 로딩 중...</span>
+    </div>
+
+    <div id="bottom-info-panel">
+        <div class="section-title">📊 프로젝트 현황</div>
+        <div class="stats-grid">
+            <div class="stat-card" id="stat-total-projects">
+                <div class="stat-number" id="total-projects">-</div>
+                <div class="stat-label">총 프로젝트</div>
+            </div>
+            <div class="stat-card" id="stat-countries-count">
+                <div class="stat-number" id="countries-count">-</div>
+                <div class="stat-label">참여 국가</div>
+            </div>
+            <div class="stat-card" id="stat-consulting-projects">
+                <div class="stat-number" id="consulting-projects">-</div>
+                <div class="stat-label">컨설팅 사업</div>
+            </div>
+            <div class="stat-card" id="stat-oda-projects">
+                <div class="stat-number" id="oda-projects">-</div>
+                <div class="stat-label">ODA 사업</div>
+            </div>
+            <div class="stat-card" id="stat-total-budget">
+                <div class="stat-number" id="total-budget">-</div>
+                <div class="stat-label">총 사업비 (억원)</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="map-controls">
+        <button class="control-btn" onclick="goToMyLocation()" title="내 위치로 이동">📍</button>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div id="loading-text">Excel 파일에서 데이터를 불러오는 중...</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 전역 변수
+        let map = null;
+        let markersLayer = null;
+        let allProjects = [];
+        let filteredProjects = [];
+        let activeFilters = {
+            projectTypes: new Set(),
+            countries: new Set(),
+            years: new Set(),
+            statuses: new Set(),
+            clients: new Set()
+        };
+        let dailyViews = 0;
+        let viewsHistory = {}; // 날짜별 조회수 기록
+        let totalViews = 0;
+
+        const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
+        
+        const countryCodeMap = {
+            "베트남": "vn", "라오스": "la", "캄보디아": "kh", "필리핀": "ph", "몽골": "mn", 
+            "우즈베키스탄": "uz", "키르기스스탄": "kg", "스리랑카": "lk", "미얀마": "mm", 
+            "방글라데시": "bd", "태국": "th", "인도네시아": "id", "인도": "in", "네팔": "np", 
+            "아프가니스탄": "af", "이란": "ir", "가나": "gh", "케냐": "ke", "탄자니아": "tz", 
+            "세네갈": "sn", "우간다": "ug", "카메룬": "cm", "모잠비크": "mz", "에티오피아": "et", 
+            "말라위": "mw", "앙골라": "ao", "감비아": "gm", "기니": "gn", "DR콩고": "cd", 
+            "콩고민주공화국": "cd", "코트디브아르": "ci", "볼리비아": "bo", "엘살바도르": "sv", 
+            "페루": "pe", "키리바시": "ki", "한국": "kr", "일본": "jp", "중국": "cn", 
+            "러시아": "ru", "미국": "us", "요르단": "jo", "알제리": "dz", "파라과이": "py", 
+            "말레이시아": "my", "브루나이": "bn", "과테말라": "gt", "파키스탄": "pk"
+        };
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            if (type === 'success') notification.style.background = '#27ae60';
+            else if (type === 'warning') notification.style.background = '#f39c12';
+            else if (type === 'error') notification.style.background = '#e74c3c';
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transition = 'opacity 0.5s ease';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 500);
+            }, 4000);
+        }
+
+        function hideLoading() {
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        function updateLoadingText(text) {
+            const loadingTextEl = document.getElementById('loading-text');
+            if (loadingTextEl) {
+                loadingTextEl.textContent = text;
+            }
+        }
+
+        // 장기간 조회수 관리 시스템
+        function initializeViewsSystem() {
+            // localStorage에서 기존 기록 불러오기
+            const savedHistory = localStorage.getItem('viewsHistory');
+            if (savedHistory) {
+                try {
+                    viewsHistory = JSON.parse(savedHistory);
+                } catch (error) {
+                    console.warn('조회수 기록 로드 실패:', error);
+                    viewsHistory = {};
+                }
+            }
+            
+            const today = getTodayString();
+            
+            // 오늘 조회수 증가
+            if (viewsHistory[today]) {
+                viewsHistory[today]++;
+            } else {
+                viewsHistory[today] = 1;
+            }
+            
+            // localStorage에 저장
+            localStorage.setItem('viewsHistory', JSON.stringify(viewsHistory));
+            
+            // 현재 값들 계산
+            dailyViews = viewsHistory[today];
+            totalViews = Object.values(viewsHistory).reduce((sum, count) => sum + count, 0);
+            
+            updateViewsDisplay();
+        }
+
+        function getTodayString() {
+            const today = new Date();
+            return today.getFullYear() + '-' + 
+                   String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(today.getDate()).padStart(2, '0');
+        }
+
+        function updateViewsDisplay() {
+            // 상단바 표시 업데이트
+            const dailyElement = document.getElementById('daily-views');
+            const totalElement = document.getElementById('total-views');
+            
+            if (dailyElement) dailyElement.textContent = dailyViews.toLocaleString();
+            if (totalElement) totalElement.textContent = totalViews.toLocaleString();
+            
+            // 패널 요약 정보 업데이트
+            const summaryToday = document.getElementById('summary-today');
+            const summaryTotal = document.getElementById('summary-total');
+            const summaryAvg = document.getElementById('summary-avg');
+            const summaryDays = document.getElementById('summary-days');
+            
+            if (summaryToday) summaryToday.textContent = dailyViews.toLocaleString();
+            if (summaryTotal) summaryTotal.textContent = totalViews.toLocaleString();
+            
+            const recordDays = Object.keys(viewsHistory).length;
+            const avgViews = recordDays > 0 ? Math.round(totalViews / recordDays) : 0;
+            
+            if (summaryAvg) summaryAvg.textContent = avgViews.toLocaleString();
+            if (summaryDays) summaryDays.textContent = recordDays.toLocaleString();
+        }
+
+        function toggleViewsPanel() {
+            const panel = document.getElementById('views-panel');
+            const isVisible = panel.style.display === 'block';
+            
+            if (isVisible) {
+                panel.style.display = 'none';
+            } else {
+                updateViewsHistory();
+                panel.style.display = 'block';
+            }
+        }
+
+        function updateViewsHistory() {
+            const historyContainer = document.getElementById('views-history');
+            if (!historyContainer) return;
+            
+            // 날짜별 기록을 최신 순으로 정렬
+            const sortedDates = Object.keys(viewsHistory).sort().reverse();
+            const today = getTodayString();
+            
+            let historyHTML = '';
+            
+            sortedDates.forEach(date => {
+                const count = viewsHistory[date];
+                const isToday = date === today;
+                const formattedDate = formatDateForDisplay(date);
+                
+                historyHTML += `
+                    <div class="views-history-item ${isToday ? 'views-history-today' : ''}">
+                        <span class="views-history-date">${formattedDate}${isToday ? ' (오늘)' : ''}</span>
+                        <span class="views-history-count">${count.toLocaleString()}회</span>
+                    </div>
+                `;
+            });
+            
+            if (historyHTML === '') {
+                historyHTML = '<div style="text-align: center; color: #6c757d; padding: 20px;">기록이 없습니다.</div>';
+            }
+            
+            historyContainer.innerHTML = historyHTML;
+        }
+
+        function formatDateForDisplay(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (dateString === getTodayString()) {
+                return '오늘';
+            } else if (dateString === yesterday.getFullYear() + '-' + 
+                       String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(yesterday.getDate()).padStart(2, '0')) {
+                return '어제';
+            } else {
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                const weekday = weekdays[date.getDay()];
+                return `${month}월 ${day}일 (${weekday})`;
+            }
+        }
+
+        // 모든 가능한 컬럼명을 포괄하는 헬퍼 함수
+        function getValueFromRow(row, possibleNames) {
+            for (const name of possibleNames) {
+                // 정확한 매치
+                if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+                    return row[name];
+                }
+                
+                // 부분 매치 (대소문자 무시하고 공백 제거)
+                const cleanName = name.toLowerCase().replace(/\s/g, '');
+                for (const key in row) {
+                    if (key && typeof key === 'string') {
+                        const cleanKey = key.toLowerCase().replace(/\s/g, '');
+                        if (cleanKey.includes(cleanName) || cleanName.includes(cleanKey)) {
+                            if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                                return row[key];
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // 국가별 기본 좌표 제공 함수
+        function getDefaultCoordinates(countryName) {
+            const defaultCoords = {
+                "베트남": { lat: 14.0583, lng: 108.2772 },
+                "라오스": { lat: 19.8563, lng: 102.4955 },
+                "캄보디아": { lat: 12.5657, lng: 104.9910 },
+                "필리핀": { lat: 12.8797, lng: 121.7740 },
+                "몽골": { lat: 47.8864, lng: 106.9057 },
+                "우즈베키스탄": { lat: 41.3775, lng: 64.5853 },
+                "키르기스스탄": { lat: 41.2044, lng: 74.7661 },
+                "스리랑카": { lat: 7.8731, lng: 80.7718 },
+                "미얀마": { lat: 21.9162, lng: 95.9560 },
+                "방글라데시": { lat: 23.6850, lng: 90.3563 },
+                "태국": { lat: 15.8700, lng: 100.9925 },
+                "인도네시아": { lat: -0.7893, lng: 113.9213 },
+                "인도": { lat: 20.5937, lng: 78.9629 },
+                "네팔": { lat: 28.3949, lng: 84.1240 },
+                "아프가니스탄": { lat: 33.9391, lng: 67.7100 },
+                "이란": { lat: 32.4279, lng: 53.6880 },
+                "가나": { lat: 7.9465, lng: -1.0232 },
+                "케냐": { lat: -0.0236, lng: 37.9062 },
+                "탄자니아": { lat: -6.3690, lng: 34.8888 },
+                "세네갈": { lat: 14.4974, lng: -14.4524 },
+                "우간다": { lat: 1.3733, lng: 32.2903 },
+                "카메룬": { lat: 7.3697, lng: 12.3547 },
+                "모잠비크": { lat: -18.6657, lng: 35.5296 },
+                "에티오피아": { lat: 9.1450, lng: 40.4897 },
+                "말라위": { lat: -13.2543, lng: 34.3015 },
+                "앙골라": { lat: -11.2027, lng: 17.8739 },
+                "감비아": { lat: 13.4432, lng: -15.3101 },
+                "기니": { lat: 9.9456, lng: -9.6966 },
+                "DR콩고": { lat: -4.0383, lng: 21.7587 },
+                "콩고민주공화국": { lat: -4.0383, lng: 21.7587 },
+                "코트디브아르": { lat: 7.5400, lng: -5.5471 },
+                "볼리비아": { lat: -16.2902, lng: -63.5887 },
+                "엘살바도르": { lat: 13.7942, lng: -88.8965 },
+                "페루": { lat: -9.1900, lng: -75.0152 },
+                "키리바시": { lat: -3.3704, lng: -168.7340 },
+                "한국": { lat: 35.9078, lng: 127.7669 },
+                "일본": { lat: 36.2048, lng: 138.2529 },
+                "중국": { lat: 35.8617, lng: 104.1954 },
+                "러시아": { lat: 61.5240, lng: 105.3188 },
+                "미국": { lat: 37.0902, lng: -95.7129 },
+                "요르단": { lat: 30.5852, lng: 36.2384 },
+                "알제리": { lat: 28.0339, lng: 1.6596 },
+                "파라과이": { lat: -23.4425, lng: -58.4438 },
+                "말레이시아": { lat: 4.2105, lng: 101.9758 },
+                "브루나이": { lat: 4.5353, lng: 114.7277 },
+                "과테말라": { lat: 15.7835, lng: -90.2308 },
+                "파키스탄": { lat: 30.3753, lng: 69.3451 }
+            };
+            
+            return defaultCoords[countryName] || { lat: 0, lng: 0 };
+        }
+
+        // Excel 파일 로딩 (fetch 사용)
+        async function loadExcelFiles() {
+            console.log('Excel 파일 로딩 시작');
+            const projects = [];
+            
+            try {
+                // ODA 파일 로딩
+                updateLoadingText('ODA 파일을 읽는 중...');
+                try {
+                    const odaResponse = await fetch('global ODA.xlsx');
+                    if (odaResponse.ok) {
+                        const odaArrayBuffer = await odaResponse.arrayBuffer();
+                        const odaWorkbook = XLSX.read(odaArrayBuffer, { type: 'array' });
+                        const odaProjects = processODAFile(odaWorkbook);
+                        projects.push(...odaProjects);
+                        console.log(`ODA 프로젝트 ${odaProjects.length}개 로드`);
+                    } else {
+                        throw new Error('ODA 파일을 찾을 수 없습니다');
+                    }
+                } catch (error) {
+                    console.warn('ODA 파일 로딩 실패:', error.message);
+                }
+
+                // Consulting 파일 로딩
+                updateLoadingText('Consulting 파일을 읽는 중...');
+                try {
+                    const consultingResponse = await fetch('global consulting.xlsx');
+                    if (consultingResponse.ok) {
+                        const consultingArrayBuffer = await consultingResponse.arrayBuffer();
+                        const consultingWorkbook = XLSX.read(consultingArrayBuffer, { type: 'array' });
+                        const consultingProjects = processConsultingFile(consultingWorkbook);
+                        projects.push(...consultingProjects);
+                        console.log(`Consulting 프로젝트 ${consultingProjects.length}개 로드`);
+                    } else {
+                        throw new Error('Consulting 파일을 찾을 수 없습니다');
+                    }
+                } catch (error) {
+                    console.warn('Consulting 파일 로딩 실패:', error.message);
+                }
+
+                return projects;
+
+            } catch (error) {
+                console.error('Excel 파일 로딩 오류:', error);
+                throw error;
+            }
+        }
+
+        // ODA 파일 처리 (정확한 시트만 선택)
+        function processODAFile(workbook) {
+            console.log('ODA 파일 처리 시작');
+            console.log('사용 가능한 시트:', workbook.SheetNames);
+            
+            const projects = [];
+            
+            // ODA 전용 시트만 처리 ("ODA 양자계속" 포함된 시트)
+            let targetSheetName = null;
+            for (const sheetName of workbook.SheetNames) {
+                if (sheetName.includes('ODA') || sheetName.includes('양자계속')) {
+                    targetSheetName = sheetName;
+                    break;
+                }
+            }
+            
+            if (!targetSheetName) {
+                console.log('ODA 시트를 찾을 수 없습니다');
+                return projects;
+            }
+            
+            console.log(`ODA 시트 선택: ${targetSheetName}`);
+            
+            const sheet = workbook.Sheets[targetSheetName];
+            const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
+            
+            console.log(`데이터 행 수: ${rawData.length}`);
+            
+            if (rawData.length < 2) {
+                console.log('유효한 데이터가 없습니다');
+                return projects;
+            }
+            
+            // 헤더 확인 (첫 번째 행)
+            const headers = rawData[0];
+            console.log('헤더:', headers);
+            
+            let processedCount = 0;
+            
+            // 데이터 행 처리 (헤더 제외)
+            for (let i = 1; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row || !Array.isArray(row)) continue;
+                
+                try {
+                    // ODA 시트 구조에 맞게 컬럼 인덱스 사용
+                    const country = row[1]; // 국가별
+                    const x = parseFloat(row[2]) || 0; // X
+                    const y = parseFloat(row[3]) || 0; // Y
+                    const projectName = row[4]; // ₩ (프로젝트명)
+                    const projectContent = row[5]; // 사업 내용
+                    const period = row[6]; // 사업기간
+                    const type = row[7]; // 사업형태
+                    const budget = parseFloat(row[8]) || 0; // 총예산(백만원)
+                    const continent = row[9]; // 대륙별
+                    
+                    // 유효한 데이터 검증
+                    if (country && projectName && 
+                        country.toString().trim() !== '' && 
+                        projectName.toString().trim() !== '') {
+                        
+                        let lat = y;
+                        let lng = x;
+                        
+                        // 좌표가 없는 경우 기본 좌표 사용
+                        if (!lat || !lng || lat === 0 || lng === 0) {
+                            const defaultCoords = getDefaultCoordinates(country.toString().trim());
+                            lat = defaultCoords.lat;
+                            lng = defaultCoords.lng;
+                        }
+                        
+                        const project = {
+                            name: country.toString().trim(),
+                            lat: lat,
+                            lng: lng,
+                            description: projectName.toString().trim(),
+                            category: 'ODA',
+                            period: period ? period.toString().trim() : '',
+                            budget: budget || 0,
+                            continent: continent ? continent.toString().trim() : '',
+                            type: type ? type.toString().trim() : '',
+                            content: projectContent ? projectContent.toString().trim() : '',
+                            number: projects.length + 1,
+                            sheet: targetSheetName
+                        };
+                        
+                        projects.push(project);
+                        processedCount++;
+                    }
+                } catch (error) {
+                    console.warn(`행 ${i + 1} 처리 중 오류:`, error.message);
+                }
+            }
+            
+            console.log(`ODA 프로젝트 처리 완료: ${processedCount}개`);
+            return projects;
+        }
+
+        // Consulting 파일 처리 (정확한 시트만 선택)
+        function processConsultingFile(workbook) {
+            console.log('Consulting 파일 처리 시작');
+            console.log('사용 가능한 시트:', workbook.SheetNames);
+            
+            const projects = [];
+            
+            // Consulting 전용 시트만 처리 ("해외기술컨설팅" 포함된 시트)
+            let targetSheetName = null;
+            for (const sheetName of workbook.SheetNames) {
+                if (sheetName.includes('해외기술컨설팅') || sheetName.includes('컨설팅')) {
+                    targetSheetName = sheetName;
+                    break;
+                }
+            }
+            
+            // 컨설팅 시트가 없으면 첫 번째 시트 사용
+            if (!targetSheetName) {
+                targetSheetName = workbook.SheetNames[0];
+            }
+            
+            console.log(`Consulting 시트 선택: ${targetSheetName}`);
+            
+            const sheet = workbook.Sheets[targetSheetName];
+            const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
+            
+            console.log(`데이터 행 수: ${rawData.length}`);
+            
+            if (rawData.length < 2) {
+                console.log('유효한 데이터가 없습니다');
+                return projects;
+            }
+            
+            // 헤더 확인 (첫 번째 행)
+            const headers = rawData[0];
+            console.log('헤더:', headers);
+            
+            let processedCount = 0;
+            
+            // 데이터 행 처리 (헤더 제외)
+            for (let i = 1; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row || !Array.isArray(row)) continue;
+                
+                try {
+                    // Consulting 시트 구조에 맞게 컬럼 인덱스 사용
+                    const number = row[0]; // 번호
+                    const year = parseInt(row[1]) || null; // 수주년도
+                    const status = row[2]; // 진행여부
+                    const country = row[3]; // 국가별
+                    const x = parseFloat(row[4]) || 0; // X
+                    const y = parseFloat(row[5]) || 0; // Y
+                    const englishName = row[6]; // 영문사업명
+                    const projectName = row[7]; // 국문사업명
+                    const projectType = row[8]; // 사업형태
+                    const startDate = row[9]; // 착수일
+                    const endDate = row[10]; // 준공일
+                    const budget = parseFloat(row[11]) || 0; // 용역비(공사)(백만원)
+                    const client = row[12]; // 발주처
+                    
+                    // 유효한 데이터 검증
+                    if (country && projectName && 
+                        country.toString().trim() !== '' && 
+                        projectName.toString().trim() !== '') {
+                        
+                        let lat = y;
+                        let lng = x;
+                        
+                        // 좌표가 없는 경우 기본 좌표 사용
+                        if (!lat || !lng || lat === 0 || lng === 0) {
+                            const defaultCoords = getDefaultCoordinates(country.toString().trim());
+                            lat = defaultCoords.lat;
+                            lng = defaultCoords.lng;
+                        }
+                        
+                        const project = {
+                            name: country.toString().trim(),
+                            lat: lat,
+                            lng: lng,
+                            description: projectName.toString().trim(),
+                            category: 'Consulting',
+                            status: status ? status.toString().trim() : '',
+                            budget: budget || 0,
+                            client: client ? client.toString().trim() : '',
+                            year: year,
+                            startDate: startDate ? startDate.toString().trim() : '',
+                            endDate: endDate ? endDate.toString().trim() : '',
+                            projectType: projectType ? projectType.toString().trim() : '',
+                            englishName: englishName ? englishName.toString().trim() : '',
+                            number: processedCount + 1,
+                            sheet: targetSheetName
+                        };
+                        
+                        projects.push(project);
+                        processedCount++;
+                    }
+                } catch (error) {
+                    console.warn(`행 ${i + 1} 처리 중 오류:`, error.message);
+                }
+            }
+            
+            console.log(`Consulting 프로젝트 처리 완료: ${processedCount}개`);
+            return projects;
+        }
+
+        // 메인 데이터 로드 함수
+        async function loadData() {
+            try {
+                console.log('데이터 로드 시작');
+                
+                allProjects = await loadExcelFiles();
+                
+                if (allProjects.length === 0) {
+                    throw new Error('Excel 파일에서 데이터를 읽을 수 없습니다');
+                }
+                
+                const odaCount = allProjects.filter(p => p.category === 'ODA').length;
+                const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
+                
+                console.log(`데이터 로드 완료: ODA ${odaCount}개, Consulting ${consultingCount}개 (총 ${allProjects.length}개)`);
+                
+                if (odaCount === 30 && consultingCount === 178) {
+                    showNotification(`✅ 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개 (목표 달성!)`, 'success');
+                } else {
+                    showNotification(`📊 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
+                }
+                
+            } catch (error) {
+                console.error('데이터 로드 실패:', error);
+                showNotification('Excel 파일을 읽을 수 없습니다. 파일을 확인해주세요.', 'error');
+                
+                // 최소한의 샘플 데이터로 진행
+                allProjects = [
+                    {name: "베트남", lat: 13.93788, lng: 107.84167, description: "샘플 ODA 프로젝트", category: "ODA", period: "'20-'25", budget: 5365, type: "양자무상", number: 1},
+                    {name: "라오스", lat: 18.483938, lng: 102.566812, description: "샘플 컨설팅 프로젝트", category: "Consulting", status: "준공", budget: 658, client: "KOICA", year: 2010, number: 1}
+                ];
+            }
+        }
+
+        // 지도 초기화
+        function initMap() {
+            console.log('지도 초기화');
+            map = L.map('map', { center: [20, 0], zoom: 2 });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                attribution: '© OpenStreetMap contributors' 
+            }).addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+        }
+
+        // 필터 초기화
+        function initializeFilters() {
+            console.log('필터 초기화');
+            initProjectTypeFilters();
+            initCountryFilters();
+            initYearFilters();
+            initStatusFilters();
+            initClientFilters();
+            applyFilters();
+            setupFilterDropdowns();
+        }
+
+        function initProjectTypeFilters() {
+            const container = document.getElementById('projectTypeFilters');
+            container.innerHTML = '';
+            const types = [...new Set(allProjects.map(p => p.category))].sort();
+            types.forEach(type => {
+                const count = allProjects.filter(p => p.category === type).length;
+                container.appendChild(createCheckboxItem(type, count, 'projectType'));
+            });
+        }
+
+        function initCountryFilters() {
+            const container = document.getElementById('countryFilters');
+            container.innerHTML = '';
+            const countries = [...new Set(allProjects.map(p => p.name.trim()))].sort();
+            countries.forEach(country => {
+                const count = allProjects.filter(p => p.name.trim() === country).length;
+                container.appendChild(createCheckboxItem(country, count, 'country'));
+            });
+        }
+
+        function initYearFilters() {
+            const container = document.getElementById('yearFilters');
+            container.innerHTML = '';
+            const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
+            const years = [...new Set(consultingProjects.map(p => p.year).filter(y => y))].sort((a, b) => b - a);
+            years.forEach(year => {
+                const count = consultingProjects.filter(p => p.year === year).length;
+                container.appendChild(createCheckboxItem(year.toString(), count, 'year'));
+            });
+        }
+
+        function initStatusFilters() {
+            const container = document.getElementById('statusFilters');
+            container.innerHTML = '';
+            const consultingProjects = allProjects.filter(p => p.category === 'Consulting');
+            const statuses = [...new Set(consultingProjects.map(p => p.status).filter(s => s))].sort();
+            statuses.forEach(status => {
+                const count = consultingProjects.filter(p => p.status === status).length;
+                container.appendChild(createCheckboxItem(status, count, 'status'));
+            });
+        }
+
+        function initClientFilters() {
+            const container = document.getElementById('clientFilters');
+            container.innerHTML = '';
+            const consultingProjects = allProjects.filter(p => p.category === 'Consulting' && p.client);
+            const clients = [...new Set(consultingProjects.map(p => p.client.trim()))].sort();
+            clients.forEach(client => {
+                const count = consultingProjects.filter(p => p.client && p.client.trim() === client).length;
+                container.appendChild(createCheckboxItem(client, count, 'client'));
+            });
+        }
+
+        function createCheckboxItem(value, count, type) {
+            const item = document.createElement('div');
+            item.className = 'checkbox-item';
+            const checkboxId = `${type}_${value.toString().replace(/[^a-zA-Z0-9]/g, '_')}_${Math.random().toString(36).substr(2, 5)}`;
+            item.innerHTML = `
+                <input type="checkbox" id="${checkboxId}" value="${value}">
+                <label for="${checkboxId}">
+                    <span>${value}</span>
+                    <span class="count">${count}</span>
+                </label>
+            `;
+            item.querySelector('input[type="checkbox"]').onchange = (e) => updateFilter(type, value, e.target.checked);
+            return item;
+        }
+
+        function updateFilter(type, value, checked) {
+            const filterMap = { projectType: 'projectTypes', country: 'countries', year: 'years', status: 'statuses', client: 'clients' };
+            const filterSet = activeFilters[filterMap[type]];
+            const val = (typeof value === 'number') ? value.toString() : value;
+            
+            if (checked) {
+                filterSet.add(val);
+            } else {
+                filterSet.delete(val);
+            }
+            
+            applyFilters();
+        }
+
+        function applyFilters() {
+            filteredProjects = allProjects.filter(project => {
+                if (activeFilters.projectTypes.size > 0 && !activeFilters.projectTypes.has(project.category)) {
+                    return false;
+                }
+                
+                if (activeFilters.countries.size > 0 && !activeFilters.countries.has(project.name.trim())) {
+                    return false;
+                }
+                
+                if (project.category === 'Consulting') {
+                    if (activeFilters.years.size > 0 && !activeFilters.years.has(project.year?.toString())) {
+                        return false;
+                    }
+                    if (activeFilters.statuses.size > 0 && !activeFilters.statuses.has(project.status)) {
+                        return false;
+                    }
+                    if (activeFilters.clients.size > 0 && (!project.client || !activeFilters.clients.has(project.client.trim()))) {
+                        return false;
+                    }
+                } else {
+                    if (activeFilters.years.size > 0 || activeFilters.statuses.size > 0 || activeFilters.clients.size > 0) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            updateMapMarkers();
+            updateStats();
+            updateFilterResultText();
+        }
+
+        function updateMapMarkers() {
+            if (!markersLayer) return;
+            
+            markersLayer.clearLayers();
+            
+            const countryGroups = {};
+            filteredProjects.forEach(project => {
+                const countryName = project.name.trim();
+                if (!countryGroups[countryName]) {
+                    countryGroups[countryName] = { ODA: [], Consulting: [] };
+                }
+                countryGroups[countryName][project.category].push(project);
+            });
+            
+            Object.keys(countryGroups).forEach(countryName => {
+                const countryData = countryGroups[countryName];
+                
+                if (countryData.ODA.length > 0) {
+                    const avgLat = countryData.ODA.reduce((sum, p) => sum + p.lat, 0) / countryData.ODA.length;
+                    const avgLng = countryData.ODA.reduce((sum, p) => sum + p.lng, 0) / countryData.ODA.length;
+                    const marker = createCountryMarker(countryName, 'ODA', countryData.ODA, avgLat, avgLng);
+                    markersLayer.addLayer(marker);
+                }
+                
+                if (countryData.Consulting.length > 0) {
+                    const avgLat = countryData.Consulting.reduce((sum, p) => sum + p.lat, 0) / countryData.Consulting.length;
+                    const avgLng = countryData.Consulting.reduce((sum, p) => sum + p.lng, 0) / countryData.Consulting.length;
+                    
+                    const offsetLat = countryData.ODA.length > 0 ? avgLat + 0.1 : avgLat;
+                    const offsetLng = countryData.ODA.length > 0 ? avgLng + 0.1 : avgLng;
+                    
+                    const marker = createCountryMarker(countryName, 'Consulting', countryData.Consulting, offsetLat, offsetLng);
+                    markersLayer.addLayer(marker);
+                }
+            });
+            
+            if (filteredProjects.length > 0) {
+                const allMarkers = markersLayer.getLayers();
+                if (allMarkers.length > 0) {
+                    const group = new L.featureGroup(allMarkers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+            }
+        }
+
+        function createCountryMarker(countryName, category, projects, lat, lng) {
+            const borderColor = projectColors[category];
+            const countryCode = countryCodeMap[countryName] || 'un';
+            const flagUrl = `https://flagcdn.com/w20/${countryCode}.png`;
+            
+            const iconHtml = `
+                <div style="width: 24px; height: 24px; border: 3px solid ${borderColor}; border-radius: 50%;
+                            background-image: url('${flagUrl}'); background-size: cover; background-position: center;
+                            background-color: ${borderColor}; box-shadow: 0 3px 8px rgba(0,0,0,0.4); cursor: pointer;
+                            display: flex; align-items: center; justify-content: center; color: white;
+                            font-size: 10px; font-weight: bold; position: relative;"> 
+                    ${countryCode === 'un' ? countryName.charAt(0) : ''}
+                    <div style="position: absolute; bottom: -8px; right: -8px; background: ${borderColor}; 
+                                color: white; border-radius: 10px; padding: 2px 5px; font-size: 8px; 
+                                font-weight: bold; min-width: 16px; text-align: center;">${projects.length}</div>
+                </div>`;
+            
+            const customIcon = L.divIcon({ 
+                html: iconHtml, 
+                className: 'custom-div-icon', 
+                iconSize: [30, 30], 
+                iconAnchor: [15, 15], 
+                popupAnchor: [0, -15] 
+            });
+            
+            const marker = L.marker([lat, lng], { icon: customIcon });
+            marker.bindPopup(createPopupContent(countryName, category, projects), { 
+                maxWidth: 450, 
+                minWidth: 350 
+            });
+            
+            return marker;
+        }
+
+        function createPopupContent(countryName, category, projects) {
+            const countryCode = countryCodeMap[countryName] || 'un';
+            const flagUrl = `https://flagcdn.com/w40/${countryCode}.png`;
+            const categoryColor = projectColors[category];
+            const categoryName = category === 'ODA' ? 'ODA 사업' : '컨설팅 사업';
+            
+            // 프로젝트 정렬: 제안중이 맨 위, 그 다음 수주년도 내림차순
+            const sortedProjects = [...projects].sort((a, b) => {
+                if (category === 'Consulting') {
+                    // 1. 제안중 사업이 최우선 (맨 위로)
+                    const aIsProposal = a.status === '제안중';
+                    const bIsProposal = b.status === '제안중';
+                    
+                    if (aIsProposal && !bIsProposal) return -1;
+                    if (!aIsProposal && bIsProposal) return 1;
+                    
+                    // 2. 수주년도 내림차순 (최근이 위로)
+                    const aYear = a.year || 0;
+                    const bYear = b.year || 0;
+                    
+                    if (aYear !== bYear) return bYear - aYear;
+                    
+                    // 3. 같은 조건이면 사업명 오름차순
+                    return a.description.localeCompare(b.description);
+                } else {
+                    // ODA 사업은 사업명 오름차순
+                    return a.description.localeCompare(b.description);
+                }
+            });
+            
+            let content = `
+                <div style="font-family: 'Segoe UI', sans-serif;">
+                    <div style="display: flex; align-items: center; margin-bottom: 12px; border-bottom: 2px solid ${categoryColor}; padding-bottom: 8px;">
+                        <img src="${flagUrl}" alt="${countryName}" style="width: 28px; height: 19px; margin-right: 12px; border-radius: 2px;" onerror="this.style.display='none'">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 700; color: #2c3e50;">${countryName}</div>
+                            <div style="color: ${categoryColor}; font-weight: 600; font-size: 14px;">${categoryName} (${projects.length}개)</div>
+                        </div>
+                    </div>
+                    <div style="max-height: 300px; overflow-y: auto;">`;
+            
+            sortedProjects.forEach((project, index) => {
+                const isProposal = project.status === '제안중';
+                const isProgress = project.status === '시행중';
+                
+                let borderStyle = '';
+                if (isProposal) {
+                    borderStyle = 'border-left: 4px solid #ff6b35; background: rgba(255, 107, 53, 0.05);';
+                } else if (isProgress) {
+                    borderStyle = 'border-left: 4px solid #28a745; background: rgba(40, 167, 69, 0.05);';
+                } else {
+                    borderStyle = 'border-bottom: 1px solid #eee;';
+                }
+                
+                content += `<div style="${borderStyle} padding: 8px;">`;
+                
+                // 프로젝트명과 상태 뱃지
+                content += `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">`;
+                content += `<div style="font-weight: 600; color: #2c3e50; font-size: 14px; flex: 1;">${project.description}</div>`;
+                if (isProposal) {
+                    content += `<span class="status-badge status-proposal" style="margin-left: 8px;">제안중</span>`;
+                } else if (isProgress) {
+                    content += `<span class="status-badge status-progress" style="margin-left: 8px;">시행중</span>`;
+                }
+                content += `</div>`;
+                
+                if (project.category === 'ODA') {
+                    if (project.type) content += `<div style="font-size: 12px; color: #666;"><strong>형태:</strong> ${project.type}</div>`;
+                    if (project.period) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.period}</div>`;
+                    if (project.budget > 0) {
+                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
+                        content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>예산:</strong> ${budgetInBillion}억원</div>`;
+                    }
+                } else {
+                    // 제안중이나 시행중이 아닌 경우에만 상태 표시
+                    if (project.status && !isProposal && !isProgress) {
+                        let statusClass = 'status-complete'; // 준공은 붉은색
+                        content += `<div style="font-size: 12px; margin: 2px 0;"><strong>상태:</strong> <span class="status-badge ${statusClass}">${project.status}</span></div>`;
+                    }
+                    if (project.startDate && project.endDate) content += `<div style="font-size: 12px; color: #666;"><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
+                    if (project.budget > 0) {
+                        const budgetInBillion = Math.round(project.budget / 100).toLocaleString('ko-KR');
+                        content += `<div style="font-size: 12px; color: #e74c3c; font-weight: 600;"><strong>용역비:</strong> ${budgetInBillion}억원</div>`;
+                    }
+                    if (project.client) content += `<div style="font-size: 12px; color: #666;"><strong>발주처:</strong> ${project.client}</div>`;
+                    if (project.year) {
+                        let yearColor = '#999';
+                        let yearWeight = '400';
+                        if (isProposal) {
+                            yearColor = '#ff6b35';
+                            yearWeight = '600';
+                        } else if (isProgress) {
+                            yearColor = '#28a745';
+                            yearWeight = '600';
+                        }
+                        content += `<div style="font-size: 11px; color: ${yearColor}; font-weight: ${yearWeight};"><strong>수주년도:</strong> ${project.year}</div>`;
+                    }
+                }
+                content += `</div>`;
+            });
+            
+            content += `</div></div>`;
+            return content;
+        }
+
+        function updateStats() {
+            const totalCount = filteredProjects.length;
+            const odaCount = filteredProjects.filter(p => p.category === 'ODA').length;
+            const consultingCount = filteredProjects.filter(p => p.category === 'Consulting').length;
+            const countryCount = new Set(filteredProjects.map(p => p.name.trim())).size;
+            
+            let totalBudget = 0;
+            filteredProjects.forEach(p => {
+                if (p.budget && !isNaN(p.budget)) {
+                    totalBudget += p.budget;
+                }
+            });
+            
+            const budgetInBillion = Math.round(totalBudget / 100).toLocaleString('ko-KR');
+            
+            document.getElementById('total-projects').textContent = totalCount.toLocaleString();
+            document.getElementById('countries-count').textContent = countryCount.toLocaleString();
+            document.getElementById('oda-projects').textContent = odaCount.toLocaleString();
+            document.getElementById('consulting-projects').textContent = consultingCount.toLocaleString();
+            document.getElementById('total-budget').textContent = budgetInBillion;
+            
+            document.getElementById('stat-total-projects').style.borderColor = '#2c3e50';
+            document.getElementById('stat-countries-count').style.borderColor = '#e74c3c';
+            document.getElementById('stat-oda-projects').style.borderColor = '#FF8C00';
+            document.getElementById('stat-consulting-projects').style.borderColor = '#4682B4';
+            document.getElementById('stat-total-budget').style.borderColor = '#27ae60';
+        }
+
+        function updateFilterResultText() {
+            const resultTextEl = document.getElementById('filterResultText');
+            const noFilters = Object.values(activeFilters).every(set => set.size === 0);
+            
+            if (noFilters) {
+                resultTextEl.textContent = `전체 ${allProjects.length}개 프로젝트 표시 중`;
+            } else {
+                resultTextEl.textContent = `${allProjects.length}개 중 ${filteredProjects.length}개 프로젝트 표시 중`;
+            }
+        }
+
+        function setupFilterDropdowns() {
+            const filterButtons = document.querySelectorAll('.filter-bar-button');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const dropdownId = this.dataset.dropdown;
+                    const currentDropdown = document.getElementById(dropdownId);
+                    const isActive = this.classList.contains('active');
+
+                    document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+
+                    if (!isActive) {
+                        currentDropdown.style.display = 'block';
+                        this.classList.add('active');
+                    }
+                });
+            });
+            
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.filter-button-group')) {
+                    document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
+                    document.querySelectorAll('.filter-bar-button').forEach(btn => btn.classList.remove('active'));
+                }
+            });
+        }
+
+        function resetAllFilters() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+            activeFilters = { projectTypes: new Set(), countries: new Set(), years: new Set(), statuses: new Set(), clients: new Set() };
+            applyFilters();
+            document.querySelectorAll('.filter-dropdown').forEach(dd => dd.style.display = 'none');
+            document.querySelectorAll('.filter-bar-button').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function goToMyLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        map.setView([lat, lng], 10);
+                        const marker = L.marker([lat, lng]).addTo(map).bindPopup('📍 내 위치').openPopup();
+                        setTimeout(() => { if(map.hasLayer(marker)) map.removeLayer(marker); }, 5000);
+                    },
+                    (error) => { 
+                        console.error('위치 정보 오류:', error);
+                        showNotification('위치 정보를 가져올 수 없습니다.', 'warning');
+                    }
+                );
+            } else { 
+                showNotification('이 브라우저는 위치 서비스를 지원하지 않습니다.', 'warning');
+            }
+        }
+
+        // 메인 초기화
+        async function initialize() {
+            try {
+                console.log('애플리케이션 초기화 시작');
+                
+                // 조회수 시스템 초기화 (제일 먼저)
+                initializeViewsSystem();
+                
+                initMap();
+                await loadData();
+                initializeFilters();
+                hideLoading();
+                
+                console.log('애플리케이션 초기화 완료');
+                
+            } catch (error) {
+                console.error('초기화 실패:', error);
+                hideLoading();
+                showNotification('초기화 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // DOM 로드 후 시작
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+
+        // 전역 함수
+        window.resetAllFilters = resetAllFilters;
+        window.goToMyLocation = goToMyLocation;
+    </script>
+</body>
+</html>
