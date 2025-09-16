@@ -308,6 +308,20 @@
         .stat-box .stat-sub { font-size: 11px; color:#5b7a99; margin-top:2px; }
         .stat-list { display:flex; flex-wrap: wrap; gap:6px; }
         .pill { padding: 4px 8px; background:#f0f6fb; color:#0A3D62; border: 1px solid #cfe0ee; border-radius: 999px; font-size: 11px; font-weight:700; }
+        
+        .badge-client-corner {
+            position: absolute;
+            top: -1px;
+            right: -1px;
+            font-size: 8px;
+            font-weight: 600;
+            color: #fff;
+            background: #6c757d;
+            padding: 2px 5px;
+            border-radius: 0 8px 0 8px;
+            z-index: 1;
+        }
+
         /* 국가 통계 팝업 모달 */
         .country-stats-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -319,7 +333,7 @@
             border: 3px solid #0A3D62; /* 진한 파랑 테두리 */
             border-radius: 18px;
             max-width: 90vw; max-height: 90vh;
-            width: 700px; min-height: 450px;
+            width: 700px;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
             overflow-y: auto;
         }
@@ -357,8 +371,6 @@
             display: flex;
             flex-direction: column;
             gap: 24px;
-            max-height: 65vh;
-            overflow: hidden;
             padding: 8px;
         }
 
@@ -919,12 +931,12 @@
         .timeline-compact-container {
             position: relative;
             height: 280px;
-            background: #FFFAF0; /* 상아색 톤 */
+            background: #FFF8E7; /* 상아색 */
             border: 1px solid #ddd;
             border-radius: 12px;
             padding: 20px;
             overflow-x: auto;
-            overflow-y: visible;
+            overflow-y: auto;
             /* 스크롤 스타일링 */
             scrollbar-width: thin;
             scrollbar-color: #b0b0b0 #f0f0f0;
@@ -1022,26 +1034,19 @@
         }
 
         .lane-label {
-            position: absolute;
-            left: -15px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 9px;
-            color: #6c757d;
-            opacity: 0.6;
-            writing-mode: vertical-rl;
-            font-weight: 600;
+            display: none;
         }
 
         /* 프로젝트 뱃지 */
         .project-badge-compact {
             position: absolute;
-            height: 40px;
+            min-height: 40px;
+            height: auto;
             min-width: 100px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
@@ -1063,13 +1068,21 @@
         }
 
         .badge-content {
-            padding: 8px 12px;
+            padding: 6px 10px;
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
             position: relative;
             z-index: 2;
+        }
+
+        .badge-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 4px;
         }
 
         .badge-main-title {
@@ -1077,10 +1090,18 @@
             font-weight: 800;
             line-height: 1.2;
             color: #1a1a1a;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            flex-grow: 1;
+        }
+        
+        .badge-client {
+            font-size: 9px;
+            color: #666;
             white-space: nowrap;
-            margin-bottom: 4px;
+            flex-shrink: 0;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .badge-details-row {
@@ -1109,15 +1130,6 @@
             border-radius: 4px;
         }
 
-        .badge-client-row {
-            font-size: 9px;
-            color: #666;
-            margin-top: 2px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
 
         .badge-client {
             font-size: 8px;
@@ -1144,6 +1156,13 @@
         .project-badge-compact.in-progress {
             border-color: #FFA726;
             animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        .project-badge-compact.in-progress.consulting {
+            background: #E3F2FD; /* 하늘색 */
+        }
+        .project-badge-compact.in-progress.oda {
+            background: #FFF3E0; /* 연한주황색 */
         }
 
         .project-badge-compact.completed {
@@ -1918,6 +1937,7 @@
             /* 모바일에서 편집 버튼 위치 조정 */
             .edit-button-container {
                 top: 10px;
+                left: auto;
                 right: 10px;
             }
 
@@ -1941,7 +1961,7 @@
         .edit-button-container {
             position: fixed;
             top: 15px;
-            right: 15px;
+            left: 15px;
             z-index: 1500;
             display: flex;
             flex-direction: column;
@@ -2595,6 +2615,7 @@
     
     <!-- 독립적인 편집 버튼 -->
     <div class="edit-button-container">
+        <button class="edit-btn" id="toggle-panel-btn" title="패널 보이기/숨기기">☰</button>
         <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드">✏️ 편집</button>
         <button class="edit-btn" id="new-point-btn" style="display:none;">➕ 새 지점</button>
         <button class="edit-btn" id="export-json-btn" style="display:none;">💾 JSON 내보내기</button>
@@ -3419,6 +3440,7 @@
             map = L.map('map', {
                 center: [30, 0], // 기본 중심점
                 zoom: 3,
+                zoomControl: false,
                 worldCopyJump: false,    // 세계 지도 복사 점프 비활성화
                 maxBounds: [[-90, -180], [90, 180]], // 지도 경계 제한
                 maxBoundsViscosity: 1.0  // 경계에서 완전히 멈춤
@@ -3775,6 +3797,18 @@
             }
             content += `</div></div></div>`;
             return content;
+        }
+
+        function togglePanel() {
+            const panel = document.getElementById('country-hub');
+            if (panel) {
+                const isHidden = panel.style.display === 'none';
+                panel.style.display = isHidden ? 'flex' : 'none';
+                
+                if (map) {
+                    setTimeout(() => map.invalidateSize(true), 250);
+                }
+            }
         }
 
         // ===== 편집 모드 / 에디터 =====
@@ -4332,45 +4366,41 @@
             function parseYearRange(raw) {
                 const s = normalizeYearString(raw);
                 if (!s) return { start: null, end: null };
+
+                // Handle YYYY-YYYY format
+                let match = s.match(/^(\d{4})\s*[-~–—]\s*(\d{4})$/);
+                if (match) {
+                    return { start: parseInt(match[1], 10), end: parseInt(match[2], 10) };
+                }
                 
-                // "'72-10" 같은 형식 처리
+                // Handle 'YY-'YY, 'YY-MM formats
                 const rangeMatch = s.match(/^'?(\d{2})\s*[-~–—]\s*('?(\d{2}))?/);
                 if (rangeMatch) {
                     const startTwo = rangeMatch[1];
-                    const endPart = rangeMatch[3] || rangeMatch[2]; // 종료년도 부분
+                    const endPartWithApostrophe = rangeMatch[2];
+                    const endPart = rangeMatch[3] || rangeMatch[2];
                     
                     const startYear = parseTwoDigitToYear(startTwo);
                     
-                    // 종료년도가 두 자리 수로만 제공된 경우 (예: '72-10)
-                    if (endPart && endPart.length === 2) {
-                        let endYear = parseTwoDigitToYear(endPart);
-                        
-                        // 시작년도가 1972이고 종료년도가 2010보다 작은 경우 (예: 10 -> 2010)
-                        // 단, 시작년도가 1990년대이고 종료년도가 00-10 사이인 경우는 2000년대로 처리
-                        if (startYear && endYear) {
-                            // 시작년도가 1970~1980년대이고 종료년도가 00-29 사이면 2000년대로 보정
-                            if (startYear >= 1970 && startYear <= 1999 && endYear >= 2000 && endYear <= 2029) {
-                                // 이 경우는 이미 2000년대로 변환되었으므로 그대로 사용
-                            } 
-                            // 시작년도가 1970~1989년대이고 종료년도가 1930~1999 사이면서 시작년도보다 작으면 100년 더함
-                            else if (startYear >= 1970 && startYear <= 1989 && endYear >= 1930 && endYear <= 1999 && endYear < startYear) {
-                                endYear = endYear + 100; // 1972-10을 1972-2010으로 보정
-                            }
-                            // 시작년도가 1990~1999년대이고 종료년도가 00-29 사이면서 시작년도보다 작으면 100년 더함
-                            else if (startYear >= 1990 && startYear <= 1999 && endYear >= 2000 && endYear <= 2029 && endYear < startYear) {
-                                endYear = endYear; // 이미 2000년대로 변환되었으므로 그대로 사용
-                            }
+                    if (endPart) {
+                        // If the part after hyphen does not start with an apostrophe, it's a month.
+                        if (endPartWithApostrophe && endPartWithApostrophe.indexOf("'" ) === -1) {
+                            return { start: startYear, end: startYear };
                         }
-                        
+
+                        let endYear = parseTwoDigitToYear(endPart);
+                        if (startYear && endYear && endYear < startYear) {
+                            endYear += 100;
+                        }
                         return { start: startYear, end: endYear };
                     }
                     
-                    return { start: startYear, end: null };
+                    return { start: startYear, end: startYear };
                 }
                 
-                // 다른 형식 처리
+                // Handle single year or YYYY-MM
                 const startYear = parseLeadingYear(s);
-                return { start: startYear, end: null };
+                return { start: startYear, end: startYear };
             }
 
             function getProjectStartYear(p) {
@@ -4445,7 +4475,6 @@
                 return generateFullProjectTimeline(list);
             }
 
-            // 와인색 원형 뱃지 타임라인 생성 - 우아한 디자인
             function generateFullProjectTimeline(projects) {
                 console.log('generateFullProjectTimeline called with projects:', projects);
                 if (!projects || projects.length === 0) {
@@ -4453,56 +4482,69 @@
                     return '<div class="no-timeline">프로젝트 정보 없음</div>';
                 }
 
-                // 1) 모든 프로젝트의 연도 정보 수집 및 확장
+                function getProjectDate(rawDateStr, isEnd) {
+                    if (!rawDateStr) return { year: null, month: null };
+                    const s = normalizeYearString(String(rawDateStr));
+                    
+                    let match = s.match(/^(?:'(\d{2})|(\d{4}))\s*[-~–—]\s*(\d{1,2})$/);
+                    if (match) {
+                        const yearPart = match[1] || match[2];
+                        const year = match[1] ? parseTwoDigitToYear(yearPart) : parseInt(yearPart, 10);
+                        const month = parseInt(match[3], 10);
+                        return { year, month };
+                    }
+                    
+                    const year = parseLeadingYear(s);
+                    return { year, month: isEnd ? 12 : 1 };
+                }
+
                 const validProjects = [];
                 let minYear = Infinity;
                 let maxYear = -Infinity;
                 const currentYear = new Date().getFullYear();
 
                 projects.forEach(p => {
-                    const startYear = getProjectStartYear(p);
-                    let endYear = getProjectEndYear(p);
-
-                    // 시작년도가 있는데 종료년도가 없거나, 종료년도가 시작년도보다 이른 경우 보정
-                    if (startYear) {
-                        if (!endYear || endYear < startYear) {
-                            endYear = startYear;
+                    let startDate, endDate;
+                    if (p.category === 'Consulting') {
+                        startDate = getProjectDate(p.startDate, false);
+                        endDate = getProjectDate(p.endDate, true);
+                        if (startDate.year && !endDate.year) {
+                            endDate.year = startDate.year;
+                            if (!endDate.month) endDate.month = startDate.month || 12;
                         }
+                    } else { // ODA
+                        const range = parseYearRange(p.period);
+                        startDate = { year: range.start, month: 1 };
+                        endDate = { year: range.end, month: 12 };
                     }
 
-                    if (startYear) {
-                        // 날짜 표시 형식 개선
-                        let periodDisplay = '';
-                        if (p.category === 'ODA') {
-                            periodDisplay = p.period || `${startYear}${endYear !== startYear ? ` ~ ${endYear}` : ''}`;
-                        } else {
-                            // 컨설팅의 경우 startDate와 endDate가 모두 있는 경우 표시
-                            if (p.startDate && p.endDate) {
-                                periodDisplay = `${p.startDate} ~ ${p.endDate}`;
-                            } else {
-                                periodDisplay = `${startYear}${endYear !== startYear ? ` ~ ${endYear}` : ''}`;
-                            }
+                    if (startDate.year) {
+                        if (!endDate.year || endDate.year < startDate.year) {
+                            endDate.year = startDate.year;
                         }
+                        
+                        const startMonth = startDate.month || 1;
+                        const endMonth = endDate.month || 12;
 
                         validProjects.push({
                             ...p,
-                            startYear: startYear,
-                            endYear: endYear,
-                            duration: endYear - startYear + 1,
-                            status: p.status || (endYear < currentYear ? '완료' : '진행중'),
+                            startYear: startDate.year,
+                            endYear: endDate.year,
+                            startMonth: startMonth,
+                            endMonth: endMonth,
+                            startFractional: startDate.year + (startMonth - 1) / 12,
+                            endFractional: endDate.year + (endMonth - 1) / 12,
+                            status: p.status || (endDate.year < currentYear ? '완료' : '진행중'),
                             fullInfo: {
                                 name: p.description || '프로젝트명 없음',
-                                period: periodDisplay,
                                 budget: p.budget ? Math.round(p.budget / 100) : 0,
                                 client: p.client || '',
-                                type: p.type || p.projectType || '',
-                                content: p.content || '',
                                 category: p.category
                             }
                         });
 
-                        minYear = Math.min(minYear, startYear);
-                        maxYear = Math.max(maxYear, endYear);
+                        minYear = Math.min(minYear, startDate.year);
+                        maxYear = Math.max(maxYear, endDate.year);
                     }
                 });
 
@@ -4513,35 +4555,24 @@
                 maxYear = Math.max(maxYear, currentYear);
 
                 const yearSpan = maxYear - minYear + 1;
-                const minPixelsPerYear = 80;
-                const maxPixelsPerYear = 150;
-                const minTimelineWidth = 600;
+                const pixelsPerYear = 120; // 1년당 120px (분기당 30px)
+                const timelineWidthPx = yearSpan * pixelsPerYear;
 
-                const projectDensity = validProjects.length / yearSpan;
-                const pixelsPerYear = Math.min(maxPixelsPerYear,
-                    Math.max(minPixelsPerYear, minPixelsPerYear + (projectDensity * 15)));
-
-                const calculatedWidth = yearSpan * pixelsPerYear;
-                const timelineWidthPx = Math.max(minTimelineWidth, calculatedWidth);
-
-                const maxConcurrentProjects = calculateMaxConcurrentProjects(validProjects, minYear, maxYear);
+                const maxConcurrentProjects = calculateMaxConcurrentProjects(validProjects);
                 const requiredLanes = Math.max(4, Math.min(10, maxConcurrentProjects));
 
-                console.log(`전체 프로젝트: ${projects.length}개, 유효 프로젝트: ${validProjects.length}개`);
-                console.log(`최대 동시 사업: ${maxConcurrentProjects}개, 할당 레인: ${requiredLanes}개`);
-
                 const lanes = Array.from({length: requiredLanes}, () => []);
-                const minBadgeWidth = 120;
+                const minBadgeWidth = 80;
 
                 validProjects
                     .sort((a, b) => {
-                        if (a.startYear !== b.startYear) return a.startYear - b.startYear;
-                        return (b.endYear - b.startYear) - (a.endYear - a.startYear);
+                        if (a.startFractional !== b.startFractional) return a.startFractional - b.startFractional;
+                        return b.endFractional - a.endFractional;
                     })
                     .forEach(project => {
-                        const startPx = ((project.startYear - minYear) / yearSpan) * timelineWidthPx;
-                        const endPx = ((project.endYear - minYear) / yearSpan) * timelineWidthPx;
-                        const durationPx = Math.max(minBadgeWidth, endPx - startPx + (pixelsPerYear * 0.3));
+                        const startPx = (project.startFractional - minYear) * pixelsPerYear;
+                        const endPx = (project.endFractional - minYear) * pixelsPerYear;
+                        const durationPx = Math.max(minBadgeWidth, endPx - startPx + (pixelsPerYear / 12));
 
                         let bestLane = 0;
                         let foundEmptyLane = false;
@@ -4549,9 +4580,7 @@
                         for (let i = 0; i < lanes.length; i++) {
                             let hasConflict = false;
                             for (const existingProject of lanes[i]) {
-                                const existingStartPx = ((existingProject.startYear - minYear) / yearSpan) * timelineWidthPx;
-                                const existingEndPx = existingStartPx + existingProject.widthPx + 25;
-                                if (!(startPx >= existingEndPx || (startPx + durationPx + 25) <= existingStartPx)) {
+                                if (!(startPx >= existingProject.endPx + 5 || startPx + durationPx + 5 <= existingProject.startPx)) {
                                     hasConflict = true;
                                     break;
                                 }
@@ -4562,30 +4591,24 @@
                                 break;
                             }
                         }
-
+                        
                         if (!foundEmptyLane) {
-                            let minConflicts = Infinity;
-                            for (let i = 0; i < lanes.length; i++) {
-                                const conflicts = lanes[i].length;
-                                if (conflicts < minConflicts) {
-                                    minConflicts = conflicts;
-                                    bestLane = i;
-                                }
-                            }
+                            bestLane = lanes.reduce((minIdx, l, idx) => l.length < lanes[minIdx].length ? idx : minIdx, 0);
                         }
 
                         project.lane = bestLane;
                         project.startPx = startPx;
                         project.widthPx = durationPx;
+                        project.endPx = startPx + durationPx;
                         lanes[bestLane].push(project);
                     });
 
-                function calculateMaxConcurrentProjects(projects, minYear, maxYear) {
+                function calculateMaxConcurrentProjects(projects) {
                     let maxConcurrent = 0;
-                    for (let year = minYear; year <= maxYear; year++) {
+                    for (let year = minYear; year <= maxYear; year += 0.25) {
                         let concurrent = 0;
                         projects.forEach(p => {
-                            if (p.startYear <= year && p.endYear >= year) {
+                            if (p.startFractional <= year && p.endFractional >= year) {
                                 concurrent++;
                             }
                         });
@@ -4600,61 +4623,55 @@
                 return `
                     <div class="wine-timeline-compact">
                         <div class="timeline-compact-header">
-                            <h3>📅 프로젝트 히스토리 (${minYear}~${maxYear}, ${yearSpan}년)</h3>
+                            <h3>📅 프로젝트 히스토리 (${minYear}~${maxYear})</h3>
                             <div class="timeline-stats">
                                 <div class="stat-item consulting"><span>🔧</span><span class="stat-text">기술컨설팅 ${consultingProjects.length}건</span></div>
                                 <div class="stat-item oda"><span>🌍</span><span class="stat-text">ODA ${odaProjects.length}건</span></div>
-                                <div class="timeline-info"><span class="timeline-width-info">📏 ${Math.round(timelineWidthPx)}px</span></div>
                             </div>
                         </div>
-                        <div class="timeline-compact-container" style="height: ${Math.max(300, requiredLanes * 50 + 120)}px;">
-                            <div class="timeline-scroll-area" style="width: ${timelineWidthPx}px; height: ${Math.max(260, requiredLanes * 50 + 80)}px;">
+                        <div class="timeline-compact-container" style="height: ${Math.max(300, requiredLanes * 55 + 120)}px;">
+                            <div class="timeline-scroll-area" style="width: ${timelineWidthPx}px; height: ${Math.max(260, requiredLanes * 55 + 80)}px;">
                                 <div class="timeline-year-grid">
-                                    ${Array.from({length: yearSpan}, (_, i) => {
-                                        const year = minYear + i;
-                                        const positionPx = i === 0 ? 30 : i === yearSpan - 1 ? timelineWidthPx - 60 : (i / (yearSpan - 1)) * (timelineWidthPx - 60) + 30;
-                                        return `<div class="year-mark" style="left: ${positionPx}px;" title="${year}">${year}</div>`;
+                                    ${Array.from({length: yearSpan * 4}, (_, i) => {
+                                        const year = minYear + Math.floor(i / 4);
+                                        const quarter = (i % 4) + 1;
+                                        const positionPx = (i / 4) * pixelsPerYear;
+                                        const isYearStart = quarter === 1;
+                                        return `<div class="year-mark" style="left: ${positionPx}px; border-left-style: ${isYearStart ? 'solid' : 'dashed'};">
+                                            ${isYearStart ? `<span>${year}</span>` : ''}
+                                        </div>`;
                                     }).join('')}
                                 </div>
                                 ${lanes.map((laneProjects, laneIndex) => `
-                                    <div class="timeline-lane" data-lane="${laneIndex}" style="top: ${50 + laneIndex * 55}px;">
-                                        <div class="lane-label">L${laneIndex + 1}</div>
+                                    <div class="timeline-lane" data-lane="${laneIndex}" style="top: ${50 + laneIndex * 65}px;">
                                         ${laneProjects.map(project => {
                                             const categoryClass = project.category === 'Consulting' ? 'consulting' : 'oda';
                                             const { name, budget, client } = project.fullInfo;
-                                            const rangeLabel = (project.startYear === project.endYear)
-                                                ? String(project.startYear)
-                                                : `${project.startYear} ~ ${project.endYear}`;
-                                            const statusIcon = project.status === '진행중' ? '🔄' : '✅';
-                                            const tooltipInfo = [
-                                                `📋 ${name}`,
-                                                `📅 ${rangeLabel}`,
-                                                budget > 0 ? `💰 ${budget.toLocaleString()}억원` : '',
-                                                client ? `🏢 ${client}` : ''
-                                            ].filter(Boolean).join('\n');
+                                            const rangeLabel = `${project.startYear}.${project.startMonth} ~ ${project.endYear}.${project.endMonth}`;
+                                            const tooltipInfo = `📋 ${name}\n📅 ${rangeLabel}\n${budget > 0 ? `💰 ${budget.toLocaleString()}억원` : ''}\n${client ? `🏢 ${client}` : ''}`;
 
                                             return `
                                                 <div class="project-badge-compact ${categoryClass} ${project.status === '진행중' ? 'in-progress' : 'completed'}"
-                                                     style="left: ${project.startPx + 30}px; width: ${project.widthPx}px;"
+                                                     style="left: ${project.startPx}px; width: ${project.widthPx}px;"
                                                      title="${tooltipInfo}">
                                                     <div class="badge-content">
-                                                        <div class="badge-main-title">${name}</div>
+                                                        <div class="badge-header">
+                                                            <div class="badge-main-title">${name}</div>
+                                                            ${client ? `<div class="badge-client">${client}</div>` : ''}
+                                                        </div>
                                                         <div class="badge-details-row">
                                                             <span class="badge-year">${rangeLabel}</span>
                                                             ${budget > 0 ? `<span class="badge-budget">${budget.toLocaleString()}억</span>` : ''}
                                                         </div>
-                                                        ${client ? `<div class="badge-client-row">${client}</div>` : ''}
                                                     </div>
                                                     ${project.status === '진행중' ? '<div class="progress-indicator"></div>' : ''}
-                                                    <div class="badge-stripe ${categoryClass}"></div>
                                                 </div>
                                             `;
                                         }).join('')}
                                     </div>
                                 `).join('')}
-                                <div class="central-timeline" style="width: ${timelineWidthPx - 60}px; left: 30px;"></div>
                             </div>
-                            ${timelineWidthPx > 800 ? `<div class="scroll-hint"><span>↔️ 좌우 스크롤하여 전체 히스토리 탐색</span></div>` : ''}
+                            <div class="scroll-hint"><span>↔️ 좌우 스크롤하여 전체 히스토리 탐색</span></div>
                         </div>
                     </div>
                 `;
@@ -4758,7 +4775,6 @@
             modalBody.innerHTML = `
                 <div class="country-history-container">
                     ${timelineContent}
-                    ${projectListContent}
                 </div>
             `;
 
@@ -4995,6 +5011,7 @@
                 observer.observe(dropdown, { attributes: true, attributeFilter: ['style'] });
             });
             // 편집/주소검색/파일 이벤트
+            const tpbtn = document.getElementById('toggle-panel-btn'); if (tpbtn) tpbtn.addEventListener('click', togglePanel);
             const tbtn = document.getElementById('toggle-edit-btn'); if (tbtn) tbtn.addEventListener('click', toggleEditMode);
             const nbtn = document.getElementById('new-point-btn'); if (nbtn) nbtn.addEventListener('click', newProject);
             const exp = document.getElementById('export-json-btn'); if (exp) exp.addEventListener('click', exportJSON);

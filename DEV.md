@@ -7,14 +7,14 @@ Overview
 - Edit Mode: In-browser editing, draggable markers, JSON export/import.
 - Address search: Nominatim-based geocoding (online).
 - UI panels:
-  - Left-top Control Panel: address search + edit controls.
-  - Right-bottom Country Hub: continent-quadrant flag buttons + country stats.
+  - Country Hub (right on desktop, bottom on mobile): continent quadrants + flag grid + stats
+  - Compact wine timeline in country modal with Gantt-style lanes
 
 Run Locally
 
 - npm: `npm start` (custom port: `PORT=8080 npm start`)
 - Python: `PORT=8000 bash scripts/serve.sh`
-- Open: `http://localhost:8000/` (redirects to `/KRC/index.html`)
+- Open: `http://localhost:8000/`
 
 Data Workflow
 
@@ -32,7 +32,17 @@ Troubleshooting
 - Port in use: change port (`PORT=8080 ...`).
 - Python missing: `python -m http.server 8000` in `KRC`.
 - External access: open chosen port in firewall/security group.
-- Loading stuck: check browser console. Filters/search are optional; app runs without them.
+- Loading stuck:
+  - Ensure you run via server (not `file://`). JSON fetch fails on `file://`.
+  - Check console for CDN failures (Leaflet). If blocked, consider local fallback.
+  - A watchdog hides the loader after ~8s and shows a warning toast.
+
+Timeline Specific
+
+- Year parsing: supports `'72-10`, `‘20-’25`, `2005-06`, `2018-2022`, `1998`.
+- 2-digit rule: `00–29 → 2000–2029`, `30–99 → 1930–1999`.
+- Exact range: min start → max end, no padding years.
+- Gantt lanes: non-overlapping badges; height adapts to lane count.
 - One-liner: `cd KRC && python3 -m http.server 8000 --bind 0.0.0.0`
 
 Notes
