@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Global Projects Map - Secure Edition</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="manifest" href="manifest.json">
@@ -247,15 +247,32 @@
 
         /* 모바일 반응형 - 오른쪽 패널을 아래쪽으로 이동 */
         @media (max-width: 768px) {
+            body {
+                height: 100vh;
+                height: 100dvh; /* Dynamic viewport height for mobile */
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+                touch-action: none;
+            }
+
             .country-hub {
                 position: fixed; bottom: 0; left: 0; right: 0; top: auto;
-                width: 100%; min-width: unset; height: 40vh;
+                width: 100%; min-width: unset; height: 33vh;
                 border-left: none; border-top: 2px solid #0A3D62;
                 box-shadow: 0 -4px 22px rgba(10,61,98,0.2);
+                max-height: 33vh;
+                overflow-y: auto;
+                z-index: 1000;
+            }
+
+            #map {
+                height: 100vh;
+                margin-bottom: 0;
             }
         }
-        .country-hub-header { display:flex; flex-direction: column; gap:12px; }
-        .country-hub-main-toolbar { display:flex; justify-content: space-between; align-items:center; gap:8px; }
+        .country-hub-header { display:flex; flex-direction: row; align-items: center; gap:12px; flex-wrap: wrap; }
+        .country-hub-main-toolbar { display:flex; align-items:center; gap:8px; flex: 1; min-width: 0; flex-wrap: wrap; }
         .category-filters { display: flex; gap: 8px; }
         .category-filter-btn {
             padding: 8px 12px; border: 2px solid #ddd; border-radius: 8px;
@@ -279,10 +296,10 @@
         .country-flags { display:flex; flex-direction: column; gap:10px; }
         .flag-quadrant { border:2px solid #0A3D62; border-radius:10px; padding:6px; }
         .flag-quadrant-title { font-size:12px; color:#0A3D62; font-weight:800; margin-bottom:6px; }
-        .flag-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+        .flag-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; }
         .flag-chip { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
-        .flag-chip .flag-icon { width: 44px; height: 28px; border-radius: 6px; border: 2px solid #0A3D62; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-size: cover; background-position:center; }
-        .flag-chip .flag-label { font-size: 11px; color: #0A3D62; font-weight: 700; text-align:center; max-width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .flag-chip .flag-icon { width: 40px; height: 26px; border-radius: 5px; border: 1px solid #0A3D62; box-shadow: 0 1px 4px rgba(0,0,0,0.15); background-size: cover; background-position:center; }
+        .flag-chip .flag-label { font-size: 10px; color: #0A3D62; font-weight: 700; text-align:center; max-width: none; white-space: normal; word-wrap: break-word; line-height: 1.2; }
         .flag-chip.active .flag-icon { outline: 3px solid #1B79C9; }
         .country-stats { margin-top: 10px; display:grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .stat-box { background: #FFFFFF; border: 1px solid #d6e4ef; border-radius: 10px; padding: 10px; box-shadow: 0 2px 10px rgba(10,61,98,0.06); }
@@ -294,38 +311,41 @@
         /* 국가 통계 팝업 모달 */
         .country-stats-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.5); z-index: 3500;
+            background: rgba(0, 0, 0, 0.5); z-index: 9999;
             display: none; align-items: center; justify-content: center;
         }
         .country-stats-modal-content {
             background: #FFF8E7; /* 상아색 배경 */
-            border: 3px solid #722F37; /* 레드와인색 테두리 */
-            border-radius: 15px;
+            border: 3px solid #0A3D62; /* 진한 파랑 테두리 */
+            border-radius: 18px;
             max-width: 90vw; max-height: 90vh;
-            width: 600px; min-height: 400px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 700px; min-height: 450px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
             overflow-y: auto;
         }
         .country-stats-modal-header {
-            padding: 20px 24px 16px;
-            border-bottom: 2px solid #722F37;
+            padding: 24px 28px 20px;
+            border-bottom: 2px solid #0A3D62;
             display: flex; justify-content: space-between; align-items: center;
         }
         .country-stats-modal-title {
-            font-size: 20px; font-weight: 800; color: #722F37;
-            display: flex; align-items: center; gap: 10px;
+            font-size: 22px; font-weight: 800; color: #0A3D62;
+            display: flex; align-items: center; gap: 12px;
         }
         .country-stats-modal-close {
-            background: none; border: none; font-size: 24px;
-            color: #722F37; cursor: pointer; padding: 0;
-            width: 30px; height: 30px; display: flex;
+            background: none; border: none; font-size: 28px;
+            color: #0A3D62; cursor: pointer; padding: 0;
+            width: 36px; height: 36px; display: flex;
             align-items: center; justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
         }
         .country-stats-modal-close:hover {
-            background: rgba(114, 47, 55, 0.1); border-radius: 50%;
+            background: rgba(10, 61, 98, 0.12);
+            transform: rotate(90deg);
         }
         .country-stats-modal-body {
-            padding: 20px 24px;
+            padding: 24px 28px;
         }
         .country-stats-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -336,9 +356,10 @@
         .country-history-container {
             display: flex;
             flex-direction: column;
-            gap: 32px;
+            gap: 24px;
             max-height: 65vh;
             overflow: hidden;
+            padding: 8px;
         }
 
         /* 프로젝트 타임라인 */
@@ -347,6 +368,7 @@
             border-radius: 16px;
             padding: 24px;
             border: 1px solid #dee2e6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
         .timeline-header {
@@ -503,25 +525,966 @@
 
         .no-timeline {
             text-align: center;
-            color: #6c757d;
+            color: #495057;
             padding: 40px 20px;
-            background: #f8f9fa;
-            border-radius: 12px;
+            background: #ffffff;
+            border-radius: 16px;
             border: 2px dashed #dee2e6;
+            font-size: 16px;
+            font-weight: 500;
+            margin: 20px 0;
         }
+
+        /* 와인색 타임라인 스타일 - 완전히 재설계된 버전 */
+        .wine-timeline {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #dee2e6;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        .wine-timeline-header {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .wine-timeline-header h3 {
+            margin: 0;
+            color: #0A3D62;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .wine-timeline-legend {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .wine-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #0A3D62;
+            font-weight: 500;
+        }
+
+        .wine-legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid;
+        }
+
+        .wine-legend-dot.consulting {
+            border-color: #0A3D62;
+            background: #E3F2FD;
+        }
+
+        .wine-legend-dot.oda {
+            border-color: #E65100;
+            background: #FFF3E0;
+        }
+
+        .wine-timeline-container {
+            position: relative;
+            height: 200px;
+            margin: 16px 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 12px;
+            background: #ffffff;
+        }
+
+        .wine-timeline-content {
+            position: relative;
+            min-width: 100%;
+            width: max-content;
+            height: 100%;
+        }
+
+        .wine-timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #d0d7de;
+            border-radius: 4px;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .wine-timeline-years {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .wine-year-marker {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            z-index: 2;
+        }
+
+        .wine-year-dot {
+            width: 16px;
+            height: 16px;
+            background: #0A3D62;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: none;
+            margin-bottom: 8px;
+            z-index: 3;
+        }
+
+        .wine-year-label {
+            font-size: 12px;
+            color: #495057;
+            font-weight: 700;
+            text-align: center;
+            white-space: nowrap;
+            margin-top: auto;
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            z-index: 3;
+        }
+
+        .wine-timeline-projects {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+        }
+
+        .wine-project-badge {
+            position: absolute;
+            min-height: 32px;
+            border-radius: 16px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+            min-width: 90px;
+            max-width: 220px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            border: 2px solid;
+        }
+
+        .wine-project-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 20;
+        }
+
+        .wine-project-badge.consulting {
+            background: linear-gradient(135deg, #E3F2FD 0%, #bbdefb 100%);
+            color: #0A3D62;
+            border-color: #0A3D62;
+        }
+
+        .wine-project-badge.oda {
+            background: linear-gradient(135deg, #FFF3E0 0%, #ffccbc 100%);
+            color: #E65100;
+            border-color: #E65100;
+        }
+
+        .wine-project-name {
+            display: block;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 700;
+        }
+
+        .wine-project-years {
+            display: block;
+            font-size: 10px;
+            opacity: 0.9;
+            margin-top: 3px;
+            font-weight: 500;
+        }
+
+        /* 개선된 프로젝트 뱃지 스타일 */
+        .wine-project-badge.improved {
+            position: absolute;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            z-index: 10;
+            min-width: 120px;
+            max-width: 280px;
+            height: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border: 2px solid;
+            backdrop-filter: blur(2px);
+        }
+
+        .wine-project-badge.improved:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            z-index: 20;
+        }
+
+        .wine-project-badge.improved.consulting {
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            color: #0A3D62;
+            border-color: #0A3D62;
+        }
+
+        .wine-project-badge.improved.oda {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFCC80 100%);
+            color: #E65100;
+            border-color: #E65100;
+        }
+
+        .wine-project-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .wine-project-badge.improved .wine-project-name {
+            display: block;
+            line-height: 1.3;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .wine-project-badge.improved .wine-project-years {
+            display: block;
+            font-size: 9px;
+            opacity: 0.8;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 1px 6px;
+            border-radius: 8px;
+            margin-top: 2px;
+        }
+
+        /* 타임라인 컨테이너 개선 */
+        .wine-timeline-container {
+            position: relative;
+            margin: 16px 0;
+            padding: 20px 0;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            background: #ffffff;
+            overflow-x: auto;
+            overflow-y: visible;
+        }
+
+        .wine-timeline-content {
+            position: relative;
+            height: 100%;
+            padding: 0 20px;
+        }
+
+        /* 연도 마커 개선 */
+        .wine-year-marker {
+            position: absolute;
+            top: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+        }
+
+        .wine-year-dot {
+            width: 12px;
+            height: 12px;
+            background: #0A3D62;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            box-shadow: none;
+            border: 2px solid #fff;
+        }
+
+        .wine-year-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #495057;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            min-width: 35px;
+        }
+
+        /* 선형 타임라인 스타일 - 스크린샷과 유사한 디자인 */
+        /* 와인색 원형 뱃지 타임라인 스타일 */
+        /* 새로운 컴팩트 타임라인 스타일 */
+        .wine-timeline-compact {
+            background: #FFF8E7; /* 상아색 배경 */
+            border-radius: 16px;
+            border: 1px solid #e6d5c3; /* 상아 테두리 톤 */
+            padding: 20px;
+            margin: 16px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .timeline-compact-header {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .timeline-compact-header h3 {
+            margin: 0;
+            color: #0A3D62; /* 브랜드 블루 사용 */
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timeline-stats {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid;
+        }
+
+        .stat-item.consulting {
+            background: rgba(10, 61, 98, 0.08);
+            border-color: #0A3D62;
+            color: #0A3D62;
+        }
+
+        .stat-item.oda {
+            background: rgba(230, 81, 0, 0.08);
+            border-color: #E65100;
+            color: #E65100;
+        }
+
+        .timeline-compact-container {
+            position: relative;
+            height: 280px;
+            background: #FFFAF0; /* 상아색 톤 */
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            overflow-y: visible;
+            /* 스크롤 스타일링 */
+            scrollbar-width: thin;
+            scrollbar-color: #b0b0b0 #f0f0f0;
+        }
+
+        .timeline-compact-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .timeline-compact-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .timeline-compact-container::-webkit-scrollbar-thumb {
+            background: #b0b0b0;
+            border-radius: 4px;
+        }
+
+        .timeline-compact-container::-webkit-scrollbar-thumb:hover {
+            background: #9a9a9a;
+        }
+
+        .timeline-scroll-area {
+            position: relative;
+            min-width: 100%;
+            height: 240px;
+            background: #FFFFFF; /* 래인 영역 배경 고정 */
+        }
+
+        .timeline-info {
+            font-size: 11px;
+            color: #5b7a99;
+            opacity: 0.8;
+        }
+
+        .timeline-width-info {
+            background: #eef2f6;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #3a4756;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: #6c757d;
+            opacity: 0.7;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 4px 8px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        /* 연도 그리드 */
+        .timeline-year-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 35px;
+            pointer-events: none;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+        }
+
+        .year-mark {
+            position: absolute;
+            top: 0;
+            font-size: 11px;
+            color: #495057;
+            font-weight: 700;
+            writing-mode: horizontal-tb;
+            text-align: center;
+            opacity: 0.8;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            min-width: 35px;
+            white-space: nowrap;
+        }
+
+        /* 타임라인 레인 */
+        .timeline-lane {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: transparent; /* 강제 무채색 */
+        }
+
+        .lane-label {
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: #6c757d;
+            opacity: 0.6;
+            writing-mode: vertical-rl;
+            font-weight: 600;
+        }
+
+        /* 프로젝트 뱃지 */
+        .project-badge-compact {
+            position: absolute;
+            height: 40px;
+            min-width: 100px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .project-badge-compact.consulting {
+            background: #FFFFFF;
+            border: 3px solid #0A3D62;
+            box-shadow: 0 2px 8px rgba(10, 61, 98, 0.15);
+        }
+
+        .project-badge-compact.oda {
+            background: #FFFFFF;
+            border: 3px solid #E65100;
+            box-shadow: 0 2px 8px rgba(230, 81, 0, 0.15);
+        }
+
+        .project-badge-compact:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .badge-content {
+            padding: 8px 12px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            z-index: 2;
+        }
+
+        .badge-main-title {
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.2;
+            color: #1a1a1a;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-bottom: 4px;
+        }
+
+        .badge-details-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            flex-wrap: nowrap;
+        }
+
+        .badge-year {
+            font-size: 10px;
+            font-weight: 600;
+            color: #555;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .badge-budget {
+            font-size: 10px;
+            font-weight: 600;
+            color: #0a7c42;
+            background: rgba(10, 124, 66, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .badge-client-row {
+            font-size: 9px;
+            color: #666;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+
+        .badge-client {
+            font-size: 8px;
+            font-weight: 400;
+            opacity: 0.7;
+            color: #666;
+            margin-top: 1px;
+        }
+
+        .badge-type {
+            font-size: 8px;
+            font-weight: 400;
+            opacity: 0.7;
+            color: #666;
+            margin-top: 1px;
+        }
+
+        .badge-status {
+            font-size: 8px;
+            margin-left: auto;
+        }
+
+        /* 진행 상태별 스타일 */
+        .project-badge-compact.in-progress {
+            border-color: #FFA726;
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        .project-badge-compact.completed {
+            opacity: 0.95;
+        }
+
+        .progress-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                #FFA726 50%,
+                transparent 100%);
+            animation: progress-sweep 3s infinite linear;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 4px 16px rgba(255, 167, 38, 0.3); }
+        }
+
+        @keyframes progress-sweep {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .badge-stripe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .badge-stripe.consulting {
+            background: #0A3D62;
+        }
+
+        .badge-stripe.oda {
+            background: #E65100;
+        }
+
+        /* 중앙 타임라인 (수평, 중립 색) */
+        .central-timeline {
+            position: absolute;
+            top: 85px; /* 연도 라벨과 첫 레인 사이의 중심선 */
+            height: 3px;
+            background: #d0d7de;
+            border-radius: 2px;
+            opacity: 1;
+        }
+
+        .wine-main-line {
+            position: absolute;
+            top: 50%;
+            left: 60px;
+            right: 60px;
+            height: 3px;
+            background: #d0d7de;
+            border-radius: 2px;
+            z-index: 1;
+        }
+
+        .wine-year-marks {
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            right: 20px;
+            z-index: 0;
+            color: #6c757d;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .wine-year-start {
+            position: absolute;
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .wine-year-end {
+            position: absolute;
+            right: 0;
+            transform: translateY(-50%);
+        }
+
+        .wine-milestones {
+            position: relative;
+            height: 100%;
+            z-index: 3;
+        }
+
+        .wine-milestone {
+            position: absolute;
+            z-index: 10;
+            transform: translateX(-50%);
+            cursor: pointer;
+        }
+
+        .wine-milestone.top {
+            top: 15%;
+        }
+
+        .wine-milestone.bottom {
+            bottom: 15%;
+        }
+
+        .wine-connector {
+            position: absolute;
+            left: 50%;
+            width: 2px;
+            background: #d0d7de;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        .wine-milestone.top .wine-connector {
+            top: 100%;
+            height: 120px;
+        }
+
+        .wine-milestone.bottom .wine-connector {
+            bottom: 100%;
+            height: 120px;
+        }
+
+        .wine-badge {
+            background: #ffffff;
+            border: 2px solid #dee2e6;
+            border-radius: 20px;
+            padding: 20px 24px;
+            min-width: 200px;
+            max-width: 280px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .wine-badge:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        }
+
+        .wine-badge.consulting {
+            border-color: #0A3D62;
+            background: linear-gradient(135deg, #E3F2FD 0%, #f0f8ff 100%);
+        }
+
+        .wine-badge.oda {
+            border-color: #E65100;
+            background: linear-gradient(135deg, #FFF3E0 0%, #fff8f0 100%);
+        }
+
+        .wine-badge-year {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0A3D62;
+            margin-bottom: 8px;
+        }
+
+        .wine-badge.consulting .wine-badge-year {
+            color: #0A3D62;
+        }
+
+        .wine-badge.oda .wine-badge-year {
+            color: #E65100;
+        }
+
+        .wine-badge-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            word-break: keep-all;
+        }
+
+        .wine-badge-details {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .wine-badge-budget {
+            font-weight: 700;
+            color: #0A3D62;
+        }
+
+        .wine-badge.consulting .wine-badge-budget {
+            color: #0A3D62;
+        }
+
+        .wine-badge.oda .wine-badge-budget {
+            color: #E65100;
+        }
+
+        .wine-badge-count {
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        .wine-point {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #0A3D62;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 2px #0A3D62, 0 4px 12px rgba(10, 61, 98, 0.25);
+            z-index: 5;
+        }
+
+        .wine-milestone.top .wine-point {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .wine-milestone.bottom .wine-point {
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .wine-point.consulting {
+            background: #0A3D62;
+            box-shadow: 0 0 0 2px #0A3D62, 0 4px 12px rgba(10, 61, 98, 0.4);
+        }
+
+        .wine-point.oda {
+            background: #E65100;
+            box-shadow: 0 0 0 2px #E65100, 0 4px 12px rgba(230, 81, 0, 0.4);
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            /* 컴팩트 타임라인 모바일 반응형 */
+            .wine-timeline-compact {
+                padding: 16px;
+            }
+
+            .timeline-compact-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .timeline-compact-header h3 {
+                font-size: 16px;
+            }
+
+            .timeline-stats {
+                gap: 8px;
+            }
+
+            .stat-item {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+
+            .timeline-compact-container {
+                height: 240px;
+                padding: 16px 12px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .timeline-scroll-area {
+                height: 200px;
+            }
+
+            .timeline-info {
+                display: none; /* 모바일에서 너비 정보 숨김 */
+            }
+
+            .scroll-hint {
+                font-size: 9px;
+                bottom: 2px;
+                right: 5px;
+                padding: 2px 6px;
+            }
+
+            .timeline-lane {
+                height: 40px;
+            }
+
+            .project-badge-compact {
+                height: 30px;
+                min-width: 60px;
+            }
+
+            .badge-content {
+                padding: 4px 8px;
+            }
+
+            .badge-header {
+                gap: 3px;
+            }
+
+            .badge-icon {
+                font-size: 9px;
+            }
+
+            .badge-year {
+                font-size: 9px;
+            }
+
+            .badge-title {
+                font-size: 10px;
+            }
+
+            .badge-budget {
+                font-size: 8px;
+            }
+
+            .year-mark {
+                font-size: 9px;
+            }
+        }
+
+
 
         /* 프로젝트 리스트 */
         .project-list-section {
-            background: white;
+            background: #FFF8E7; /* 상아색 */
             border-radius: 16px;
-            border: 1px solid #dee2e6;
+            border: 1px solid #e6d5c3;
             overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
         .list-header {
-            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
-            color: white;
+            background: #FFF8E7; /* 상아색 헤더 */
+            color: #0A3D62;
             padding: 20px 24px;
+            border-bottom: 1px solid #e6d5c3;
         }
 
         .list-header h3 {
@@ -590,6 +1553,7 @@
             border-radius: 12px;
             border: 1px solid #e9ecef;
             transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
         }
 
         .project-list-item:last-child {
@@ -777,7 +1741,53 @@
             .country-stats-modal-body {
                 padding: 16px 20px;
             }
-            .country-flags { max-height: 100px; }
+            .country-flags {
+                max-height: none;
+                flex: 1;
+                overflow-y: auto;
+                padding-bottom: 10px;
+            }
+
+            .country-hub {
+                padding: 10px 12px !important;
+            }
+
+            .country-hub-header {
+                flex-shrink: 0;
+            }
+            .category-filters {
+                gap: 6px !important;
+            }
+            .category-filter-btn {
+                padding: 6px 8px !important;
+                font-size: 11px !important;
+            }
+
+            .summary-cards {
+                flex-shrink: 0;
+            }
+
+            /* 모바일에서 국기 컨테이너 스크롤 개선 */
+            .flag-grid {
+                gap: 6px !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            .flag-chip .flag-icon {
+                width: 32px !important;
+                height: 20px !important;
+            }
+            .flag-chip .flag-label {
+                font-size: 9px !important;
+                max-width: none !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
+                line-height: 1.1 !important;
+            }
+
+            .flag-chip {
+                padding: 6px 8px !important;
+                font-size: 11px !important;
+            }
 
             /* 모바일용 프로젝트 히스토리 스타일 */
             .country-history-container {
@@ -846,16 +1856,122 @@
                 font-size: 10px;
                 padding: 3px 6px;
             }
+
+            /* 모바일용 와인 타임라인 스타일 */
+            .wine-timeline-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .wine-timeline-header h3 {
+                font-size: 18px;
+            }
+
+            .wine-timeline-legend {
+                align-self: flex-start;
+            }
+
+            .wine-legend-item {
+                font-size: 11px;
+            }
+
+            .wine-project-badge {
+                min-height: 28px;
+                padding: 6px 10px;
+                font-size: 9px;
+                min-width: 70px;
+                max-width: 160px;
+            }
+
+            .wine-project-name {
+                font-size: 9px;
+            }
+
+            .wine-project-years {
+                font-size: 8px;
+            }
+
+            .wine-year-label {
+                font-size: 10px;
+                padding: 2px 6px;
+            }
+
+            .wine-year-dot {
+                width: 12px;
+                height: 12px;
+                border-width: 2px;
+            }
+            
+            .wine-timeline-container {
+                height: 180px;
+            }
+            
+            .wine-timeline-lane.above {
+                top: 25%;
+            }
+            
+            .wine-timeline-lane.below {
+                top: 75%;
+            }
+
+            /* 모바일에서 편집 버튼 위치 조정 */
+            .edit-button-container {
+                top: 10px;
+                right: 10px;
+            }
+
+            .edit-button-container .edit-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
         }
         
-        .map-controls { 
-            position: fixed; 
-            right: 15px; 
+        .map-controls {
+            position: fixed;
+            right: 15px;
             bottom: 140px; /* 프로젝트현황 패널 바로 위 */
-            z-index: 999; 
-            display: flex; 
-            flex-direction: column; 
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
             gap: 8px;
+        }
+
+        /* 독립적인 편집 버튼 */
+        .edit-button-container {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1500;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .edit-button-container .edit-btn {
+            background: white;
+            border: 2px solid #0A3D62;
+            color: #0A3D62;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .edit-button-container .edit-btn:hover {
+            background: #0A3D62;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .edit-button-container .edit-btn.toggle.on {
+            background: #0A3D62;
+            color: white;
         }
         .control-btn {
             background: white; border: 2px solid #3498db; color: #3498db; padding: 6px;
@@ -1417,7 +2533,42 @@
         .checkbox-item:hover { background-color: #f8f9fa; }
         .checkbox-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: #3498db; }
         .checkbox-item label { flex: 1; font-size: 0.85em; color: #2c3e50; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .count { color: #7f8c8d; font-size: 0.75em; background: #f1f2f6; padding: 2px 5px; border-radius: 10px; }
+.count { color: #7f8c8d; font-size: 0.75em; background: #f1f2f6; padding: 2px 5px; border-radius: 10px; }
+        
+        /* ==== Wine theme hard overrides (neutralize remaining wine colors) ==== */
+        .wine-timeline,
+        .wine-timeline-header h3,
+        .wine-legend-item,
+        .wine-year-label,
+        .wine-year-marks,
+        .wine-badge-title,
+        .wine-badge-year,
+        .wine-badge-budget {
+            color: #0A3D62 !important;
+        }
+        .wine-timeline { 
+            background: #FFFFFF !important; 
+            border-color: #dee2e6 !important; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+        }
+        .wine-timeline-line,
+        .wine-main-line,
+        .wine-connector {
+            background: #d0d7de !important;
+            box-shadow: none !important;
+        }
+        .wine-year-dot,
+        .wine-point { 
+            background: #0A3D62 !important; 
+            box-shadow: 0 0 0 2px #0A3D62, 0 4px 12px rgba(10,61,98,0.25) !important; 
+            border-color: #fff !important;
+        }
+        .wine-badge { 
+            background: #FFFFFF !important; 
+            border-color: #dee2e6 !important; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
+        }
+        /* ===================================================================== */
     </style>
 </head>
 <body>
@@ -1442,6 +2593,17 @@
     
     <!-- Control panel functionality moved to Country Hub -->
     
+    <!-- 독립적인 편집 버튼 -->
+    <div class="edit-button-container">
+        <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드">✏️ 편집</button>
+        <button class="edit-btn" id="new-point-btn" style="display:none;">➕ 새 지점</button>
+        <button class="edit-btn" id="export-json-btn" style="display:none;">💾 JSON 내보내기</button>
+        <label for="import-json-file" class="edit-btn" id="import-json-label" style="display:none; cursor:pointer;">📥 JSON 불러오기</label>
+        <!-- 테스트 버튼 추가 -->
+        <button class="edit-btn" onclick="testTimeline()" style="margin-top: 10px;">🧪 타임라인 테스트</button>
+        <input type="file" id="import-json-file" class="edit-file" accept="application/json,.json" />
+    </div>
+
     <!-- Country Hub Panel -->
     <div class="country-hub" id="country-hub">
         <div class="country-hub-header">
@@ -1453,17 +2615,10 @@
                     </div>
                     <div class="address-suggestions" id="address-suggestions" style="display:none;"></div>
                 </div>
-                <div class="edit-controls">
-                    <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드">✏️</button>
-                    <button class="edit-btn" id="new-point-btn" style="display:none;">➕ 새 지점</button>
-                    <button class="edit-btn" id="export-json-btn" style="display:none;">💾 JSON 내보내기</button>
-                    <label for="import-json-file" class="edit-btn" id="import-json-label" style="display:none; cursor:pointer;">📥 JSON 불러오기</label>
-                    <input type="file" id="import-json-file" class="edit-file" accept="application/json,.json" />
+                <div class="category-filters">
+                    <button class="category-filter-btn" id="consulting-filter" data-category="consulting" onclick="toggleCategoryFilter('consulting')">🏢 기술컨설팅</button>
+                    <button class="category-filter-btn" id="oda-filter" data-category="oda" onclick="toggleCategoryFilter('oda')">🌍 ODA</button>
                 </div>
-            </div>
-            <div class="category-filters">
-                <button class="category-filter-btn" id="consulting-filter" data-category="consulting" onclick="toggleCategoryFilter('consulting')">🏢 기술컨설팅</button>
-                <button class="category-filter-btn" id="oda-filter" data-category="oda" onclick="toggleCategoryFilter('oda')">🌍 ODA</button>
             </div>
         </div>
         <div class="country-hub-summary" id="country-hub-summary"></div>
@@ -2247,7 +3402,6 @@
                 const odaCount = allProjects.filter(p => p.category === 'ODA').length;
                 const consultingCount = allProjects.filter(p => p.category === 'Consulting').length;
                 console.log(`데이터 로드 완료: ODA ${odaCount}개, Consulting ${consultingCount}개 (총 ${allProjects.length}개)`);
-                showNotification(`📊 데이터 로드 완료! ODA: ${odaCount}개, 컨설팅: ${consultingCount}개`, 'success');
             } catch (error) {
                 console.error('데이터 로드 실패:', error);
                 showNotification('데이터를 불러올 수 없습니다. 파일을 확인해주세요.', 'error');
@@ -2261,12 +3415,54 @@
         // 지도 초기화
         function initMap() {
             console.log('지도 초기화');
-            map = L.map('map', { center: [30, 0], zoom: 4 }); 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-                attribution: '© OpenStreetMap contributors' 
+
+            map = L.map('map', {
+                center: [30, 0], // 기본 중심점
+                zoom: 3,
+                worldCopyJump: false,    // 세계 지도 복사 점프 비활성화
+                maxBounds: [[-90, -180], [90, 180]], // 지도 경계 제한
+                maxBoundsViscosity: 1.0  // 경계에서 완전히 멈춤
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                noWrap: true,  // 타일 무한 반복 방지
+                bounds: [[-90, -180], [90, 180]]  // 타일 표시 범위 제한
             }).addTo(map);
+
             markersLayer = L.layerGroup().addTo(map);
-            // 지도 클릭으로 위치 선택 기능 제거: 선택된 마커를 직접 드래그
+
+            // 지도가 로드된 후 패널 위치에 맞게 조정
+            map.whenReady(() => {
+                adjustMapCenter();
+            });
+
+            // 화면 크기 변경 시 지도 중심점 재조정
+            window.addEventListener('resize', () => {
+                setTimeout(adjustMapCenter, 100); // 리사이즈 완료 후 조정
+            });
+        }
+
+        // 패널을 고려한 지도 중심점 조정
+        function adjustMapCenter() {
+            const isMobile = window.innerWidth <= 768;
+
+            if (isMobile) {
+                // 모바일: 하단 패널(33vh)을 제외한 상단 67%의 중심
+                const screenHeight = window.innerHeight;
+                const panelHeight = screenHeight * 0.33; // 33vh
+                const availableHeight = screenHeight - panelHeight;
+                const offsetY = -panelHeight / 6; // 상단 영역의 중심으로 이동
+
+                map.panBy([0, offsetY]);
+            } else {
+                // 데스크탑: 오른쪽 패널(33vw)을 제외한 왼쪽 67%의 중심
+                const screenWidth = window.innerWidth;
+                const panelWidth = Math.min(screenWidth * 0.33, 560); // min(33vw, 560px)
+                const offsetX = -panelWidth / 4; // 왼쪽 영역의 중심으로 이동
+
+                map.panBy([offsetX, 0]);
+            }
         }
         // 필터 관련 함수들
         function initializeFilters() {
@@ -2562,7 +3758,15 @@
                 if (project.status && !isProposal && !isProgress) {
                     content += `<div><strong>상태:</strong> <span class="status-badge status-complete">${project.status}</span></div>`;
                 }
-                if (project.startDate && project.endDate) content += `<div><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
+                // 컨설팅 프로젝트의 기간 표시 개선
+                if (project.startDate) {
+                    if (project.endDate) {
+                        content += `<div><strong>기간:</strong> ${project.startDate} ~ ${project.endDate}</div>`;
+                    } else {
+                        // endDate가 없는 경우 startDate만 표시
+                        content += `<div><strong>기간:</strong> ${project.startDate}</div>`;
+                    }
+                }
                 if (project.budget > 0) {
                     const b = Math.round(project.budget / 100).toLocaleString('ko-KR');
                     content += `<div class="popup-budget"><strong>용역비:</strong> ${b}억원</div>`;
@@ -2952,14 +4156,13 @@
         }
 
         function getFilteredCountries() {
-            if (categoryFilters.size === 0) {
-                return []; // 아무 카테고리도 선택되지 않으면 빈 배열 반환
-            }
-
-            const projectsToShow = allProjects.filter(p => {
-                const category = p.category === 'Consulting' ? 'consulting' : 'oda';
-                return categoryFilters.has(category);
-            });
+            // 카테고리가 하나도 선택되지 않았어도, 과거 버전처럼 전체 국가를 항상 노출
+            const projectsToShow = (categoryFilters.size === 0)
+                ? allProjects
+                : allProjects.filter(p => {
+                    const category = p.category === 'Consulting' ? 'consulting' : 'oda';
+                    return categoryFilters.has(category);
+                });
 
             const countries = new Set();
             projectsToShow.forEach(p => {
@@ -2978,7 +4181,8 @@
 
             const countries = getFilteredCountries();
             if (countries.length === 0) {
-                flagsBox.innerHTML = '<div style="font-size:12px; color:#5b7a99; text-align:center; padding:20px;">카테고리를 선택하세요</div>';
+                // 데이터가 아직 로드되지 않았거나 빈 경우에도 공백 안내만, 이후 로드 시 갱신됨
+                flagsBox.innerHTML = '<div style="font-size:12px; color:#5b7a99; text-align:center; padding:20px;">국가 데이터를 불러오는 중…</div>';
                 if (sumBox) sumBox.innerHTML = '';
                 return;
             }
@@ -3032,30 +4236,47 @@
                 ${renderGroup('기타', groups['기타'])}`;
         }
         function attachCountryHubHandlers() {
+            console.log('attachCountryHubHandlers called');
             const flagsBox = document.getElementById('country-flags');
-            if (!flagsBox) return;
+            console.log('flagsBox:', flagsBox);
+            if (!flagsBox) {
+                console.log('No flagsBox found!');
+                return;
+            }
             flagsBox.addEventListener('click', (e) => {
+                console.log('Flag box clicked:', e.target);
                 const chip = e.target.closest('.flag-chip');
+                console.log('Found chip:', chip);
                 if (!chip) return;
                 const country = chip.getAttribute('data-country');
+                console.log('Country from chip:', country);
                 document.querySelectorAll('.flag-chip').forEach(el => el.classList.remove('active'));
                 chip.classList.add('active');
                 showCountryStats(country);
             });
         }
         function showCountryStats(country) {
+            console.log('showCountryStats called for country:', country);
             const modal = document.getElementById('country-stats-modal');
             const modalTitle = document.getElementById('country-stats-modal-title');
             const modalBody = document.getElementById('country-stats-modal-body');
 
-            if (!modal || !modalTitle || !modalBody) return;
+            console.log('Modal elements:', {modal, modalTitle, modalBody});
+            if (!modal || !modalTitle || !modalBody) {
+                console.log('Missing modal elements!');
+                return;
+            }
 
             const projectsToShow = allProjects.filter(p => {
                 const category = p.category === 'Consulting' ? 'consulting' : 'oda';
                 return categoryFilters.has(category);
             });
             const list = projectsToShow.filter(p => p.name.trim() === country);
-            if (list.length === 0) return;
+            console.log('Projects for country:', list);
+            if (list.length === 0) {
+                console.log('No projects found for country:', country);
+                return;
+            }
 
             // 국기 가져오기
             const countryCode = countryCodeMap[country] || 'un';
@@ -3068,15 +4289,118 @@
             const conBudget = Math.round(con.reduce((s,p)=> s + (parseFloat(p.budget)||0), 0) / 100);
 
             // 프로젝트를 시간순으로 정렬
-            function parseYear(s) {
-                if(!s) return null;
-                const m = String(s).match(/(19|20)\d{2}/);
-                return m ? parseInt(m[0], 10) : null;
+            // 다양한 연도 포맷 처리: '72-10, 2018-2022, ‘20-’25, 1998, 2005-06 등
+            function normalizeYearString(s) {
+                if (!s) return '';
+                let str = String(s).trim();
+                // 스마트 따옴표/대시 → 일반 문자로 교체
+                str = str.replace(/[\u2018\u2019\u201C\u201D]/g, "'");
+                str = str.replace(/[\u2013\u2014\u2212]/g, '-');
+                return str;
+            }
+
+            function parseTwoDigitToYear(two) {
+                const n = parseInt(two, 10);
+                if (isNaN(n)) return null;
+                // 사용자 규칙: '72 → 1972, '73 → 1973 등
+                // 일반 규칙: 00~29 → 2000~2029, 30~99 → 1930~1999
+                return n <= 29 ? 2000 + n : 1900 + n;
+            }
+
+            // 문자열의 선두에서(처음 토큰) 연도를 해석한다.
+            // - 4자리 연도(19xx, 20xx) 우선
+            // - "'NN" 형태의 2자리 연도는 1972/1973 규칙에 맞게 변환
+            function parseLeadingYear(raw) {
+                const s = normalizeYearString(raw);
+                if (!s) return null;
+                // 선두 토큰만 확인: 앞에서부터 숫자/따옴표만 허용
+                const m = s.match(/^\s*('?\d{2,4})/);
+                if (!m) return null;
+                const token = m[1];
+                if (/^'\d{2}$/.test(token)) {
+                    return parseTwoDigitToYear(token.slice(1));
+                }
+                const four = token.match(/^(19|20)\d{2}$/);
+                if (four) return parseInt(four[0], 10);
+                // 2자리만 있는 케이스도 방어
+                const twoOnly = token.match(/^(\d{2})$/);
+                if (twoOnly) return parseTwoDigitToYear(twoOnly[1]);
+                return null;
+            }
+
+            // 새로운 함수: 연도 범위 문자열을 파싱하여 시작년도와 종료년도를 추출
+            function parseYearRange(raw) {
+                const s = normalizeYearString(raw);
+                if (!s) return { start: null, end: null };
+                
+                // "'72-10" 같은 형식 처리
+                const rangeMatch = s.match(/^'?(\d{2})\s*[-~–—]\s*('?(\d{2}))?/);
+                if (rangeMatch) {
+                    const startTwo = rangeMatch[1];
+                    const endPart = rangeMatch[3] || rangeMatch[2]; // 종료년도 부분
+                    
+                    const startYear = parseTwoDigitToYear(startTwo);
+                    
+                    // 종료년도가 두 자리 수로만 제공된 경우 (예: '72-10)
+                    if (endPart && endPart.length === 2) {
+                        let endYear = parseTwoDigitToYear(endPart);
+                        
+                        // 시작년도가 1972이고 종료년도가 2010보다 작은 경우 (예: 10 -> 2010)
+                        // 단, 시작년도가 1990년대이고 종료년도가 00-10 사이인 경우는 2000년대로 처리
+                        if (startYear && endYear) {
+                            // 시작년도가 1970~1980년대이고 종료년도가 00-29 사이면 2000년대로 보정
+                            if (startYear >= 1970 && startYear <= 1999 && endYear >= 2000 && endYear <= 2029) {
+                                // 이 경우는 이미 2000년대로 변환되었으므로 그대로 사용
+                            } 
+                            // 시작년도가 1970~1989년대이고 종료년도가 1930~1999 사이면서 시작년도보다 작으면 100년 더함
+                            else if (startYear >= 1970 && startYear <= 1989 && endYear >= 1930 && endYear <= 1999 && endYear < startYear) {
+                                endYear = endYear + 100; // 1972-10을 1972-2010으로 보정
+                            }
+                            // 시작년도가 1990~1999년대이고 종료년도가 00-29 사이면서 시작년도보다 작으면 100년 더함
+                            else if (startYear >= 1990 && startYear <= 1999 && endYear >= 2000 && endYear <= 2029 && endYear < startYear) {
+                                endYear = endYear; // 이미 2000년대로 변환되었으므로 그대로 사용
+                            }
+                        }
+                        
+                        return { start: startYear, end: endYear };
+                    }
+                    
+                    return { start: startYear, end: null };
+                }
+                
+                // 다른 형식 처리
+                const startYear = parseLeadingYear(s);
+                return { start: startYear, end: null };
             }
 
             function getProjectStartYear(p) {
-                if (p.category === 'Consulting') return parseYear(p.startDate);
-                if (p.category === 'ODA') return parseYear(p.period);
+                if (p.category === 'Consulting') {
+                    const range = parseYearRange(p.startDate);
+                    return range.start;
+                }
+                if (p.category === 'ODA') {
+                    const range = parseYearRange(p.period);
+                    return range.start;
+                }
+                return null;
+            }
+
+            function getProjectEndYear(p) {
+                if (p.category === 'Consulting') {
+                    const range = parseYearRange(p.startDate);
+                    // endDate가 별도로 있는 경우 그 값을 사용
+                    if (p.endDate) {
+                        return parseLeadingYear(p.endDate);
+                    }
+                    // startDate에 범위가 포함된 경우 종료년도 사용
+                    return range.end || range.start;
+                }
+                
+                if (p.category === 'ODA') {
+                    const range = parseYearRange(p.period);
+                    return range.end || range.start;
+                }
+                
                 return null;
             }
 
@@ -3107,44 +4431,230 @@
 
             // 타임라인 HTML 생성
             function generateTimeline() {
-                if (sortedYears.length === 0) return '<div class="no-timeline">프로젝트 기간 정보 없음</div>';
+                console.log('generateTimeline: sortedYears.length =', sortedYears.length);
+                if (sortedYears.length === 0) {
+                    // 프로젝트 기간 정보가 없는 경우, 해당 국가의 모든 프로젝트로 타임라인 생성
+                    console.log('Calling generateFullProjectTimeline with list:', list);
+                    const fullTimeline = generateFullProjectTimeline(list);
+                    console.log('Full timeline result length:', fullTimeline.length);
+                    console.log('Full timeline preview:', fullTimeline.substring(0, 200));
+                    return fullTimeline;
+                }
+
+                // 컴팩트 와인 라인 타임라인으로 통일
+                return generateFullProjectTimeline(list);
+            }
+
+            // 와인색 원형 뱃지 타임라인 생성 - 우아한 디자인
+            function generateFullProjectTimeline(projects) {
+                console.log('generateFullProjectTimeline called with projects:', projects);
+                if (!projects || projects.length === 0) {
+                    console.log('No projects provided, returning no-timeline');
+                    return '<div class="no-timeline">프로젝트 정보 없음</div>';
+                }
+
+                // 1) 모든 프로젝트의 연도 정보 수집 및 확장
+                const validProjects = [];
+                let minYear = Infinity;
+                let maxYear = -Infinity;
+                const currentYear = new Date().getFullYear();
+
+                projects.forEach(p => {
+                    const startYear = getProjectStartYear(p);
+                    let endYear = getProjectEndYear(p);
+
+                    // 시작년도가 있는데 종료년도가 없거나, 종료년도가 시작년도보다 이른 경우 보정
+                    if (startYear) {
+                        if (!endYear || endYear < startYear) {
+                            endYear = startYear;
+                        }
+                    }
+
+                    if (startYear) {
+                        // 날짜 표시 형식 개선
+                        let periodDisplay = '';
+                        if (p.category === 'ODA') {
+                            periodDisplay = p.period || `${startYear}${endYear !== startYear ? ` ~ ${endYear}` : ''}`;
+                        } else {
+                            // 컨설팅의 경우 startDate와 endDate가 모두 있는 경우 표시
+                            if (p.startDate && p.endDate) {
+                                periodDisplay = `${p.startDate} ~ ${p.endDate}`;
+                            } else {
+                                periodDisplay = `${startYear}${endYear !== startYear ? ` ~ ${endYear}` : ''}`;
+                            }
+                        }
+
+                        validProjects.push({
+                            ...p,
+                            startYear: startYear,
+                            endYear: endYear,
+                            duration: endYear - startYear + 1,
+                            status: p.status || (endYear < currentYear ? '완료' : '진행중'),
+                            fullInfo: {
+                                name: p.description || '프로젝트명 없음',
+                                period: periodDisplay,
+                                budget: p.budget ? Math.round(p.budget / 100) : 0,
+                                client: p.client || '',
+                                type: p.type || p.projectType || '',
+                                content: p.content || '',
+                                category: p.category
+                            }
+                        });
+
+                        minYear = Math.min(minYear, startYear);
+                        maxYear = Math.max(maxYear, endYear);
+                    }
+                });
+
+                if (validProjects.length === 0) {
+                    return '<div class="no-timeline">타임라인에 표시할 기간 정보가 있는 프로젝트가 없습니다.</div>';
+                }
+                
+                maxYear = Math.max(maxYear, currentYear);
+
+                const yearSpan = maxYear - minYear + 1;
+                const minPixelsPerYear = 80;
+                const maxPixelsPerYear = 150;
+                const minTimelineWidth = 600;
+
+                const projectDensity = validProjects.length / yearSpan;
+                const pixelsPerYear = Math.min(maxPixelsPerYear,
+                    Math.max(minPixelsPerYear, minPixelsPerYear + (projectDensity * 15)));
+
+                const calculatedWidth = yearSpan * pixelsPerYear;
+                const timelineWidthPx = Math.max(minTimelineWidth, calculatedWidth);
+
+                const maxConcurrentProjects = calculateMaxConcurrentProjects(validProjects, minYear, maxYear);
+                const requiredLanes = Math.max(4, Math.min(10, maxConcurrentProjects));
+
+                console.log(`전체 프로젝트: ${projects.length}개, 유효 프로젝트: ${validProjects.length}개`);
+                console.log(`최대 동시 사업: ${maxConcurrentProjects}개, 할당 레인: ${requiredLanes}개`);
+
+                const lanes = Array.from({length: requiredLanes}, () => []);
+                const minBadgeWidth = 120;
+
+                validProjects
+                    .sort((a, b) => {
+                        if (a.startYear !== b.startYear) return a.startYear - b.startYear;
+                        return (b.endYear - b.startYear) - (a.endYear - a.startYear);
+                    })
+                    .forEach(project => {
+                        const startPx = ((project.startYear - minYear) / yearSpan) * timelineWidthPx;
+                        const endPx = ((project.endYear - minYear) / yearSpan) * timelineWidthPx;
+                        const durationPx = Math.max(minBadgeWidth, endPx - startPx + (pixelsPerYear * 0.3));
+
+                        let bestLane = 0;
+                        let foundEmptyLane = false;
+
+                        for (let i = 0; i < lanes.length; i++) {
+                            let hasConflict = false;
+                            for (const existingProject of lanes[i]) {
+                                const existingStartPx = ((existingProject.startYear - minYear) / yearSpan) * timelineWidthPx;
+                                const existingEndPx = existingStartPx + existingProject.widthPx + 25;
+                                if (!(startPx >= existingEndPx || (startPx + durationPx + 25) <= existingStartPx)) {
+                                    hasConflict = true;
+                                    break;
+                                }
+                            }
+                            if (!hasConflict) {
+                                bestLane = i;
+                                foundEmptyLane = true;
+                                break;
+                            }
+                        }
+
+                        if (!foundEmptyLane) {
+                            let minConflicts = Infinity;
+                            for (let i = 0; i < lanes.length; i++) {
+                                const conflicts = lanes[i].length;
+                                if (conflicts < minConflicts) {
+                                    minConflicts = conflicts;
+                                    bestLane = i;
+                                }
+                            }
+                        }
+
+                        project.lane = bestLane;
+                        project.startPx = startPx;
+                        project.widthPx = durationPx;
+                        lanes[bestLane].push(project);
+                    });
+
+                function calculateMaxConcurrentProjects(projects, minYear, maxYear) {
+                    let maxConcurrent = 0;
+                    for (let year = minYear; year <= maxYear; year++) {
+                        let concurrent = 0;
+                        projects.forEach(p => {
+                            if (p.startYear <= year && p.endYear >= year) {
+                                concurrent++;
+                            }
+                        });
+                        maxConcurrent = Math.max(maxConcurrent, concurrent);
+                    }
+                    return maxConcurrent;
+                }
+
+                const consultingProjects = validProjects.filter(p => p.category === 'Consulting');
+                const odaProjects = validProjects.filter(p => p.category === 'ODA');
 
                 return `
-                    <div class="project-timeline">
-                        <div class="timeline-header">
-                            <h3>📅 프로젝트 연대기 (${minYear} ~ ${maxYear})</h3>
-                            <div class="timeline-legend">
-                                <span class="legend-item"><span class="legend-dot consulting"></span>기술컨설팅</span>
-                                <span class="legend-item"><span class="legend-dot oda"></span>ODA</span>
+                    <div class="wine-timeline-compact">
+                        <div class="timeline-compact-header">
+                            <h3>📅 프로젝트 히스토리 (${minYear}~${maxYear}, ${yearSpan}년)</h3>
+                            <div class="timeline-stats">
+                                <div class="stat-item consulting"><span>🔧</span><span class="stat-text">기술컨설팅 ${consultingProjects.length}건</span></div>
+                                <div class="stat-item oda"><span>🌍</span><span class="stat-text">ODA ${odaProjects.length}건</span></div>
+                                <div class="timeline-info"><span class="timeline-width-info">📏 ${Math.round(timelineWidthPx)}px</span></div>
                             </div>
                         </div>
-                        <div class="timeline-container">
-                            <div class="timeline-track">
-                                ${sortedYears.map(year => `
-                                    <div class="timeline-year-section" data-year="${year}">
-                                        <div class="year-label">${year}</div>
-                                        <div class="year-projects">
-                                            ${projectsByYear.get(year).map(p => {
-                                                const categoryClass = p.category === 'Consulting' ? 'consulting' : 'oda';
-                                                const budget = p.budget ? Math.round(p.budget / 100) : 0;
-                                                const budgetLabel = budget > 0 ? `${budget.toLocaleString()}억원` : '';
-                                                const statusClass = p.status === '시행중' ? 'in-progress' : p.status === '제안중' ? 'proposal' : 'completed';
+                        <div class="timeline-compact-container" style="height: ${Math.max(300, requiredLanes * 50 + 120)}px;">
+                            <div class="timeline-scroll-area" style="width: ${timelineWidthPx}px; height: ${Math.max(260, requiredLanes * 50 + 80)}px;">
+                                <div class="timeline-year-grid">
+                                    ${Array.from({length: yearSpan}, (_, i) => {
+                                        const year = minYear + i;
+                                        const positionPx = i === 0 ? 30 : i === yearSpan - 1 ? timelineWidthPx - 60 : (i / (yearSpan - 1)) * (timelineWidthPx - 60) + 30;
+                                        return `<div class="year-mark" style="left: ${positionPx}px;" title="${year}">${year}</div>`;
+                                    }).join('')}
+                                </div>
+                                ${lanes.map((laneProjects, laneIndex) => `
+                                    <div class="timeline-lane" data-lane="${laneIndex}" style="top: ${50 + laneIndex * 55}px;">
+                                        <div class="lane-label">L${laneIndex + 1}</div>
+                                        ${laneProjects.map(project => {
+                                            const categoryClass = project.category === 'Consulting' ? 'consulting' : 'oda';
+                                            const { name, budget, client } = project.fullInfo;
+                                            const rangeLabel = (project.startYear === project.endYear)
+                                                ? String(project.startYear)
+                                                : `${project.startYear} ~ ${project.endYear}`;
+                                            const statusIcon = project.status === '진행중' ? '🔄' : '✅';
+                                            const tooltipInfo = [
+                                                `📋 ${name}`,
+                                                `📅 ${rangeLabel}`,
+                                                budget > 0 ? `💰 ${budget.toLocaleString()}억원` : '',
+                                                client ? `🏢 ${client}` : ''
+                                            ].filter(Boolean).join('\n');
 
-                                                return `
-                                                    <div class="timeline-project ${categoryClass} ${statusClass}">
-                                                        <div class="project-name">${p.description || '프로젝트명 없음'}</div>
-                                                        <div class="project-meta">
-                                                            ${budgetLabel && `<span class="budget">${budgetLabel}</span>`}
-                                                            ${p.status && p.status !== '준공' ? `<span class="status">${p.status}</span>` : ''}
-                                                            ${p.client ? `<span class="client">${p.client}</span>` : ''}
+                                            return `
+                                                <div class="project-badge-compact ${categoryClass} ${project.status === '진행중' ? 'in-progress' : 'completed'}"
+                                                     style="left: ${project.startPx + 30}px; width: ${project.widthPx}px;"
+                                                     title="${tooltipInfo}">
+                                                    <div class="badge-content">
+                                                        <div class="badge-main-title">${name}</div>
+                                                        <div class="badge-details-row">
+                                                            <span class="badge-year">${rangeLabel}</span>
+                                                            ${budget > 0 ? `<span class="badge-budget">${budget.toLocaleString()}억</span>` : ''}
                                                         </div>
+                                                        ${client ? `<div class="badge-client-row">${client}</div>` : ''}
                                                     </div>
-                                                `;
-                                            }).join('')}
-                                        </div>
+                                                    ${project.status === '진행중' ? '<div class="progress-indicator"></div>' : ''}
+                                                    <div class="badge-stripe ${categoryClass}"></div>
+                                                </div>
+                                            `;
+                                        }).join('')}
                                     </div>
                                 `).join('')}
+                                <div class="central-timeline" style="width: ${timelineWidthPx - 60}px; left: 30px;"></div>
                             </div>
+                            ${timelineWidthPx > 800 ? `<div class="scroll-hint"><span>↔️ 좌우 스크롤하여 전체 히스토리 탐색</span></div>` : ''}
                         </div>
                     </div>
                 `;
@@ -3183,6 +4693,26 @@
                                 const categoryClass = p.category === 'Consulting' ? 'consulting' : 'oda';
                                 const budget = p.budget ? Math.round(p.budget / 100) : 0;
                                 const year = getProjectStartYear(p);
+                                const sYear = getProjectStartYear(p);
+                                const eYear = getProjectEndYear(p);
+                                const normalizedRange = (sYear && eYear)
+                                    ? (sYear === eYear ? String(sYear) : `${sYear} ~ ${eYear}`)
+                                    : (sYear ? String(sYear) : '');
+                                // 프로젝트의 원본 기간 정보 표시
+                                let periodDisplay = '';
+                                if (p.category === 'Consulting') {
+                                    if (p.startDate) {
+                                        periodDisplay = p.endDate ? `${p.startDate} ~ ${p.endDate}` : p.startDate;
+                                    } else {
+                                        periodDisplay = normalizedRange;
+                                    }
+                                } else {
+                                    if (p.period) {
+                                        periodDisplay = p.period;
+                                    } else {
+                                        periodDisplay = normalizedRange;
+                                    }
+                                }
                                 const statusClass = p.status === '시행중' ? 'in-progress' : p.status === '제안중' ? 'proposal' : 'completed';
 
                                 return `
@@ -3200,9 +4730,9 @@
                                                 ${year ? `<div class="detail-item"><span class="detail-label">📅 연도:</span> ${year}</div>` : ''}
                                                 ${budget > 0 ? `<div class="detail-item"><span class="detail-label">💰 ${p.category === 'ODA' ? '예산' : '용역비'}:</span> ${budget.toLocaleString()}억원</div>` : ''}
                                                 ${p.client ? `<div class="detail-item"><span class="detail-label">🏢 발주처:</span> ${p.client}</div>` : ''}
-                                                ${p.category === 'Consulting' && p.startDate && p.endDate ? `<div class="detail-item"><span class="detail-label">⏱️ 기간:</span> ${p.startDate} ~ ${p.endDate}</div>` : ''}
+                                                ${p.category === 'Consulting' && periodDisplay ? `<div class="detail-item"><span class="detail-label">⏱️ 기간:</span> ${periodDisplay}</div>` : ''}
                                                 ${p.category === 'ODA' && p.type ? `<div class="detail-item"><span class="detail-label">🔧 형태:</span> ${p.type}</div>` : ''}
-                                                ${p.category === 'ODA' && p.period ? `<div class="detail-item"><span class="detail-label">📋 기간:</span> ${p.period}</div>` : ''}
+                                                ${p.category === 'ODA' && periodDisplay ? `<div class="detail-item"><span class="detail-label">📋 기간:</span> ${periodDisplay}</div>` : ''}
                                             </div>
                                         </div>
                                     </div>
@@ -3213,13 +4743,26 @@
                 `;
             }
 
+            // 타임라인과 프로젝트 리스트 생성 테스트
+            console.log('Generating timeline...');
+            const timelineContent = generateTimeline();
+            console.log('Timeline content length:', timelineContent.length);
+            console.log('Timeline content preview:', timelineContent.substring(0, 200));
+
+            console.log('Generating project list...');
+            const projectListContent = generateProjectList();
+            console.log('Project list content length:', projectListContent.length);
+            console.log('Project list content preview:', projectListContent.substring(0, 200));
+
             // 모달 내용 생성
             modalBody.innerHTML = `
                 <div class="country-history-container">
-                    ${generateTimeline()}
-                    ${generateProjectList()}
+                    ${timelineContent}
+                    ${projectListContent}
                 </div>
             `;
+
+            console.log('Modal body innerHTML set, length:', modalBody.innerHTML.length);
 
             // 모달 표시
             modal.style.display = 'flex';
@@ -3385,7 +4928,20 @@
                 initMap();
                 await loadData();
                 // 로컬 스냅샷 반영 및 ID 보장
-                try { const snap = localStorage.getItem('krc_edits_snapshot'); if (snap){ const s = JSON.parse(snap); if (Array.isArray(s) && s.length){ allProjects = s; } } } catch {}
+                // 로컬 스냅샷 자동 덮어쓰기 방지: 사용자가 명시적으로 활성화한 경우에만 반영
+                try {
+                    const useSnap = localStorage.getItem('krc_edits_snapshot_active') === '1';
+                    const snap = localStorage.getItem('krc_edits_snapshot');
+                    if (useSnap && snap) {
+                        const s = JSON.parse(snap);
+                        if (Array.isArray(s) && s.length) {
+                            console.warn('[KRC] Using local snapshot instead of bundled JSON. count=', s.length);
+                            allProjects = s;
+                        }
+                    } else if (snap && !useSnap) {
+                        console.warn('[KRC] Local snapshot detected but not active. Ignoring snapshot. To use it, set localStorage.krc_edits_snapshot_active = "1"');
+                    }
+                } catch {}
                 ensureProjectIds();
                 initializeFilters();
                 initializeCategoryFilters(); // 카테고리 필터 초기화
@@ -3409,6 +4965,17 @@
         } else {
             initialize();
         }
+
+        // 로딩 워치독: 8초 내 초기화 실패 시 사용자 안내 및 로딩 숨김
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl && loadingEl.style.display !== 'none') {
+                    hideLoading();
+                    showNotification('데이터 로딩이 지연됩니다. 서버 실행과 네트워크 연결을 확인해주세요.', 'warning');
+                }
+            }, 8000);
+        });
         // 윈도우 리사이즈 이벤트 등록
         window.addEventListener('resize', handleResize);
         
@@ -3473,6 +5040,65 @@
         window.resetAllFilters = resetAllFilters;
         window.goToMyLocation = goToMyLocation;
         window.openEditor = openEditor;
+        // 테스트 함수 추가
+        window.testTimeline = function() {
+            // 테스트용 프로젝트 데이터 생성
+            const testProjects = [
+                {
+                    description: "베트남 교육 컨설팅 프로젝트",
+                    category: "Consulting",
+                    startDate: "'72-10",
+                    endDate: "'73-09"
+                },
+                {
+                    description: "라오스 인프라 개발 프로젝트",
+                    category: "ODA",
+                    period: "'72-10"
+                },
+                {
+                    description: "캄보디아 수자원 개발",
+                    category: "ODA",
+                    period: "'20-25"
+                },
+                {
+                    description: "필리핀 ICT 컨설팅",
+                    category: "Consulting",
+                    startDate: "2021-01-01",
+                    endDate: "2023-06-30"
+                },
+                {
+                    description: "몽골 에너지 프로젝트",
+                    category: "ODA",
+                    period: "2022-2025"
+                }
+            ];
+            
+            // 테스트 타임라인 생성
+            const timelineHTML = generateFullProjectTimeline(testProjects);
+            
+            // 테스트 결과를 콘솔에 출력
+            console.log("Test Projects:", testProjects);
+            testProjects.forEach((p, i) => {
+                const startYear = getProjectStartYear(p);
+                const endYear = getProjectEndYear(p);
+                console.log(`Project ${i+1}: ${p.description}`);
+                console.log(`  Start Year: ${startYear}`);
+                console.log(`  End Year: ${endYear}`);
+            });
+            
+            return timelineHTML;
+        }
+        
+        window.testDateParsing = function() {
+            // 날짜 파싱 테스트
+            const testDates = ["'72-10", "'73-02", "'20-25", "2018-2022", "1998", "2005-06"];
+            
+            console.log("Date Parsing Test Results:");
+            testDates.forEach(date => {
+                const range = parseYearRange(date);
+                console.log(`  ${date} -> Start: ${range.start}, End: ${range.end}`);
+            });
+        };
     </script>
     <!-- 편집 모달 -->
     <div class="edit-modal" id="edit-modal">
