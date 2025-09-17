@@ -5268,10 +5268,16 @@
 
                 let yearMarkersHtml = '';
                 /* projectYears computed above */
+                const nowYearForMarkers = (new Date()).getFullYear();
                 projectYears.forEach((year, idx) => {
-                    const leftPos = padding + idx * unitWidth;
-                    yearMarkersHtml += `<div class="new-year-marker" style="left: ${leftPos}px;"><div class="dot"></div><div class="year-label">${year}</div></div>`;
+                    // 과거/현재 연도만 축 위에 표시. 미래 연도는 해당 이벤트 위치에서 별도 표시
+                    if (year <= nowYearForMarkers) {
+                        const leftPos = padding + idx * unitWidth;
+                        yearMarkersHtml += `<div class="new-year-marker" style="left: ${leftPos}px;"><div class="dot"></div><div class="year-label">${year}</div></div>`;
+                    }
                 });
+                let futureYearMarkersHtml = '';
+                const futureYearPlaced = new Set();
 
                 let eventBlocksHtml = '';
                 // 현재 시점(오늘)의 위치 계산: 월 기준 분수 연도
@@ -5404,6 +5410,15 @@
                     const budgetBadge = budgetEok > 0 ? `<span class="badge badge-budget ${categoryClass}">💰 ${budgetEok.toLocaleString()}억원</span>` : '';
                     const clientBadge = p.client ? `<span class="badge badge-client">🏢 ${p.client}</span>` : '';
 
+                    // 미래 연도의 라벨/와인 점도 이벤트 위치로 이동하여 함께 표시
+                    if (startF && startF > nowFraction) {
+                        const moveYear = Math.floor(startF);
+                        if (!futureYearPlaced.has(moveYear)) {
+                            futureYearPlaced.add(moveYear);
+                            futureYearMarkersHtml += `<div class="new-year-marker" style="left: ${leftPos}px;"><div class="dot"></div><div class="year-label">${moveYear}</div></div>`;
+                        }
+                    }
+
                     eventBlocksHtml += `
                         <div class="new-event-block ${isTop ? 'top' : 'bottom'} ${categoryClass} ${ongoingClass} ${isProposal ? 'proposal' : ''}" style="left: ${leftPos}px;">
                             ${isOngoing ? `<div class=\"badge-ongoing\">진행중</div>` : ''}
@@ -5424,6 +5439,7 @@
                             <div class="new-timeline-axis"></div>
                             ${currentMarkerHtml}
                             ${yearMarkersHtml}
+                            ${futureYearMarkersHtml}
                             ${eventBlocksHtml}
                         </div>
                         <div class="new-timeline-footer">
