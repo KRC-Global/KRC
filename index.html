@@ -14,6 +14,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; height: 100vh; background-color: #f5f5f5; }
         #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        /* Panel-aware map layout (desktop) */
+        #map.map-shift-left { left: min(33vw, 560px); width: calc(100% - min(33vw, 560px)); }
         
         /* 로고 스타일 - 필터바 내부로 이동 */
         .logo-container {
@@ -241,9 +243,9 @@
         }
         
         /* Country Hub (bottom panel) */
-        .country-hub { position: fixed; right: 0; top: 0; bottom: 0; z-index: 1002;
-            width: min(33vw, 560px); min-width: 360px; background: #FFF8E7; border-left: 2px solid #0A3D62;
-            box-shadow: -4px 0 22px rgba(10,61,98,0.2); padding: 12px 14px; display:flex; flex-direction: column; }
+        .country-hub { position: fixed; left: 0; top: 0; bottom: 0; z-index: 1002;
+            width: min(33vw, 560px); min-width: 360px; background: #FFF8E7; border-right: 2px solid #0A3D62;
+            box-shadow: 4px 0 22px rgba(10,61,98,0.2); padding: 12px 14px; display:flex; flex-direction: column; }
 
         /* 모바일 반응형 - 오른쪽 패널을 아래쪽으로 이동 */
         @media (max-width: 768px) {
@@ -266,6 +268,11 @@
                 z-index: 1000;
             }
 
+            /* Panel-aware map layout (mobile) */
+            #map.map-shift-bottom {
+                height: calc(100% - 33vh);
+            }
+
             #map {
                 height: 100vh;
                 margin-bottom: 0;
@@ -273,6 +280,11 @@
         }
         .country-hub-header { display:flex; flex-direction: row; align-items: center; gap:12px; flex-wrap: wrap; }
         .country-hub-main-toolbar { display:flex; align-items:center; gap:8px; flex: 1; min-width: 0; flex-wrap: wrap; }
+        .system-bar { display:flex; align-items:center; justify-content: space-between; width: 100%; margin-bottom: 6px; }
+        .system-title { font-size: 18px; font-weight: 900; color: #0A3D62; letter-spacing: 0.5px; }
+        .panel-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+        .panel-actions .edit-btn { padding: 6px 10px; border: 1px solid #cfe0ee; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; font-weight: 700; color: #0A3D62; }
+        .panel-actions .edit-btn.toggle.on { background: #0A3D62; color: #fff; border-color: #0A3D62; }
         .category-filters { display: flex; gap: 8px; }
         .category-filter-btn {
             padding: 8px 12px; border: 2px solid #ddd; border-radius: 8px;
@@ -313,6 +325,42 @@
         .stat-box .stat-sub { font-size: 11px; color:#5b7a99; margin-top:2px; }
         .stat-list { display:flex; flex-wrap: wrap; gap:6px; }
         .pill { padding: 4px 8px; background:#f0f6fb; color:#0A3D62; border: 1px solid #cfe0ee; border-radius: 999px; font-size: 11px; font-weight:700; }
+        /* 개황(Overview) 모드: 컴팩트 타임라인 스케일 */
+        .overview-mode .new-event-block::before { display: none; }
+        .overview-mode .new-event-block { width: 90px; height: 90px; }
+        .overview-mode .new-event-block.top { bottom: calc(50% + 12px); }
+        .overview-mode .new-event-block.bottom { top: calc(50% + 12px); }
+        .overview-mode .new-event-content { padding: 6px; }
+        .overview-mode .new-event-title { font-size: 8px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .overview-mode .new-event-year { font-size: 7px; margin-bottom: 4px; }
+        .overview-mode .badge-row .badge { font-size: 7px; padding: 1px 4px; }
+        .overview-mode .new-event-block.tech, .overview-mode .new-event-block.oda { border-width: 3px; }
+        .overview-mode .badge-proposal { display: none; }
+        .overview-mode .badge-ongoing {
+            position: absolute;
+            top: auto; /* ensure top from base rule is unset */
+            bottom: -10px; /* overlap bottom like flag on top */
+            left: 50%;
+            transform: translateX(-50%);
+            display: inline-block;
+            font-size: 7px;
+            padding: 2px 6px;
+            background: #000; color: #fff;
+            border-radius: 999px;
+            z-index: 8;
+            white-space: nowrap;
+        }
+        /* Proposal styling in overview */
+        .overview-mode .new-event-block.proposal { background: #333333; border-color: #333333; }
+        .overview-mode .new-event-block.proposal .new-event-content,
+        .overview-mode .new-event-block.proposal .new-event-title,
+        .overview-mode .new-event-block.proposal .new-event-year { color: #ffffff; }
+        .overview-mode .new-timeline-footer { display: none; }
+
+        /* 원형 점이 타원으로 보이지 않도록 강제 비율 고정 */
+        .new-year-marker .dot, .wine-year-dot {
+            aspect-ratio: 1 / 1;
+        }
         
         .badge-client-corner {
             position: absolute;
@@ -340,12 +388,16 @@
             max-width: 90vw; max-height: 90vh;
             width: 700px;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-            overflow-y: auto;
+            position: relative; /* ensure header sticky z-index works over body */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* single scroll inside timeline container */
         }
         .country-stats-modal-header {
             padding: 24px 28px 20px;
             border-bottom: 2px solid #0A3D62;
             display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100; background: #FFF8E7;
         }
         .country-stats-modal-title {
             font-size: 22px; font-weight: 800; color: #0A3D62;
@@ -365,6 +417,8 @@
         }
         .country-stats-modal-body {
             padding: 24px 28px;
+            flex: 1;
+            overflow: hidden; /* prevent second scrollbar on content */
         }
         .country-stats-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -2503,17 +2557,8 @@
                 top: 75%;
             }
 
-            /* 모바일에서 편집 버튼 위치 조정 */
-            .edit-button-container {
-                top: 10px;
-                left: auto;
-                right: 10px;
-            }
-
-            .edit-button-container .edit-btn {
-                padding: 6px 10px;
-                font-size: 12px;
-            }
+        /* 모바일에서 외부 열기 버튼 위치 조정 */
+            .panel-open-fab { top: 10px; left: 10px; }
         }
         
         .map-controls {
@@ -2526,42 +2571,16 @@
             gap: 8px;
         }
 
-        /* 독립적인 편집 버튼 */
-        .edit-button-container {
+        /* 패널 닫힌 상태에서 보이는 외부 열기 버튼 */
+        .panel-open-fab {
             position: fixed;
             top: 15px;
             left: 15px;
             z-index: 1500;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            display: none;
         }
-
-        .edit-button-container .edit-btn {
-            background: white;
-            border: 2px solid #0A3D62;
-            color: #0A3D62;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .edit-button-container .edit-btn:hover {
-            background: #0A3D62;
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        .edit-button-container .edit-btn.toggle.on {
-            background: #0A3D62;
-            color: white;
-        }
+        .panel-open-fab .edit-btn { background: #fff; border: 2px solid #0A3D62; color: #0A3D62; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .panel-open-fab .edit-btn:hover { background: #0A3D62; color: #fff; }
         .control-btn {
             background: white; border: 2px solid #3498db; color: #3498db; padding: 6px;
             border-radius: 50%; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
@@ -2887,6 +2906,8 @@
                 width: 18px;
                 height: 18px;
             }
+            .system-bar { margin-bottom: 4px; }
+            .system-title { font-size: 14px; }
             
             /* 지도 컨트롤 모바일 위치 조정 */
             .map-controls {
@@ -3162,10 +3183,14 @@
         /* New Timeline Design Styles */
         .new-timeline-design-container {
             background: #FFF8E7;
-            padding: 20px;
+            padding: 20px 20px 200px 20px; /* extra bottom space for badges/scroll */
             border-radius: 12px;
-            overflow-x: auto;
+            overflow: auto; /* single scroll region (both axes) */
             position: relative;
+            height: 100%;
+            -webkit-overflow-scrolling: touch; /* smooth iOS scrolling */
+            touch-action: pan-y pan-x; /* allow touch scrolling */
+            overscroll-behavior: contain; /* avoid parent scroll chaining */
         }
         .new-timeline-wrapper {
             position: relative;
@@ -3180,9 +3205,10 @@
             top: 50%;
             left: 0;
             right: 0;
-            height: 2px;
+            height: 3px;
             background-color: #722F37;
-            transform: translateY(-1px);
+            transform: translateY(-50%);
+            z-index: 20; /* ensure the axis is visible */
         }
         .new-year-marker {
             position: absolute;
@@ -3294,16 +3320,41 @@
         .badge-budget.tech { background: #0A3D62; color: #fff; }
         .badge-budget.oda { background: #E65100; color: #fff; }
         .badge-client { background: #f0f3f5; color: #495057; border: 1px solid #dfe7ef; font-weight: 600; font-size: 10px; }
+        /* Small flag on top of each event circle */
+        .new-event-block .flag-mini {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            z-index: 7;
+        }
+        .new-event-block .flag-caption {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 7px;
+            color: #6c757d;
+            white-space: nowrap;
+            z-index: 7;
+        }
         .badge-ongoing { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
         .badge-proposal { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #e53935; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
         .new-event-block.tech.ongoing { background: #E3F2FD; }
         /* ODA 진행중: 원안의 진한 주황(#E65100)과 가독성 보정 */
-        .new-event-block.oda.ongoing { background: #E65100; border-color: #E65100; }
+        .new-event-block.oda.ongoing { background: #FFCC80; border-color: #E65100; }
         .new-event-block.oda.ongoing .new-event-content,
         .new-event-block.oda.ongoing .new-event-year,
-        .new-event-block.oda.ongoing .new-event-title { color: #ffffff; }
-        .new-event-block.oda.ongoing .badge-row .badge { background: rgba(255,255,255,0.18); color: #ffffff; border-color: rgba(255,255,255,0.4); }
-        .new-event-block.oda.ongoing .badge-budget.oda { background: #ffffff; color: #E65100; }
+        .new-event-block.oda.ongoing .new-event-title { color: #000000; }
+        .new-event-block.oda.ongoing .badge-row .badge { background: #fff3e0; color: #E65100; border-color: #ffcc80; }
+        .new-event-block.oda.ongoing .badge-budget.oda { background: #E65100; color: #ffffff; }
     </style>
 </head>
 <body>
@@ -3328,14 +3379,9 @@
     
     <!-- Control panel functionality moved to Country Hub -->
     
-    <!-- 독립적인 편집 버튼 -->
-    <div class="edit-button-container">
-        <button class="edit-btn" id="toggle-panel-btn" title="패널 보이기/숨기기">☰</button>
-        <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드">✏️ 편집</button>
-        <button class="edit-btn" id="new-point-btn" style="display:none;">➕ 새 지점</button>
-        <button class="edit-btn" id="export-json-btn" style="display:none;">💾 JSON 내보내기</button>
-        <label for="import-json-file" class="edit-btn" id="import-json-label" style="display:none; cursor:pointer;">📥 JSON 불러오기</label>
-        <input type="file" id="import-json-file" class="edit-file" accept="application/json,.json" />
+    <!-- 패널 닫힘 시 나타나는 열기 버튼 -->
+    <div class="panel-open-fab" id="panel-open-fab">
+        <button class="edit-btn" id="open-panel-btn" title="패널 열기">☰</button>
     </div>
 
     <!-- Country Hub Panel -->
@@ -3343,16 +3389,28 @@
         <div class="country-hub-header">
             <div class="country-hub-main-toolbar">
                 <div class="address-search-group" id="address-search-group">
+                    <div class="system-bar">
+                        <div class="system-title">글로벌사업관리시스템</div>
+                        <button class="edit-btn" id="toggle-panel-btn" title="패널 닫기">✕</button>
+                    </div>
                     <div style="display: flex; gap: 4px;">
                         <input type="text" id="address-input" placeholder="주소 또는 사업명 검색" style="padding:7px 10px; border:1px solid #ddd; border-radius:6px; width: 160px; font-size:12px;">
                         <button class="filter-bar-button" id="address-search-btn">검색</button>
+                        <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드">✏️ 편집</button>
                     </div>
                     <div class="address-suggestions" id="address-suggestions" style="display:none;"></div>
                 </div>
                 <div class="category-filters">
                     <button class="category-filter-btn" id="consulting-filter" data-category="consulting" onclick="toggleCategoryFilter('consulting')">🏢 기술컨설팅</button>
                     <button class="category-filter-btn" id="oda-filter" data-category="oda" onclick="toggleCategoryFilter('oda')">🌍 ODA</button>
+                    <button class="category-filter-btn" id="overview-btn" onclick="showOverview()">📊 개황</button>
                 </div>
+            </div>
+            <div class="panel-actions">
+                <button class="edit-btn" id="new-point-btn" style="display:none;">➕ 새 지점</button>
+                <button class="edit-btn" id="export-json-btn" style="display:none;">💾 JSON 내보내기</button>
+                <label for="import-json-file" class="edit-btn" id="import-json-label" style="display:none; cursor:pointer;">📥 JSON 불러오기</label>
+                <input type="file" id="import-json-file" class="edit-file" accept="application/json,.json" />
             </div>
         </div>
         <div class="country-hub-summary" id="country-hub-summary"></div>
@@ -4200,25 +4258,22 @@
             });
         }
 
-        // 패널을 고려한 지도 중심점 조정
+        // 패널을 고려한 지도 컨테이너 레이아웃 조정 (누적 없음)
         function adjustMapCenter() {
+            const mapEl = document.getElementById('map');
+            const panel = document.getElementById('country-hub');
+            if (!mapEl || !panel) return;
             const isMobile = window.innerWidth <= 768;
+            const isPanelVisible = panel.style.display !== 'none';
 
-            if (isMobile) {
-                // 모바일: 하단 패널(33vh)을 제외한 상단 67%의 중심
-                const screenHeight = window.innerHeight;
-                const panelHeight = screenHeight * 0.33; // 33vh
-                const availableHeight = screenHeight - panelHeight;
-                const offsetY = -panelHeight / 6; // 상단 영역의 중심으로 이동
-
-                map.panBy([0, offsetY]);
-            } else {
-                // 데스크탑: 오른쪽 패널(33vw)을 제외한 왼쪽 67%의 중심
-                const screenWidth = window.innerWidth;
-                const panelWidth = Math.min(screenWidth * 0.33, 560); // min(33vw, 560px)
-                const offsetX = -panelWidth / 4; // 왼쪽 영역의 중심으로 이동
-
-                map.panBy([offsetX, 0]);
+            mapEl.classList.remove('map-shift-left', 'map-shift-bottom');
+            if (isPanelVisible) {
+                if (isMobile) mapEl.classList.add('map-shift-bottom');
+                else mapEl.classList.add('map-shift-left');
+            }
+            if (map) {
+                // 컨테이너 크기가 바뀌었으므로 사이즈 재계산
+                setTimeout(() => map.invalidateSize(false), 0);
             }
         }
         // 필터 관련 함수들
@@ -4539,14 +4594,15 @@
 
         function togglePanel() {
             const panel = document.getElementById('country-hub');
-            if (panel) {
-                const isHidden = panel.style.display === 'none';
-                panel.style.display = isHidden ? 'flex' : 'none';
-                
-                if (map) {
-                    setTimeout(() => map.invalidateSize(true), 250);
-                }
-            }
+            const opener = document.getElementById('panel-open-fab');
+            if (!panel) return;
+            const willShow = panel.style.display === 'none';
+            panel.style.display = willShow ? 'flex' : 'none';
+            if (opener) opener.style.display = willShow ? 'none' : 'block';
+            if (!map) return;
+            setTimeout(() => {
+                adjustMapCenter();
+            }, 200);
         }
 
         // ===== 편집 모드 / 에디터 =====
@@ -5029,7 +5085,7 @@
                            `<div class="flag-label">${c}</div>` +
                            `</div>`;
                 }).join('');
-                return `<div class="flag-quadrant"><div class="flag-quadrant-title">${title}</div><div class="flag-grid">${chips || '<div style="font-size:11px;color:#5b7a99;">없음</div>'}</div></div>`;
+                return `<div class="flag-quadrant"><div class="flag-quadrant-title">${title} (${list.length}개국)</div><div class="flag-grid">${chips || '<div style="font-size:11px;color:#5b7a99;">없음</div>'}</div></div>`;
             }
             flagsBox.innerHTML = `
                 ${renderGroup('아시아', groups['아시아'])}
@@ -5732,6 +5788,341 @@
             modal.style.display = 'flex';
         }
 
+        // ===== 개황(Overview) 팝업 =====
+        function showOverview() {
+            const modal = document.getElementById('country-stats-modal');
+            const modalTitle = document.getElementById('country-stats-modal-title');
+            const modalBody = document.getElementById('country-stats-modal-body');
+            if (!modal || !modalTitle || !modalBody) return;
+
+            // 현재 활성 필터가 반영된 집합 사용
+            const list = (Array.isArray(filteredProjects) ? filteredProjects : allProjects).slice();
+            if (!list.length) {
+                showNotification('현재 필터링된 사업이 없습니다.', 'info');
+                return;
+            }
+
+            modalTitle.innerHTML = '📊 개황: 필터링된 프로젝트 히스토리';
+            // 개황 전용 타임라인 생성기 사용 (컴팩트)
+            const timelineHtml = generateOverviewTimeline(list);
+            modalBody.innerHTML = `<div class="overview-mode">${timelineHtml}</div>`;
+            modal.style.display = 'flex';
+
+            // 현재 시점과 축 중앙을 보이도록 오토스크롤 (가로/세로)
+            setTimeout(() => {
+                try {
+                    const container = modalBody.querySelector('.new-timeline-design-container');
+                    const wrapper = modalBody.querySelector('.new-timeline-wrapper');
+                    const marker = modalBody.querySelector('#current-time-marker');
+                    if (container && wrapper) {
+                        // vertical: center the axis (wrapper height / 2)
+                        const targetTop = Math.max(0, (wrapper.clientHeight / 2) - (container.clientHeight / 2));
+                        const maxTop = Math.max(0, container.scrollHeight - container.clientHeight);
+                        container.scrollTop = Math.min(targetTop, maxTop);
+                    }
+                    if (marker && container) {
+                        const mrect = marker.getBoundingClientRect();
+                        const crect = container.getBoundingClientRect();
+                        const dx = (mrect.left - crect.left) - crect.width * 0.6;
+                        const targetLeft = container.scrollLeft + dx;
+                        const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+                        container.scrollLeft = Math.min(Math.max(0, targetLeft), maxLeft);
+                    }
+                } catch {}
+            }, 50);
+        }
+
+        // 개황 전용: 간단한 컴팩트 타임라인 생성기
+        function generateOverviewTimeline(projects) {
+            function normalizeYearString(s) {
+                if (!s) return '';
+                let str = String(s).trim();
+                str = str.replace(/[\u2018\u2019\u201C\u201D]/g, "'");
+                str = str.replace(/[\u2013\u2014\u2212]/g, '-');
+                return str;
+            }
+            function twoToYear(two) {
+                const n = parseInt(two, 10);
+                if (isNaN(n)) return null;
+                return n <= 29 ? 2000 + n : 1900 + n;
+            }
+            function parseLeadingYearLocal(raw) {
+                const s = normalizeYearString(raw);
+                if (!s) return null;
+                let m = s.match(/^(\d{4})/);
+                if (m) return parseInt(m[1], 10);
+                m = s.match(/^'?(\d{2})/);
+                if (m) return twoToYear(m[1]);
+                return null;
+            }
+            function parseRangeYearsFromString(str) {
+                const s = normalizeYearString(str || '');
+                if (!s) return { start: null, end: null };
+                // YYYY.MM~YYYY.MM or YYYY-MM~YYYY-MM
+                let m = s.match(/\b(\d{4})[./-](0?[1-9]|1[0-2])\s*[-~–—]\s*(\d{4})[./-](0?[1-9]|1[0-2])\b/);
+                if (m) return { start: parseInt(m[1],10), end: parseInt(m[3],10) };
+                // 'YY-MM~'YY-MM
+                m = s.match(/\b'?(\d{2})[./-](0?[1-9]|1[0-2])\s*[-~–—]\s*'?(\d{2})[./-](0?[1-9]|1[0-2])\b/);
+                if (m) {
+                    const sy = twoToYear(m[1]); let ey = twoToYear(m[3]); if (sy && ey && ey < sy) ey += 100; return { start: sy, end: ey };
+                }
+                // YYYY~YYYY
+                m = s.match(/\b(\d{4})\s*[-~–—]\s*(\d{4})\b/);
+                if (m) return { start: parseInt(m[1],10), end: parseInt(m[2],10) };
+                // 'YY~'YY
+                m = s.match(/\b'?(\d{2})\s*[-~–—]\s*'?(\d{2})\b/);
+                if (m) {
+                    const sy = twoToYear(m[1]); let ey = twoToYear(m[2]); if (sy && ey && ey < sy) ey += 100; return { start: sy, end: ey };
+                }
+                return { start: null, end: null };
+            }
+            function extractYears(str) {
+                const s = normalizeYearString(str || '');
+                const years = [];
+                if (!s) return years;
+                // 4-digit years
+                for (const m of s.matchAll(/\b(19|20)\d{2}\b/g)) {
+                    years.push(parseInt(m[0], 10));
+                }
+                // apostrophe two-digit years (avoid months like -10)
+                for (const m of s.matchAll(/'(\d{2})/g)) {
+                    const y = twoToYear(m[1]);
+                    if (y) years.push(y);
+                }
+                // patterns like 2013-14 (no apostrophe) → infer end as two-digit year
+                const m2 = s.match(/\b((19|20)\d{2})\s*[-~–—]\s*(\d{2})\b/);
+                if (m2) {
+                    const sy = parseInt(m2[1], 10);
+                    let ey = twoToYear(m2[3]);
+                    if (ey && ey < sy) ey += 100;
+                    if (!years.includes(sy)) years.push(sy);
+                    if (ey && !years.includes(ey)) years.push(ey);
+                }
+                // patterns like '26~'30 → infer both years in 2000s baseline
+                const m5 = s.match(/\b'?\d{2}\s*[-~–—]\s*'?\d{2}\b/);
+                if (m2) {
+                    const sy = parseInt(m2[1], 10);
+                    let ey = twoToYear(m2[3]);
+                    if (ey && ey < sy) ey += 100;
+                    if (!years.includes(sy)) years.push(sy);
+                    if (ey && !years.includes(ey)) years.push(ey);
+                }
+                // patterns like 26-10 (two-digit year + month at start) → treat first as year
+                const m3 = s.match(/^\s*(\d{2})[./-](0?[1-9]|1[0-2])/);
+                if (m3) {
+                    const y = twoToYear(m3[1]);
+                    if (y && !years.includes(y)) years.push(y);
+                }
+                // range like 26-10 ~ 27-03 → infer both years
+                const m4 = s.match(/\b(\d{2})[./-](0?[1-9]|1[0-2])\s*[-~–—]\s*(\d{2})[./-](0?[1-9]|1[0-2])\b/);
+                if (m4) {
+                    const sy = twoToYear(m4[1]);
+                    let ey = twoToYear(m4[3]);
+                    if (sy && ey && ey < sy) ey += 100;
+                    if (sy && !years.includes(sy)) years.push(sy);
+                    if (ey && !years.includes(ey)) years.push(ey);
+                }
+                return years;
+            }
+            function getStartEndYears(p) {
+                if (!p) return { start: null, end: null };
+                if (p.category === 'Consulting') {
+                    // try explicit ranges first
+                    let r = parseRangeYearsFromString(p.startDate || '');
+                    if (r.start && r.end) return r;
+                    r = parseRangeYearsFromString(p.endDate || '');
+                    if (r.start && r.end) return r;
+                    r = parseRangeYearsFromString(p.period || '');
+                    if (r.start && r.end) return r;
+                    // fallback: collect all years
+                    const all = [
+                        ...extractYears(p.startDate || ''),
+                        ...extractYears(p.endDate || ''),
+                        ...extractYears(p.period || '')
+                    ].sort((a,b)=>a-b);
+                    const start = all.length ? all[0] : null;
+                    const end = all.length ? all[all.length - 1] : start;
+                    return { start, end };
+                } else { // ODA
+                    // try explicit ranges primarily from period
+                    let r = parseRangeYearsFromString(p.period || '');
+                    if (r.start && r.end) return r;
+                    r = parseRangeYearsFromString(p.startDate || '');
+                    if (r.start && r.end) return r;
+                    r = parseRangeYearsFromString(p.endDate || '');
+                    if (r.start && r.end) return r;
+                    // fallback
+                    const yrs = [
+                        ...extractYears(p.period || ''),
+                        ...extractYears(p.startDate || ''),
+                        ...extractYears(p.endDate || '')
+                    ];
+                    if (yrs.length === 0) return { start: null, end: null };
+                    return { start: Math.min(...yrs), end: Math.max(...yrs) };
+                }
+            }
+            function getStartYearOnly(p) {
+                const { start } = getStartEndYears(p);
+                return start;
+            }
+            const list = (projects||[]).map(p => ({...p, year: getStartYearOnly(p)})).filter(p=>p.year);
+            if (!list.length) return '<div class="no-timeline">타임라인에 표시할 프로젝트가 없습니다.</div>';
+            list.sort((a,b)=>a.year-b.year);
+            const years = Array.from(new Set(list.map(p=>p.year))).sort((a,b)=>a-b);
+            const padding = 120;
+            const unitWidth = 260;
+            const extraSlots = 1;
+            const stepCount = Math.max(1, years.length-1);
+            const timelineWidth = Math.max(1000, padding*2 + unitWidth*(stepCount+extraSlots));
+            function xForYear(y){
+                const idx = years.indexOf(y);
+                if (idx === -1) return padding;
+                return padding + idx*unitWidth;
+            }
+            const now=new Date();
+            const nowYearInt=now.getFullYear();
+            const nowMonth = now.getMonth()+1;
+            const nowFrac = nowYearInt + (nowMonth-1)/12;
+            function xForFraction(f){
+                if (!years.length) return padding;
+                if (f <= years[0]) return padding;
+                if (f >= years[years.length-1]) return padding + (years.length-1)*unitWidth;
+                for (let i=0;i<years.length-1;i++){
+                    const y0 = years[i], y1 = years[i+1];
+                    if (f >= y0 && f <= y1){
+                        const t = (f - y0) / Math.max(1,(y1 - y0));
+                        return padding + (i + t) * unitWidth;
+                    }
+                }
+                return padding;
+            }
+            const currentLeft = xForFraction(nowFrac);
+            let yearMarkers='';
+            years.forEach((y,i)=>{ if (y<=nowYearInt) yearMarkers += `<div class=\"new-year-marker\" style=\"left:${padding+i*unitWidth}px;\"><div class=\"dot\"></div><div class=\"year-label\">${y}</div></div>`; });
+            let futureYearMarkers='';
+            let events='';
+            const placedFuture = new Set();
+            const eventWidth = 90; // match CSS .overview-mode .new-event-block width
+            const eventHeight = 90;
+            const rowGap = 120; // restore wider vertical spacing
+            const baseOffset = 60; // restore larger base offset from axis
+            const slotOffset = eventWidth * 0.55; // bring circles closer to year center
+            const maxRows = { top: 0, bottom: 0 };
+
+            // group by year and category (top=Consulting, bottom=ODA)
+            const byYear = new Map();
+            for (const y of years) byYear.set(y, { top: [], bottom: [] });
+            list.forEach(p => {
+                const cat = (p.category === 'Consulting') ? 'top' : 'bottom';
+                byYear.get(p.year)[cat].push(p);
+            });
+
+            function formatPeriodYears(p) {
+                let { start, end } = getStartEndYears(p);
+                if (start && end && end < start) { const t = start; start = end; end = t; }
+                const yy = (n) => (typeof n === 'number' ? ("'" + String(n % 100).padStart(2,'0')) : '');
+                if (!start && !end) return '';
+                if (!end || end === start) return `${yy(start)}`;
+                return `${yy(start)}~${yy(end)}`;
+            }
+            function isOngoing(p, nowYear) {
+                const status = (p.status || '').toLowerCase();
+                if (/진행|시행중/.test(status)) return true;
+                if (/준공|완료|종료/.test(status)) return false;
+                const { start, end } = getStartEndYears(p);
+                if (start && end) return nowYear >= start && nowYear <= end;
+                if (start) return nowYear === start;
+                return false;
+            }
+
+            years.forEach((y, yi) => {
+                const xCenter = padding + yi * unitWidth;
+                const sets = byYear.get(y);
+                // top (Consulting): place in left/right slots per row
+                sets.top.forEach((p, idx) => {
+                    const isLeft = (idx % 2 === 0);
+                    const row = Math.floor(idx / 2);
+                    maxRows.top = Math.max(maxRows.top, row + 1);
+                    const left = xCenter + (isLeft ? -slotOffset : slotOffset);
+                    const periodText = formatPeriodYears(p);
+                    const budgetEok = p.budget ? Math.round(p.budget/100) : 0;
+                    const budgetBadge = budgetEok>0 ? `<span class=\"badge badge-budget tech\">💰 ${budgetEok.toLocaleString()}억원</span>` : '';
+                    const posStyle = `bottom: calc(50% + ${baseOffset + row*rowGap}px);`;
+                    const title = p.description || '';
+                    const displayTitle = title.length > 10 ? (title.slice(0,10) + '…') : title;
+                    const code = countryCodeMap[p.name] || 'un';
+                    const flagUrl = flagUrlFor(code, 20);
+                    const ongoing = isOngoing(p, nowYearInt);
+                    const isProposal = /제안/.test((p.status||''));
+                    const extraClass = (ongoing ? ' ongoing' : '') + (isProposal ? ' proposal' : '');
+                    events += `
+                        <div class=\"new-event-block top tech${extraClass}\" style=\"left:${left}px; ${posStyle}\">\
+                            <div class=\"flag-mini\" style=\"background-image:url('${flagUrl}')\"></div>\
+                            <div class=\"flag-caption\">${p.name||''}</div>\
+                            <div class=\"new-event-content\">\
+                                <div class=\"new-event-year\">${periodText||''}</div>\
+                                <div class=\"new-event-title\">${displayTitle}</div>\
+                                ${budgetBadge ? `<div class=\"badge-row\">${budgetBadge}</div>` : ''}\
+                                ${ongoing ? `<div class=\"badge-ongoing\">진행중</div>` : ''}\
+                            </div>\
+                        </div>`;
+                });
+                // bottom (ODA)
+                sets.bottom.forEach((p, idx) => {
+                    const isLeft = (idx % 2 === 0);
+                    const row = Math.floor(idx / 2);
+                    maxRows.bottom = Math.max(maxRows.bottom, row + 1);
+                    const left = xCenter + (isLeft ? -slotOffset : slotOffset);
+                    const periodText = formatPeriodYears(p);
+                    const budgetEok = p.budget ? Math.round(p.budget/100) : 0;
+                    const budgetBadge = budgetEok>0 ? `<span class=\"badge badge-budget oda\">💰 ${budgetEok.toLocaleString()}억원</span>` : '';
+                    const posStyle = `top: calc(50% + ${baseOffset + row*rowGap}px);`;
+                    const title = p.description || '';
+                    const displayTitle = title.length > 10 ? (title.slice(0,10) + '…') : title;
+                    const code = countryCodeMap[p.name] || 'un';
+                    const flagUrl = flagUrlFor(code, 20);
+                    const ongoing = isOngoing(p, nowYearInt);
+                    const isProposal = /제안/.test((p.status||''));
+                    const extraClass = (ongoing ? ' ongoing' : '') + (isProposal ? ' proposal' : '');
+                    events += `
+                        <div class=\"new-event-block bottom oda${extraClass}\" style=\"left:${left}px; ${posStyle}\">\
+                            <div class=\"flag-mini\" style=\"background-image:url('${flagUrl}')\"></div>\
+                            <div class=\"flag-caption\">${p.name||''}</div>\
+                            <div class=\"new-event-content\">\
+                                <div class=\"new-event-year\">${periodText||''}</div>\
+                                <div class=\"new-event-title\">${displayTitle}</div>\
+                                ${budgetBadge ? `<div class=\"badge-row\">${budgetBadge}</div>` : ''}\
+                                ${ongoing ? `<div class=\"badge-ongoing\">진행중</div>` : ''}\
+                            </div>\
+                        </div>`;
+                });
+                // future year markers for years beyond now
+                if (y > nowYearInt && !placedFuture.has(y)) {
+                    placedFuture.add(y);
+                    futureYearMarkers += `<div class=\"new-year-marker\" style=\"left:${xCenter}px;\"><div class=\"dot\"></div><div class=\"year-label\">${y}</div></div>`;
+                }
+            });
+
+            const visibleTopRows = Math.min(Math.max(maxRows.top, 1), 7);
+            const visibleBottomRows = Math.min(Math.max(maxRows.bottom, 1), 7);
+            const halfTop = visibleTopRows ? (baseOffset + (visibleTopRows-1)*rowGap + eventHeight) : eventHeight/2;
+            const halfBottom = visibleBottomRows ? (baseOffset + (visibleBottomRows-1)*rowGap + eventHeight) : eventHeight/2;
+            const wrapperHeight = Math.max(600, Math.ceil(halfTop + halfBottom + 200));
+            const labelText = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}`;
+            const currentMarkerHtml = `<div class=\"current-time-marker\" id=\"current-time-marker\" style=\"left:${currentLeft}px;\"><div class=\"current-line dotted\"></div><div class=\"current-label\"><span class=\"chip-now\">현재</span><span class=\"current-date\">${labelText}</span></div></div>`;
+            
+            return `
+                <div class=\"new-timeline-design-container\"> 
+                    <div class=\"new-timeline-wrapper\" style=\"width:${timelineWidth}px;height:${wrapperHeight}px;\">
+                        <div class=\"new-timeline-axis\"></div>
+                        ${currentMarkerHtml}
+                        ${yearMarkers}
+                        ${futureYearMarkers}
+                        ${events}
+                    </div>
+                </div>`;
+        }
+
         function closeCountryStatsModal() {
             const modal = document.getElementById('country-stats-modal');
             if (modal) {
@@ -5960,6 +6351,7 @@
             });
             // 편집/주소검색/파일 이벤트
             const tpbtn = document.getElementById('toggle-panel-btn'); if (tpbtn) tpbtn.addEventListener('click', togglePanel);
+            const opbtn = document.getElementById('open-panel-btn'); if (opbtn) opbtn.addEventListener('click', togglePanel);
             const tbtn = document.getElementById('toggle-edit-btn'); if (tbtn) tbtn.addEventListener('click', toggleEditMode);
             const nbtn = document.getElementById('new-point-btn'); if (nbtn) nbtn.addEventListener('click', newProject);
             const exp = document.getElementById('export-json-btn'); if (exp) exp.addEventListener('click', exportJSON);
@@ -5977,6 +6369,10 @@
             }
             const sug = document.getElementById('address-suggestions'); if (sug) sug.addEventListener('click', handleSuggestionClick);
             attachCountryHubHandlers();
+
+            // 개황 버튼 핸들러
+            const obtn = document.getElementById('overview-btn');
+            if (obtn) obtn.addEventListener('click', showOverview);
 
             // 국가 통계 모달 이벤트 리스너
             const countryStatsModal = document.getElementById('country-stats-modal');
