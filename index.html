@@ -5410,12 +5410,7 @@
 
                 const finalHtml = `
                     <div class="new-timeline-design-container">
-                        <div class="timeline-zoom-controls">
-                            <button class="zoom-btn zoom-out">−</button>
-                            <div class="zoom-indicator">${Math.round(timelineZoom * 100)}%</div>
-                            <button class="zoom-btn zoom-in">+</button>
-                            <button class="zoom-btn zoom-reset">Reset</button>
-                        </div>
+                        
                         <div class="new-timeline-wrapper" style="width: ${timelineWidth}px;">
                             <div class="new-timeline-axis"></div>
                             ${currentMarkerHtml}
@@ -5550,7 +5545,7 @@
 
             setTimeout(scrollToCurrent, 50);
 
-            // 확대/축소 컨트롤: 이벤트 위임으로 핸들링 후 재렌더
+            // 확대/축소 컨트롤: 재렌더 유틸
             function rerenderTimelineOnly() {
                 const wrap = modalBody.querySelector('.country-history-container');
                 if (!wrap) return;
@@ -5558,18 +5553,48 @@
                 setTimeout(scrollToCurrent, 30);
             }
 
-            modalBody.addEventListener('click', function(e){
-                const btn = e.target.closest('.zoom-btn');
-                if (!btn) return;
-                if (btn.classList.contains('zoom-in')) {
-                    timelineZoom = Math.min(3, (timelineZoom || 1) * 1.25);
-                } else if (btn.classList.contains('zoom-out')) {
-                    timelineZoom = Math.max(0.5, (timelineZoom || 1) / 1.25);
-                } else if (btn.classList.contains('zoom-reset')) {
-                    timelineZoom = 1;
+            // 제스처 기반 확대/축소 (모바일 핀치)
+            let pinchActive = false;
+            let pinchStartDist = 0;
+            let pinchStartZoom = 1;
+            let pinchLastTs = 0;
+
+            function dist(t1, t2) {
+                const dx = t1.clientX - t2.clientX;
+                const dy = t1.clientY - t2.clientY;
+                return Math.hypot(dx, dy);
+            }
+
+            modalBody.addEventListener('touchstart', function(e){
+                const container = modalBody.querySelector('.new-timeline-design-container');
+                if (!container) return;
+                if (e.touches && e.touches.length === 2) {
+                    pinchActive = true;
+                    pinchStartDist = dist(e.touches[0], e.touches[1]);
+                    pinchStartZoom = timelineZoom || 1;
+                    try { e.preventDefault(); } catch(_) {}
                 }
-                rerenderTimelineOnly();
-            });
+            }, { passive: false });
+
+            modalBody.addEventListener('touchmove', function(e){
+                if (!pinchActive) return;
+                if (!(e.touches && e.touches.length === 2)) return;
+                const d = dist(e.touches[0], e.touches[1]);
+                if (pinchStartDist <= 0) return;
+                const scale = d / pinchStartDist;
+                const newZoom = Math.max(0.5, Math.min(3, pinchStartZoom * scale));
+                const nowTs = Date.now();
+                if (Math.abs(newZoom - (timelineZoom||1)) > 0.02 && nowTs - pinchLastTs > 50) {
+                    timelineZoom = newZoom;
+                    pinchLastTs = nowTs;
+                    rerenderTimelineOnly();
+                }
+                try { e.preventDefault(); } catch(_) {}
+            }, { passive: false });
+
+            function endPinch(){ pinchActive = false; pinchStartDist = 0; }
+            modalBody.addEventListener('touchend', endPinch, { passive: true });
+            modalBody.addEventListener('touchcancel', endPinch, { passive: true });
 
             // 모달 표시
             modal.style.display = 'flex';
