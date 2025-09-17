@@ -3229,6 +3229,7 @@
         .new-event-block.bottom:before { bottom: 100%; height: 60px; }
         .new-event-block.tech { border: 4px solid #0A3D62; }
         .new-event-block.oda { border: 4px solid #E65100; }
+        .new-event-block.proposal { border: 4px solid #000; background: #f1f3f5; }
         .new-event-content { color: #000000; }
         .new-event-year { font-size: 13px; font-weight: 500; color: #555; margin-bottom: 8px; }
         .new-event-title { font-size: 16px; font-weight: 600; line-height: 1.4; }
@@ -3275,6 +3276,7 @@
         .badge-budget.oda { background: #E65100; color: #fff; }
         .badge-client { background: #f0f3f5; color: #495057; border: 1px solid #dfe7ef; font-weight: 600; font-size: 10px; }
         .badge-ongoing { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
+        .badge-proposal { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #e53935; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
         .new-event-block.tech.ongoing { background: #E3F2FD; }
         .new-event-block.oda.ongoing { background: #FFF3E0; }
     </style>
@@ -5378,13 +5380,19 @@
                 }
 
                 timelineProjects.forEach((p, index) => {
-                    const leftPos = padding + positionIndexFor(p.fractionalYear) * unitWidth;
-                    const isTop = index % 2 === 0;
-                    const categoryClass = p.category === 'Consulting' ? 'tech' : 'oda';
+                    let idxPos = positionIndexFor(p.fractionalYear);
                     const startF = getStartFraction(p, p.fractionalYear);
                     const endF = getEndFraction(p);
+                    // 미래(현재 이후 시작) 사업은 현재 전용 슬롯의 우측으로 배치하여 분명히 구분
+                    if (startF && startF > nowFraction) {
+                        idxPos = stepCount + 0.9; // current(0.6)보다 오른쪽
+                    }
+                    const leftPos = padding + idxPos * unitWidth;
+                    const isTop = index % 2 === 0;
+                    const categoryClass = p.category === 'Consulting' ? 'tech' : 'oda';
                     const isOngoing = (p.status === '시행중') || (startF && endF && nowFraction >= startF && nowFraction <= endF);
                     const ongoingClass = isOngoing ? 'ongoing' : '';
+                    const isProposal = (p.status === '제안중');
                     
                     let periodText = '';
                     if (p.category === 'Consulting') {
@@ -5397,8 +5405,9 @@
                     const clientBadge = p.client ? `<span class="badge badge-client">🏢 ${p.client}</span>` : '';
 
                     eventBlocksHtml += `
-                        <div class="new-event-block ${isTop ? 'top' : 'bottom'} ${categoryClass} ${ongoingClass}" style="left: ${leftPos}px;">
+                        <div class="new-event-block ${isTop ? 'top' : 'bottom'} ${categoryClass} ${ongoingClass} ${isProposal ? 'proposal' : ''}" style="left: ${leftPos}px;">
                             ${isOngoing ? `<div class=\"badge-ongoing\">진행중</div>` : ''}
+                            ${isProposal ? `<div class=\"badge-proposal\">제안중</div>` : ''}
                             <div class="new-event-content">
                                 <div class="new-event-year">${periodText || ''}</div>
                                 <div class="new-event-title">${p.description}</div>
