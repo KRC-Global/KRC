@@ -4129,7 +4129,23 @@
                     console.warn('global_consulting.json 파싱 실패:', e);
                 }
                 
-                allProjects = projects;
+                // 발주처 명 정규화 규칙
+                function normalizeClient(name) {
+                    if (!name) return name;
+                    const s = String(name).trim();
+                    const u = s.toUpperCase();
+                    // '정부'가 포함되거나, 브루나이 관련 표기인 경우 통일
+                    if (s.includes('정부') || s.includes('브루나이') || u.includes('GOVERNMENT') || u.includes('MINISTRY')) {
+                        return '각국정부';
+                    }
+                    return s;
+                }
+
+                // 전체 프로젝트에 정규화 적용
+                allProjects = projects.map(p => ({
+                    ...p,
+                    client: normalizeClient(p.client)
+                }));
                 if (allProjects.length === 0) {
                     throw new Error('JSON 데이터가 비어있습니다');
                 }
