@@ -3146,6 +3146,7 @@
             padding: 20px;
             border-radius: 12px;
             overflow-x: auto;
+            position: relative;
         }
         .new-timeline-wrapper {
             position: relative;
@@ -3232,6 +3233,40 @@
         .new-event-year { font-size: 13px; font-weight: 500; color: #555; margin-bottom: 8px; }
         .new-event-title { font-size: 16px; font-weight: 600; line-height: 1.4; }
         .new-timeline-footer { text-align: center; padding-top: 20px; font-size: 13px; color: #999; }
+
+        /* Zoom controls */
+        .timeline-zoom-controls {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            z-index: 60;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid #dee2e6;
+            border-radius: 999px;
+            padding: 4px 6px;
+            backdrop-filter: blur(6px);
+        }
+        .timeline-zoom-controls .zoom-btn {
+            border: 1px solid #ced4da;
+            background: #fff;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .timeline-zoom-controls .zoom-btn:hover { background: #f1f3f5; }
+        .timeline-zoom-controls .zoom-indicator {
+            min-width: 42px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #495057;
+        }
 
         /* Event badges and ongoing styles */
         .badge-row { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
@@ -5110,6 +5145,9 @@
                 ${country} 프로젝트 히스토리
             `;
 
+            // 확대/축소 배율 상태(팝업 생명주기 동안 유지)
+            let timelineZoom = 1;
+
             // 타임라인 HTML 생성
             function generateTimeline() {
                 console.log('generateTimeline: sortedYears.length =', sortedYears.length);
@@ -5127,6 +5165,8 @@
             }
 
             function generateFullProjectTimeline(projects) {
+                // 타임라인 확대/축소 배율 (클로저 내 상태)
+                timelineZoom = Math.max(0.5, Math.min(3, timelineZoom || 1));
 
                 function normalizeYearStringLocal(s) {
                     if (!s) return '';
@@ -5201,7 +5241,7 @@
                 const endYear = dynamicEndYear;
                 // 압축 축: 프로젝트가 있는 연도만 남기고, 빈 해 간격 제거
                 const padding = 100;
-                const basePerYear = 200; // 스텝 간 기본 간격(px)
+                const basePerYear = Math.max(140, Math.round(200 * timelineZoom)); // 배율 반영
                 const projectYears = Array.from(new Set(timelineProjects.map(p => Math.floor(p.fractionalYear)))).sort((a,b)=>a-b);
                 const stepCount = Math.max(1, projectYears.length - 1);
                 const extraSlots = 1; // 현재 시점 표시용 추가 슬롯(우측)
@@ -5370,6 +5410,12 @@
 
                 const finalHtml = `
                     <div class="new-timeline-design-container">
+                        <div class="timeline-zoom-controls">
+                            <button class="zoom-btn zoom-out">−</button>
+                            <div class="zoom-indicator">${Math.round(timelineZoom * 100)}%</div>
+                            <button class="zoom-btn zoom-in">+</button>
+                            <button class="zoom-btn zoom-reset">Reset</button>
+                        </div>
                         <div class="new-timeline-wrapper" style="width: ${timelineWidth}px;">
                             <div class="new-timeline-axis"></div>
                             ${currentMarkerHtml}
@@ -5488,21 +5534,42 @@
 
             console.log('Modal body innerHTML set, length:', modalBody.innerHTML.length);
 
-            // 팝업 오픈 시 현재 시점이 보이도록 스크롤 조정 (가장 오른쪽/현재 시점 근처)
-            setTimeout(() => {
+            function scrollToCurrent() {
                 try {
                     const container = modalBody.querySelector('.new-timeline-design-container');
-                    if (container) {
-                        const marker = container.querySelector('#current-time-marker');
-                        if (marker) {
-                            const target = Math.max(0, marker.offsetLeft - container.clientWidth * 0.8);
-                            container.scrollLeft = target;
-                        } else {
-                            container.scrollLeft = container.scrollWidth; // 현재 마커 없으면 맨 오른쪽으로
-                        }
+                    if (!container) return;
+                    const marker = container.querySelector('#current-time-marker');
+                    if (marker) {
+                        const target = Math.max(0, marker.offsetLeft - container.clientWidth * 0.8);
+                        container.scrollLeft = target;
+                    } else {
+                        container.scrollLeft = container.scrollWidth;
                     }
                 } catch (e) { console.warn('Scroll to current failed:', e); }
-            }, 50);
+            }
+
+            setTimeout(scrollToCurrent, 50);
+
+            // 확대/축소 컨트롤: 이벤트 위임으로 핸들링 후 재렌더
+            function rerenderTimelineOnly() {
+                const wrap = modalBody.querySelector('.country-history-container');
+                if (!wrap) return;
+                wrap.innerHTML = generateTimeline();
+                setTimeout(scrollToCurrent, 30);
+            }
+
+            modalBody.addEventListener('click', function(e){
+                const btn = e.target.closest('.zoom-btn');
+                if (!btn) return;
+                if (btn.classList.contains('zoom-in')) {
+                    timelineZoom = Math.min(3, (timelineZoom || 1) * 1.25);
+                } else if (btn.classList.contains('zoom-out')) {
+                    timelineZoom = Math.max(0.5, (timelineZoom || 1) / 1.25);
+                } else if (btn.classList.contains('zoom-reset')) {
+                    timelineZoom = 1;
+                }
+                rerenderTimelineOnly();
+            });
 
             // 모달 표시
             modal.style.display = 'flex';
