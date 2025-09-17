@@ -3297,7 +3297,13 @@
         .badge-ongoing { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
         .badge-proposal { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #e53935; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
         .new-event-block.tech.ongoing { background: #E3F2FD; }
-        .new-event-block.oda.ongoing { background: #FFF3E0; }
+        /* ODA 진행중: 원안의 진한 주황(#E65100)과 가독성 보정 */
+        .new-event-block.oda.ongoing { background: #E65100; border-color: #E65100; }
+        .new-event-block.oda.ongoing .new-event-content,
+        .new-event-block.oda.ongoing .new-event-year,
+        .new-event-block.oda.ongoing .new-event-title { color: #ffffff; }
+        .new-event-block.oda.ongoing .badge-row .badge { background: rgba(255,255,255,0.18); color: #ffffff; border-color: rgba(255,255,255,0.4); }
+        .new-event-block.oda.ongoing .badge-budget.oda { background: #ffffff; color: #E65100; }
     </style>
 </head>
 <body>
