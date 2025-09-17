@@ -3396,6 +3396,7 @@
         let allProjects = [];
         let filteredProjects = [];
         let categoryFilters = new Set(); // 'consulting', 'oda' 카테고리 필터
+        const CLIENT_NONE = '__NONE__';
         let activeFilters = {
             projectTypes: new Set(),
             countries: new Set(),
@@ -4326,7 +4327,10 @@
                     if (activeFilters.statuses.size > 0 && !activeFilters.statuses.has(project.status)) {
                         return false;
                     }
-                    if (activeFilters.clients.size > 0 && (!project.client || !activeFilters.clients.has(project.client.trim()))) {
+                    if (activeFilters.clients.has(CLIENT_NONE)) {
+                        return false; // '전체 해제' 상태에서는 컨설팅 전부 제외
+                    }
+                    if (activeFilters.clients.size > 0 && (!project.client || !activeFilters.clients.has((project.client || '').trim()))) {
                         return false;
                     }
                 } else {
@@ -4924,21 +4928,17 @@
         }
 
         function getFilteredCountries() {
-            // 카테고리가 하나도 선택되지 않았어도, 과거 버전처럼 전체 국가를 항상 노출
-            const projectsToShow = (categoryFilters.size === 0)
-                ? allProjects
-                : allProjects.filter(p => {
-                    const category = p.category === 'Consulting' ? 'consulting' : 'oda';
-                    return categoryFilters.has(category);
-                });
-
+            // applyFilters 결과를 우선 사용하여 모든 활성 필터(카테고리/발주처/상태/검색어)를 반영
+            const source = (Array.isArray(filteredProjects) && filteredProjects.length >= 0)
+                ? filteredProjects
+                : allProjects;
             const countries = new Set();
-            projectsToShow.forEach(p => {
-                if (p && p.name && p.name.trim()) {
-                    countries.add(p.name.trim());
+            source.forEach(p => {
+                const category = p.category === 'Consulting' ? 'consulting' : 'oda';
+                if (categoryFilters.size === 0 || categoryFilters.has(category)) {
+                    if (p && p.name && p.name.trim()) countries.add(p.name.trim());
                 }
             });
-
             return Array.from(countries).sort();
         }
 
@@ -5046,19 +5046,20 @@
             if (!clientBar || clientBar.style.display === 'none') return;
             const buttons = [...clientBar.querySelectorAll('.client-filter-btn')].filter(b=>b.getAttribute('data-client')!=='__all');
             if (client === '__all') {
-                // 전체 선택
-                buttons.forEach(b=>b.classList.add('active'));
-                activeFilters.clients = new Set(buttons.map(b=>b.getAttribute('data-client')));
+                const allActive = buttons.every(b=>b.classList.contains('active'));
+                if (allActive) {
+                    // 전체 해제
+                    buttons.forEach(b=>b.classList.remove('active'));
+                    activeFilters.clients = new Set([CLIENT_NONE]);
+                } else {
+                    // 전체 선택
+                    buttons.forEach(b=>b.classList.add('active'));
+                    activeFilters.clients = new Set(buttons.map(b=>b.getAttribute('data-client')));
+                }
             } else {
                 btn.classList.toggle('active');
                 const selected = buttons.filter(b=>b.classList.contains('active')).map(b=>b.getAttribute('data-client'));
-                // 모두 해제되면 다시 전체 선택(빈 선택 방지)
-                if (selected.length === 0) {
-                    buttons.forEach(b=>b.classList.add('active'));
-                    activeFilters.clients = new Set(buttons.map(b=>b.getAttribute('data-client')));
-                } else {
-                    activeFilters.clients = new Set(selected);
-                }
+                activeFilters.clients = selected.length === 0 ? new Set([CLIENT_NONE]) : new Set(selected);
             }
             applyFilters();
             updateCountryHub();
