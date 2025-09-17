@@ -976,6 +976,20 @@
             box-shadow: 0 2px 8px rgba(114, 47, 55, 0.3);
         }
 
+        /* 현재 시점 작은 칩 */
+        .current-label .chip-now {
+            display: inline-block;
+            background: #000;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            margin-right: 6px;
+            line-height: 1.1;
+        }
+        .current-label .current-date { font-weight: 700; }
+
         .current-label::after {
             content: '';
             position: absolute;
@@ -5294,11 +5308,11 @@
                     // 현재 시점은 우측 추가 슬롯에 배치(연도 라벨과 명확히 분리)
                     const currentIndex = stepCount + 0.6; // 추가 슬롯 내부 위치
                     const currentLeft = padding + currentIndex * unitWidth;
-                    const labelText = `현재 ${nowYear}.${String(nowMonth).padStart(2, '0')}`;
+                    const labelText = `${nowYear}.${String(nowMonth).padStart(2, '0')}`;
                     currentMarkerHtml = `
                         <div class="current-time-marker" id="current-time-marker" style="left: ${currentLeft}px;">
                             <div class="current-line dotted"></div>
-                            <div class="current-label">${labelText}</div>
+                            <div class="current-label"><span class="chip-now">현재</span><span class="current-date">${labelText}</span></div>
                         </div>
                     `;
                 }
