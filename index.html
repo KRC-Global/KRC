@@ -4134,6 +4134,10 @@
                     if (!name) return name;
                     const s = String(name).trim();
                     const u = s.toUpperCase();
+                    // WB/IDA 통합: World Bank/IDA/WB(IDA) 등은 모두 'WB'로 통일
+                    if (u.includes('WB(IDA)') || u === 'IDA' || u.includes('INTERNATIONAL DEVELOPMENT ASSOCIATION') || u.includes('WORLD BANK') || u === 'WB') {
+                        return 'WB';
+                    }
                     // '정부'가 포함되거나, 브루나이 관련 표기인 경우 통일
                     if (s.includes('정부') || s.includes('브루나이') || u.includes('GOVERNMENT') || u.includes('MINISTRY')) {
                         return '각국정부';
