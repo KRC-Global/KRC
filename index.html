@@ -385,7 +385,9 @@
             background: #FFF8E7; /* 상아색 배경 */
             border: 3px solid #0A3D62; /* 진한 파랑 테두리 */
             border-radius: 18px;
-            max-width: 90vw; max-height: 90vh;
+            max-width: 90vw;
+            max-height: 85vh;
+            height: 85vh;
             width: 700px;
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
             position: relative; /* ensure header sticky z-index works over body */
@@ -418,7 +420,7 @@
         .country-stats-modal-body {
             padding: 24px 28px;
             flex: 1;
-            overflow: hidden; /* prevent second scrollbar on content */
+            overflow-y: auto; /* allow vertical scrolling for content */
         }
         .country-stats-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -669,10 +671,12 @@
 
         .wine-timeline-container {
             position: relative;
-            height: 200px;
+            height: auto;
+            min-height: 300px;
+            max-height: 600px;
             margin: 16px 0;
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: auto;
             border: 1px solid #dee2e6;
             border-radius: 12px;
             padding: 12px;
@@ -2546,7 +2550,9 @@
             }
             
             .wine-timeline-container {
-                height: 180px;
+                height: auto;
+                min-height: 250px;
+                max-height: 500px;
             }
             
             .wine-timeline-lane.above {
@@ -3188,6 +3194,7 @@
             overflow: auto; /* single scroll region (both axes) */
             position: relative;
             height: 100%;
+            max-height: 60vh; /* 명시적 최대 높이 제한 */
             -webkit-overflow-scrolling: touch; /* smooth iOS scrolling */
             touch-action: pan-y pan-x; /* allow touch scrolling */
             overscroll-behavior: contain; /* avoid parent scroll chaining */
@@ -5225,27 +5232,45 @@
                 }
                 
                 // Handle 'YY-'YY, 'YY-MM formats
-                const rangeMatch = s.match(/^'?(\d{2})\s*[-~–—]\s*('?(\d{2}))?/);
+                const rangeMatch = s.match(/^'?(\d{2})\s*[-~–—]\s*('?(\d{1,2}))?/);
                 if (rangeMatch) {
                     const startTwo = rangeMatch[1];
                     const endPartWithApostrophe = rangeMatch[2];
                     const endPart = rangeMatch[3] || rangeMatch[2];
-                    
+
                     const startYear = parseTwoDigitToYear(startTwo);
-                    
+
                     if (endPart) {
-                        // If the part after hyphen does not start with an apostrophe, it's a month.
-                        if (endPartWithApostrophe && endPartWithApostrophe.indexOf("'" ) === -1) {
+                        // If the part after hyphen does not start with an apostrophe, it's a month (not a year).
+                        if (endPartWithApostrophe && endPartWithApostrophe.indexOf("'") === -1) {
+                            // This is month format like '23-10 (2023년 10월)
                             return { start: startYear, end: startYear };
                         }
 
-                        let endYear = parseTwoDigitToYear(endPart);
-                        if (startYear && endYear && endYear < startYear) {
-                            endYear += 100;
+                        // If it starts with apostrophe, it's likely a year like '23-'24
+                        if (endPartWithApostrophe && endPartWithApostrophe.indexOf("'") === 0) {
+                            let endYear = parseTwoDigitToYear(endPart);
+                            if (startYear && endYear && endYear < startYear) {
+                                endYear += 100;
+                            }
+                            return { start: startYear, end: endYear };
                         }
-                        return { start: startYear, end: endYear };
+
+                        // If it's just a number, check if it's likely a month or year
+                        const endNum = parseInt(endPart, 10);
+                        if (endNum >= 1 && endNum <= 12) {
+                            // Likely a month like '23-10
+                            return { start: startYear, end: startYear };
+                        } else {
+                            // Likely a year
+                            let endYear = parseTwoDigitToYear(endPart);
+                            if (startYear && endYear && endYear < startYear) {
+                                endYear += 100;
+                            }
+                            return { start: startYear, end: endYear };
+                        }
                     }
-                    
+
                     return { start: startYear, end: startYear };
                 }
                 
