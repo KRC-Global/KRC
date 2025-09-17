@@ -27,3 +27,7 @@ logs
 
 # OS generated files
 *~
+
+# Office / design sources to ignore
+*.numbers
+timeline_redesign.html
