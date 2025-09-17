@@ -3189,7 +3189,7 @@
         /* New Timeline Design Styles */
         .new-timeline-design-container {
             background: #FFF8E7;
-            padding: 20px 20px 200px 20px; /* extra bottom space for badges/scroll */
+            padding: 20px 20px 40px 20px; /* 하단 패딩 대폭 축소 */
             border-radius: 12px;
             overflow: auto; /* single scroll region (both axes) */
             position: relative;
@@ -5952,6 +5952,18 @@
             function getStartEndYears(p) {
                 if (!p) return { start: null, end: null };
                 if (p.category === 'Consulting') {
+                    // startDate와 endDate가 별도로 있는 경우 각각에서 연도 추출
+                    if (p.startDate && p.endDate) {
+                        const startYears = extractYears(p.startDate);
+                        const endYears = extractYears(p.endDate);
+                        if (startYears.length && endYears.length) {
+                            return {
+                                start: Math.min(...startYears),
+                                end: Math.max(...endYears)
+                            };
+                        }
+                    }
+
                     // try explicit ranges first
                     let r = parseRangeYearsFromString(p.startDate || '');
                     if (r.start && r.end) return r;
