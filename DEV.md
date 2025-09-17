@@ -45,6 +45,26 @@ Timeline Specific
 - Gantt lanes: non-overlapping badges; height adapts to lane count.
 - One-liner: `cd KRC && python3 -m http.server 8000 --bind 0.0.0.0`
 
+2025-09-17 Updates
+
+- Client filter bar (Consulting-only): when only Consulting is selected, a client (발주처) filter bar appears under the summary.
+  - Default: All clients selected. The ‘전체’ button toggles all on/off. If all off, consulting projects are hidden.
+  - WB/IDA unify: WB, World Bank, WB(IDA), IDA map to 'WB'.
+  - Governments unify: names with ‘정부’, Government/Ministry, or ‘브루나이’ map to ‘각국정부’.
+  - Country grid reflects active filters: only countries with visible projects are shown.
+- Timeline improvements:
+  - Compressed axis skipping empty years; future projects appear to the right of the current marker.
+  - Future year markers (dot/label) move with their event position.
+  - Current marker: dotted wine vertical line with [현재] chip + YYYY.MM label near the axis.
+  - ODA ongoing uses deep orange (#E65100) with white text/badges.
+- Mobile pinch zoom: pinch gesture controls zoom (0.5x–3x); layout reflows and auto-scrolls to current marker.
+
+Data hygiene
+
+- Excel normalization (ad-hoc via openpyxl and during load):
+  - Normalize WB/IDA to 'WB', and ‘정부’/Government/Ministry/브루나이 to ‘각국정부’.
+  - Regenerate `data/global_consulting.json` after edits: `python3 scripts/convert_xlsx_to_json.py`.
+
 Notes
 
 - Archived pages under `archive/versions/` are historical snapshots (contain old Firebase code). The live app is `KRC/index.html`.
