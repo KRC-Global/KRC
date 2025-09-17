@@ -5294,7 +5294,7 @@
                     // 현재 시점은 우측 추가 슬롯에 배치(연도 라벨과 명확히 분리)
                     const currentIndex = stepCount + 0.6; // 추가 슬롯 내부 위치
                     const currentLeft = padding + currentIndex * unitWidth;
-                    const labelText = `${nowYear}.${String(nowMonth).padStart(2, '0')}`;
+                    const labelText = `현재 ${nowYear}.${String(nowMonth).padStart(2, '0')}`;
                     currentMarkerHtml = `
                         <div class="current-time-marker" id="current-time-marker" style="left: ${currentLeft}px;">
                             <div class="current-line dotted"></div>
