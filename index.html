@@ -879,6 +879,556 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
+        /* 물결표시 생략 구간 스타일 */
+        .gap-section {
+            position: absolute;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .wave-indicator {
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                #722F37 10%,
+                transparent 20%,
+                #722F37 30%,
+                transparent 40%,
+                #722F37 50%,
+                transparent 60%,
+                #722F37 70%,
+                transparent 80%,
+                #722F37 90%,
+                transparent 100%
+            );
+            border-radius: 2px;
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .wave-indicator::before {
+            content: '⋯';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #722F37;
+            background: #FFF8E7;
+            padding: 0 4px;
+        }
+
+        /* 현재 시점 표시 스타일 */
+        .current-time-marker {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .current-line {
+            width: 2px;
+            height: 100%;
+            background: #722F37;
+            position: relative;
+            border-radius: 1px;
+            animation: currentPulse 2s ease-in-out infinite;
+        }
+
+        /* 점선 버전 (레드와인색 점선) */
+        .current-line.dotted {
+            width: 0;
+            border-left: 2px dotted #722F37;
+            background: transparent;
+            animation: none;
+        }
+
+        .current-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -1px;
+            width: 4px;
+            height: 100%;
+            background: rgba(114, 47, 55, 0.3);
+            border-radius: 2px;
+            animation: currentGlow 2s ease-in-out infinite;
+        }
+
+        .current-label {
+            position: absolute;
+            /* 가운데 축 바로 위에서 보이도록 조정 */
+            top: calc(50% - 26px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #722F37;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(114, 47, 55, 0.3);
+        }
+
+        .current-label::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: #722F37;
+        }
+
+        @keyframes currentPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes currentGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.1; }
+        }
+
+        /* 직지의 여정 스타일 타임라인 */
+        .jikji-timeline-container {
+            background: linear-gradient(135deg, #f8f6f0 0%, #f5f3ed 100%);
+            border-radius: 20px;
+            border: 2px solid #d4af37;
+            padding: 30px 20px;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .jikji-timeline-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 25% 25%, rgba(212, 175, 55, 0.1) 0%, transparent 25%),
+                radial-gradient(circle at 75% 75%, rgba(139, 69, 19, 0.05) 0%, transparent 25%);
+            pointer-events: none;
+        }
+
+        .jikji-timeline-header {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .jikji-timeline-header h3 {
+            margin: 0;
+            color: #8b4513;
+            font-size: 24px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-filters {
+            display: flex;
+            gap: 12px;
+        }
+
+        .filter-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .filter-badge.consulting {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            color: #0d47a1;
+        }
+
+        .filter-badge.oda {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+            color: #e65100;
+        }
+
+        .jikji-timeline-scroll {
+            position: relative;
+            height: 400px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 20px 0;
+            scroll-behavior: smooth;
+        }
+
+        .jikji-timeline-content {
+            position: relative;
+            height: 100%;
+            min-width: 100%;
+        }
+
+        .timeline-start-marker, .timeline-end-marker {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .start-icon, .end-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .start-label, .end-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #8b4513;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .jikji-main-timeline {
+            position: absolute;
+            top: 0;
+            height: 100%;
+        }
+
+        .timeline-texture {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                repeating-linear-gradient(90deg, transparent, transparent 98px, rgba(212, 175, 55, 0.1) 100px);
+            pointer-events: none;
+        }
+
+        .timeline-axis {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg,
+                #d4af37 0%,
+                #f7dc6f 20%,
+                #d4af37 40%,
+                #8b7355 60%,
+                #d4af37 80%,
+                #f7dc6f 100%);
+            border-radius: 2px;
+            transform: translateY(-50%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            z-index: 2;
+        }
+
+        .timeline-years {
+            position: relative;
+            height: 100%;
+        }
+
+        .year-marker-jikji {
+            position: absolute;
+            top: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+        }
+
+        .year-dot {
+            width: 12px;
+            height: 12px;
+            background: #8b4513;
+            border: 3px solid #f8f6f0;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .year-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #8b4513;
+            background: rgba(248, 246, 240, 0.95);
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #d4af37;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(15px);
+            white-space: nowrap;
+        }
+
+        .gap-section-jikji {
+            position: absolute;
+            top: 45%;
+            height: 10%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3;
+        }
+
+        .wave-indicator-jikji {
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                #d4af37 10%,
+                transparent 20%,
+                #d4af37 30%,
+                transparent 40%,
+                #d4af37 50%,
+                transparent 60%,
+                #d4af37 70%,
+                transparent 80%,
+                #d4af37 90%,
+                transparent 100%
+            );
+            border-radius: 2px;
+            opacity: 0.8;
+            position: relative;
+        }
+
+        .wave-indicator-jikji::before {
+            content: '⋯';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #8b4513;
+            background: #f8f6f0;
+            padding: 0 6px;
+        }
+
+        .current-time-jikji {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            z-index: 8;
+            pointer-events: none;
+        }
+
+        .current-line-jikji {
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, #dc143c 0%, #8b0000 100%);
+            border-radius: 2px;
+            box-shadow: 0 0 12px rgba(220, 20, 60, 0.5);
+            animation: currentPulseJikji 2s ease-in-out infinite;
+        }
+
+        .current-label-jikji {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc143c;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(220, 20, 60, 0.3);
+        }
+
+        .current-label-jikji::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #dc143c;
+        }
+
+        @keyframes currentPulseJikji {
+            0%, 100% { opacity: 1; transform: scaleX(1); }
+            50% { opacity: 0.7; transform: scaleX(1.2); }
+        }
+
+        .timeline-events {
+            position: relative;
+            height: 100%;
+        }
+
+        .project-event {
+            position: absolute;
+            cursor: pointer;
+            z-index: 6;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .project-event.above {
+            top: 15%;
+        }
+
+        .project-event.below {
+            top: 55%;
+        }
+
+        .event-connector {
+            width: 2px;
+            height: 60px;
+            background: linear-gradient(180deg, transparent 0%, #8b4513 30%, #8b4513 70%, transparent 100%);
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .project-event.above .event-connector {
+            margin-top: 80px;
+        }
+
+        .project-event.below .event-connector {
+            margin-bottom: 80px;
+        }
+
+        .event-bubble {
+            width: 200px;
+            min-height: 80px;
+            padding: 16px;
+            border-radius: 20px;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            transform: translateX(-50%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .project-event.consulting .event-bubble {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
+            border: 2px solid #1976d2;
+        }
+
+        .project-event.oda .event-bubble {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 50%, #ffb74d 100%);
+            border: 2px solid #f57c00;
+        }
+
+        .project-event.above .event-bubble {
+            margin-top: -80px;
+        }
+
+        .project-event.below .event-bubble {
+            margin-bottom: -80px;
+        }
+
+        .event-bubble::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border: 12px solid transparent;
+        }
+
+        .project-event.above .event-bubble::before {
+            bottom: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .project-event.consulting.above .event-bubble::before {
+            border-top-color: #1976d2;
+        }
+
+        .project-event.oda.above .event-bubble::before {
+            border-top-color: #f57c00;
+        }
+
+        .project-event.below .event-bubble::before {
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .project-event.consulting.below .event-bubble::before {
+            border-bottom-color: #1976d2;
+        }
+
+        .project-event.oda.below .event-bubble::before {
+            border-bottom-color: #f57c00;
+        }
+
+        .event-period {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .project-event.consulting .event-period {
+            color: #0d47a1;
+        }
+
+        .project-event.oda .event-period {
+            color: #e65100;
+        }
+
+        .event-title {
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .event-details {
+            font-size: 11px;
+            color: #5d6d7e;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .detail-budget, .detail-client {
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .project-event:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .project-event:hover .event-bubble {
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+        }
+
+        .scroll-hint-jikji {
+            text-align: center;
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            font-size: 13px;
+            color: #8b4513;
+            font-weight: 500;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
         .timeline-compact-header {
             margin-bottom: 16px;
             display: flex;
@@ -2589,6 +3139,109 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.08) !important;
         }
         /* ===================================================================== */
+
+        /* New Timeline Design Styles */
+        .new-timeline-design-container {
+            background: #FFF8E7;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+        .new-timeline-wrapper {
+            position: relative;
+            width: 3200px;
+            height: 500px;
+            display: flex;
+            align-items: center;
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .new-timeline-axis {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #722F37;
+            transform: translateY(-1px);
+        }
+        .new-year-marker {
+            position: absolute;
+            top: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 50; /* 연도 라벨을 최상단 레이어로 */
+            pointer-events: none; /* 스크롤/상호작용 방해 방지 */
+        }
+        .new-year-marker .dot {
+            width: 12px;
+            height: 12px;
+            background-color: #722F37;
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+        .new-year-marker .tick {
+            width: 2px;
+            height: 8px;
+            background-color: #c0a7a9;
+            transform: translateY(-50%);
+        }
+        .new-year-marker .year-label {
+            position: relative;
+            top: -8px; /* 축에 더 가깝고 약간 위쪽에 표시 */
+            margin-top: 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #722F37;
+            pointer-events: none;
+        }
+        .new-event-block {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background-color: #FFF8E7;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 5;
+            /* 중심 좌표를 기준으로 정렬하여 축 교차점 정확도 개선 */
+            transform: translateX(-50%);
+        }
+        .new-event-block:before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            background-color: #722F37;
+            z-index: -1;
+        }
+        .new-event-block.top { bottom: calc(50% + 60px); }
+        .new-event-block.top:before { top: 100%; height: 60px; }
+        .new-event-block.bottom { top: calc(50% + 60px); }
+        .new-event-block.bottom:before { bottom: 100%; height: 60px; }
+        .new-event-block.tech { border: 4px solid #0A3D62; }
+        .new-event-block.oda { border: 4px solid #E65100; }
+        .new-event-content { color: #000000; }
+        .new-event-year { font-size: 13px; font-weight: 500; color: #555; margin-bottom: 8px; }
+        .new-event-title { font-size: 16px; font-weight: 600; line-height: 1.4; }
+        .new-timeline-footer { text-align: center; padding-top: 20px; font-size: 13px; color: #999; }
+
+        /* Event badges and ongoing styles */
+        .badge-row { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1; }
+        .badge-budget.tech { background: #0A3D62; color: #fff; }
+        .badge-budget.oda { background: #E65100; color: #fff; }
+        .badge-client { background: #f0f3f5; color: #495057; border: 1px solid #dfe7ef; font-weight: 600; font-size: 10px; }
+        .badge-ongoing { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
+        .new-event-block.tech.ongoing { background: #E3F2FD; }
+        .new-event-block.oda.ongoing { background: #FFF3E0; }
     </style>
 </head>
 <body>
@@ -2620,8 +3273,6 @@
         <button class="edit-btn" id="new-point-btn" style="display:none;">➕ 새 지점</button>
         <button class="edit-btn" id="export-json-btn" style="display:none;">💾 JSON 내보내기</button>
         <label for="import-json-file" class="edit-btn" id="import-json-label" style="display:none; cursor:pointer;">📥 JSON 불러오기</label>
-        <!-- 테스트 버튼 추가 -->
-        <button class="edit-btn" onclick="testTimeline()" style="margin-top: 10px;">🧪 타임라인 테스트</button>
         <input type="file" id="import-json-file" class="edit-file" accept="application/json,.json" />
     </div>
 
@@ -2721,13 +3372,13 @@
             "아르헨티나": "ar"
         };
         const continentMap = {
-            "아시아": ["베트남", "라오스", "캄보디아", "필리핀", "몽골", "우즈베키스탄", "키르기스스탄", "스리랑카", "미얀마", "방글라데시", "태국", "인도네시아", "인도", "네팔", "파키스탄", "말레이시아", "브루나이", "일본", "중국", "한국"],
+            "아시아": ["베트남", "라오스", "캄보디아", "필리핀", "몽골", "우즈베키스탄", "키르기스스탄", "스리랑카", "미얀마", "방글라데시", "태국", "인도네시아", "인도", "네팔", "파키스탄", "말레이시아", "브루나이", "일본", "중국", "한국", "아프가니스탄", "이란"],
             "아프리카": ["가나", "케냐", "탄자니아", "세네갈", "우간다", "카메룬", "모잠비크", "에티오피아", "말라위", "앙골라", "감비아", "기니", "DR콩고", "콩고민주공화국", "코트디브아르", "알제리"],
             "남아메리카": ["볼리비아", "페루", "파라과이", "아르헨티나"],
             "북아메리카": ["엘살바도르", "과테말라", "미국"],
             "오세아니아": ["키리바시"],
             "유럽": ["러시아"],
-            "중동": ["요르단", "이란", "아프가니스탄"]
+            "중동": ["요르단"]
         };
         
         // ===========================================
@@ -4476,205 +5127,262 @@
             }
 
             function generateFullProjectTimeline(projects) {
-                console.log('generateFullProjectTimeline called with projects:', projects);
-                if (!projects || projects.length === 0) {
-                    console.log('No projects provided, returning no-timeline');
-                    return '<div class="no-timeline">프로젝트 정보 없음</div>';
+
+                function normalizeYearStringLocal(s) {
+                    if (!s) return '';
+                    let str = String(s).trim();
+                    // 스마트 따옴표/대시 → 일반 문자로 교체
+                    str = str.replace(/[\u2018\u2019\u201C\u201D]/g, "'");
+                    str = str.replace(/[\u2013\u2014\u2212]/g, '-');
+                    return str;
                 }
 
-                function getProjectDate(rawDateStr, isEnd) {
-                    if (!rawDateStr) return { year: null, month: null };
-                    const s = normalizeYearString(String(rawDateStr));
-                    
-                    let match = s.match(/^(?:'(\d{2})|(\d{4}))\s*[-~–—]\s*(\d{1,2})$/);
-                    if (match) {
-                        const yearPart = match[1] || match[2];
-                        const year = match[1] ? parseTwoDigitToYear(yearPart) : parseInt(yearPart, 10);
-                        const month = parseInt(match[3], 10);
-                        return { year, month };
-                    }
-                    
-                    const year = parseLeadingYear(s);
-                    return { year, month: isEnd ? 12 : 1 };
-                }
-
-                const validProjects = [];
-                let minYear = Infinity;
-                let maxYear = -Infinity;
-                const currentYear = new Date().getFullYear();
-
-                projects.forEach(p => {
-                    let startDate, endDate;
+                function getFractionalYear(p) {
+                    let dateStr = '';
                     if (p.category === 'Consulting') {
-                        startDate = getProjectDate(p.startDate, false);
-                        endDate = getProjectDate(p.endDate, true);
-                        if (startDate.year && !endDate.year) {
-                            endDate.year = startDate.year;
-                            if (!endDate.month) endDate.month = startDate.month || 12;
-                        }
+                        dateStr = p.startDate || p.period || '';
                     } else { // ODA
-                        const range = parseYearRange(p.period);
-                        startDate = { year: range.start, month: 1 };
-                        endDate = { year: range.end, month: 12 };
+                        dateStr = p.period || '';
                     }
+                    const s = normalizeYearStringLocal(dateStr);
 
-                    if (startDate.year) {
-                        if (!endDate.year || endDate.year < startDate.year) {
-                            endDate.year = startDate.year;
-                        }
-                        
-                        const startMonth = startDate.month || 1;
-                        const endMonth = endDate.month || 12;
-
-                        validProjects.push({
-                            ...p,
-                            startYear: startDate.year,
-                            endYear: endDate.year,
-                            startMonth: startMonth,
-                            endMonth: endMonth,
-                            startFractional: startDate.year + (startMonth - 1) / 12,
-                            endFractional: endDate.year + (endMonth - 1) / 12,
-                            status: p.status || (endDate.year < currentYear ? '완료' : '진행중'),
-                            fullInfo: {
-                                name: p.description || '프로젝트명 없음',
-                                budget: p.budget ? Math.round(p.budget / 100) : 0,
-                                client: p.client || '',
-                                category: p.category
+                    // 우선 연도 범위(YYYY-YYYY, 'YY-'YY 등)를 감지하여 월 파싱과 구분
+                    const rangeYYYY = s.match(/(?:^|\b)(\d{4})\s*[-~–—]\s*(\d{4})(?:\b|$)/);
+                    const rangeYY = s.match(/(?:^|\b)'?(\d{2})\s*[-~–—]\s*'?\d{2}(?:\b|$)/);
+                    if (!rangeYYYY && !rangeYY) {
+                        // 범위가 아니면 YYYY-MM 또는 'YY-MM 형식의 월 정보를 우선 파싱
+                        let m = s.match(/(?:^|\b)(\d{4})[./-](0?[1-9]|1[0-2])(?:\b|$)/);
+                        if (m) {
+                            const year = parseInt(m[1], 10);
+                            const month = parseInt(m[2], 10);
+                            if (!isNaN(year) && !isNaN(month)) {
+                                return year + (month - 1) / 12;
                             }
-                        });
-
-                        minYear = Math.min(minYear, startDate.year);
-                        maxYear = Math.max(maxYear, endDate.year);
+                        }
+                        // 'YY-MM 형태 지원
+                        m = s.match(/(?:^|\b)'?(\d{2})[./-](0?[1-9]|1[0-2])(?:\b|$)/);
+                        if (m) {
+                            const yy = parseInt(m[1], 10);
+                            const month = parseInt(m[2], 10);
+                            const year = yy <= 29 ? 2000 + yy : 1900 + yy;
+                            if (!isNaN(month)) {
+                                return year + (month - 1) / 12;
+                            }
+                        }
                     }
+
+                    // 월 정보를 얻지 못한 경우, 시작 연도만 사용
+                    return getProjectStartYear(p);
+                }
+
+                const timelineProjects = projects.map(p => ({
+                    ...p,
+                    fractionalYear: getFractionalYear(p)
+                })).filter(p => p.fractionalYear);
+
+                if (timelineProjects.length === 0) {
+                    return '<div class="no-timeline" style="padding: 40px; text-align: center;">타임라인에 표시할 프로젝트가 없습니다.</div>';
+                }
+
+                timelineProjects.sort((a, b) => a.fractionalYear - b.fractionalYear);
+
+                // 국가별(또는 선택 목록별) 최소 시작~최대 종료로 축 범위를 동적으로 산정
+                const dynamicStartYear = Math.floor(Math.min(...timelineProjects.map(p => p.fractionalYear)));
+                // 종료 연도는 실제 프로젝트 종료 기준으로 산정
+                const dynamicEndYear = (function(){
+                    const ends = projects
+                        .map(pp => getProjectEndYear(pp))
+                        .filter(Boolean);
+                    const maxEnd = ends.length ? Math.max(...ends) : Math.ceil(Math.max(...timelineProjects.map(p => p.fractionalYear)));
+                    return maxEnd;
+                })();
+
+                const startYear = dynamicStartYear;
+                const endYear = dynamicEndYear;
+                // 압축 축: 프로젝트가 있는 연도만 남기고, 빈 해 간격 제거
+                const padding = 100;
+                const basePerYear = 200; // 스텝 간 기본 간격(px)
+                const projectYears = Array.from(new Set(timelineProjects.map(p => Math.floor(p.fractionalYear)))).sort((a,b)=>a-b);
+                const stepCount = Math.max(1, projectYears.length - 1);
+                const extraSlots = 1; // 현재 시점 표시용 추가 슬롯(우측)
+                const timelineWidth = Math.max(1200, padding * 2 + basePerYear * (stepCount + extraSlots));
+                const unitWidth = (timelineWidth - padding * 2) / (stepCount + extraSlots);
+
+                function positionIndexFor(f) {
+                    if (projectYears.length === 0) return 0;
+                    if (f <= projectYears[0]) return 0;
+                    const lastIdx = projectYears.length - 1;
+                    if (f >= projectYears[lastIdx]) return lastIdx;
+                    for (let i = 0; i < lastIdx; i++) {
+                        const y0 = projectYears[i];
+                        const y1 = projectYears[i+1];
+                        if (f >= y0 && f <= y1) {
+                            const span = (y1 - y0) || 1;
+                            return i + (f - y0) / span;
+                        }
+                    }
+                    return lastIdx;
+                }
+
+                let yearMarkersHtml = '';
+                /* projectYears computed above */
+                projectYears.forEach((year, idx) => {
+                    const leftPos = padding + idx * unitWidth;
+                    yearMarkersHtml += `<div class="new-year-marker" style="left: ${leftPos}px;"><div class="dot"></div><div class="year-label">${year}</div></div>`;
                 });
 
-                if (validProjects.length === 0) {
-                    return '<div class="no-timeline">타임라인에 표시할 기간 정보가 있는 프로젝트가 없습니다.</div>';
+                let eventBlocksHtml = '';
+                // 현재 시점(오늘)의 위치 계산: 월 기준 분수 연도
+                const now = new Date();
+                const nowYear = now.getFullYear();
+                const nowMonth = now.getMonth() + 1; // 1-12
+                const nowDay = now.getDate();
+                // 일까지 반영해 좀 더 정확한 위치(옵션)
+                const daysInMonth = new Date(nowYear, nowMonth, 0).getDate();
+                const nowFraction = nowYear + ((nowMonth - 1) + (nowDay - 1) / daysInMonth) / 12;
+                // 표시 가능 범위에 있을 때만 마커 표시
+                let currentMarkerHtml = '';
+                if (projectYears.length) {
+                    // 현재 시점은 우측 추가 슬롯에 배치(연도 라벨과 명확히 분리)
+                    const currentIndex = stepCount + 0.6; // 추가 슬롯 내부 위치
+                    const currentLeft = padding + currentIndex * unitWidth;
+                    const labelText = `${nowYear}.${String(nowMonth).padStart(2, '0')}`;
+                    currentMarkerHtml = `
+                        <div class="current-time-marker" id="current-time-marker" style="left: ${currentLeft}px;">
+                            <div class="current-line dotted"></div>
+                            <div class="current-label">${labelText}</div>
+                        </div>
+                    `;
                 }
-                
-                maxYear = Math.max(maxYear, currentYear);
-
-                const yearSpan = maxYear - minYear + 1;
-                const pixelsPerYear = 120; // 1년당 120px (분기당 30px)
-                const timelineWidthPx = yearSpan * pixelsPerYear;
-
-                const maxConcurrentProjects = calculateMaxConcurrentProjects(validProjects);
-                const requiredLanes = Math.max(4, Math.min(10, maxConcurrentProjects));
-
-                const lanes = Array.from({length: requiredLanes}, () => []);
-                const minBadgeWidth = 80;
-
-                validProjects
-                    .sort((a, b) => {
-                        if (a.startFractional !== b.startFractional) return a.startFractional - b.startFractional;
-                        return b.endFractional - a.endFractional;
-                    })
-                    .forEach(project => {
-                        const startPx = (project.startFractional - minYear) * pixelsPerYear;
-                        const endPx = (project.endFractional - minYear) * pixelsPerYear;
-                        const durationPx = Math.max(minBadgeWidth, endPx - startPx + (pixelsPerYear / 12));
-
-                        let bestLane = 0;
-                        let foundEmptyLane = false;
-
-                        for (let i = 0; i < lanes.length; i++) {
-                            let hasConflict = false;
-                            for (const existingProject of lanes[i]) {
-                                if (!(startPx >= existingProject.endPx + 5 || startPx + durationPx + 5 <= existingProject.startPx)) {
-                                    hasConflict = true;
-                                    break;
-                                }
-                            }
-                            if (!hasConflict) {
-                                bestLane = i;
-                                foundEmptyLane = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!foundEmptyLane) {
-                            bestLane = lanes.reduce((minIdx, l, idx) => l.length < lanes[minIdx].length ? idx : minIdx, 0);
-                        }
-
-                        project.lane = bestLane;
-                        project.startPx = startPx;
-                        project.widthPx = durationPx;
-                        project.endPx = startPx + durationPx;
-                        lanes[bestLane].push(project);
-                    });
-
-                function calculateMaxConcurrentProjects(projects) {
-                    let maxConcurrent = 0;
-                    for (let year = minYear; year <= maxYear; year += 0.25) {
-                        let concurrent = 0;
-                        projects.forEach(p => {
-                            if (p.startFractional <= year && p.endFractional >= year) {
-                                concurrent++;
-                            }
-                        });
-                        maxConcurrent = Math.max(maxConcurrent, concurrent);
+                // 헬퍼: 문자열에서 첫 번째 YYYY-MM 또는 'YY-MM을 분수연도로
+                function parseFirstFraction(str) {
+                    if (!str) return null;
+                    const s = normalizeYearStringLocal(str);
+                    let mm = s.match(/(\d{4})[./-](0?[1-9]|1[0-2])/);
+                    if (mm) {
+                        const y = parseInt(mm[1], 10);
+                        const m = parseInt(mm[2], 10);
+                        if (!isNaN(y) && !isNaN(m)) return y + (m - 1) / 12;
                     }
-                    return maxConcurrent;
+                    mm = s.match(/'?(\d{2})[./-](0?[1-9]|1[0-2])/);
+                    if (mm) {
+                        const yy = parseInt(mm[1], 10);
+                        const m = parseInt(mm[2], 10);
+                        const y = yy <= 29 ? 2000 + yy : 1900 + yy;
+                        if (!isNaN(m)) return y + (m - 1) / 12;
+                    }
+                    return null;
                 }
 
-                const consultingProjects = validProjects.filter(p => p.category === 'Consulting');
-                const odaProjects = validProjects.filter(p => p.category === 'ODA');
+                // 헬퍼: 문자열에서 마지막 YYYY-MM 또는 'YY-MM을 분수연도로
+                function parseLastFraction(str) {
+                    if (!str) return null;
+                    const s = normalizeYearStringLocal(str);
+                    let all = [...s.matchAll(/(\d{4})[./-](0?[1-9]|1[0-2])/g)];
+                    if (all.length) {
+                        const mm = all[all.length - 1];
+                        const y = parseInt(mm[1], 10);
+                        const m = parseInt(mm[2], 10);
+                        if (!isNaN(y) && !isNaN(m)) return y + (m - 1) / 12;
+                    }
+                    all = [...s.matchAll(/'?(\d{2})[./-](0?[1-9]|1[0-2])/g)];
+                    if (all.length) {
+                        const mm = all[all.length - 1];
+                        const yy = parseInt(mm[1], 10);
+                        const m = parseInt(mm[2], 10);
+                        const y = yy <= 29 ? 2000 + yy : 1900 + yy;
+                        if (!isNaN(m)) return y + (m - 1) / 12;
+                    }
+                    // YYYY-YYYY, 'YY-'YY 범위의 종료년도
+                    let r = s.match(/(\d{4})\s*[-~–—]\s*(\d{4})/);
+                    if (r) return parseInt(r[2], 10) + 0.99;
+                    r = s.match(/'?(\d{2})\s*[-~–—]\s*'?(\d{2})/);
+                    if (r) {
+                        let sy = parseInt(r[1], 10);
+                        let ey = parseInt(r[2], 10);
+                        let startY = sy <= 29 ? 2000 + sy : 1900 + sy;
+                        let endY = ey <= 29 ? 2000 + ey : 1900 + ey;
+                        if (endY < startY) endY += 100;
+                        return endY + 0.99;
+                    }
+                    return null;
+                }
 
-                return `
-                    <div class="wine-timeline-compact">
-                        <div class="timeline-compact-header">
-                            <h3>📅 프로젝트 히스토리 (${minYear}~${maxYear})</h3>
-                            <div class="timeline-stats">
-                                <div class="stat-item consulting"><span>🔧</span><span class="stat-text">기술컨설팅 ${consultingProjects.length}건</span></div>
-                                <div class="stat-item oda"><span>🌍</span><span class="stat-text">ODA ${odaProjects.length}건</span></div>
+                function getStartFraction(p, fallback) {
+                    // 이미 계산된 분수연도(fractionalYear)를 우선 사용
+                    return typeof fallback === 'number' ? fallback : getFractionalYear(p);
+                }
+
+                function getEndFraction(p) {
+                    if (p.category === 'Consulting') {
+                        if (p.endDate) {
+                            const f = parseLastFraction(p.endDate);
+                            if (f) return f;
+                            const y = getProjectEndYear(p);
+                            if (y) return y + 0.99;
+                        }
+                        if (p.startDate) {
+                            const f = parseLastFraction(p.startDate);
+                            if (f) return f;
+                        }
+                    } else { // ODA
+                        if (p.period) {
+                            const f = parseLastFraction(p.period);
+                            if (f) return f;
+                            const y = getProjectEndYear(p);
+                            if (y) return y + 0.99;
+                        }
+                    }
+                    const y = getProjectEndYear(p);
+                    return y ? y + 0.99 : null;
+                }
+
+                timelineProjects.forEach((p, index) => {
+                    const leftPos = padding + positionIndexFor(p.fractionalYear) * unitWidth;
+                    const isTop = index % 2 === 0;
+                    const categoryClass = p.category === 'Consulting' ? 'tech' : 'oda';
+                    const startF = getStartFraction(p, p.fractionalYear);
+                    const endF = getEndFraction(p);
+                    const isOngoing = (p.status === '시행중') || (startF && endF && nowFraction >= startF && nowFraction <= endF);
+                    const ongoingClass = isOngoing ? 'ongoing' : '';
+                    
+                    let periodText = '';
+                    if (p.category === 'Consulting') {
+                        periodText = p.endDate ? `${p.startDate} ~ ${p.endDate}` : p.startDate;
+                    } else {
+                        periodText = p.period;
+                    }
+                    const budgetEok = p.budget ? Math.round(p.budget / 100) : 0;
+                    const budgetBadge = budgetEok > 0 ? `<span class="badge badge-budget ${categoryClass}">💰 ${budgetEok.toLocaleString()}억원</span>` : '';
+                    const clientBadge = p.client ? `<span class="badge badge-client">🏢 ${p.client}</span>` : '';
+
+                    eventBlocksHtml += `
+                        <div class="new-event-block ${isTop ? 'top' : 'bottom'} ${categoryClass} ${ongoingClass}" style="left: ${leftPos}px;">
+                            ${isOngoing ? `<div class=\"badge-ongoing\">진행중</div>` : ''}
+                            <div class="new-event-content">
+                                <div class="new-event-year">${periodText || ''}</div>
+                                <div class="new-event-title">${p.description}</div>
+                                ${(budgetBadge || clientBadge) ? `<div class=\"badge-row\">${budgetBadge}${clientBadge}</div>` : ''}
                             </div>
                         </div>
-                        <div class="timeline-compact-container" style="height: ${Math.max(300, requiredLanes * 55 + 120)}px;">
-                            <div class="timeline-scroll-area" style="width: ${timelineWidthPx}px; height: ${Math.max(260, requiredLanes * 55 + 80)}px;">
-                                <div class="timeline-year-grid">
-                                    ${Array.from({length: yearSpan * 4}, (_, i) => {
-                                        const year = minYear + Math.floor(i / 4);
-                                        const quarter = (i % 4) + 1;
-                                        const positionPx = (i / 4) * pixelsPerYear;
-                                        const isYearStart = quarter === 1;
-                                        return `<div class="year-mark" style="left: ${positionPx}px; border-left-style: ${isYearStart ? 'solid' : 'dashed'};">
-                                            ${isYearStart ? `<span>${year}</span>` : ''}
-                                        </div>`;
-                                    }).join('')}
-                                </div>
-                                ${lanes.map((laneProjects, laneIndex) => `
-                                    <div class="timeline-lane" data-lane="${laneIndex}" style="top: ${50 + laneIndex * 65}px;">
-                                        ${laneProjects.map(project => {
-                                            const categoryClass = project.category === 'Consulting' ? 'consulting' : 'oda';
-                                            const { name, budget, client } = project.fullInfo;
-                                            const rangeLabel = `${project.startYear}.${project.startMonth} ~ ${project.endYear}.${project.endMonth}`;
-                                            const tooltipInfo = `📋 ${name}\n📅 ${rangeLabel}\n${budget > 0 ? `💰 ${budget.toLocaleString()}억원` : ''}\n${client ? `🏢 ${client}` : ''}`;
+                    `;
+                });
 
-                                            return `
-                                                <div class="project-badge-compact ${categoryClass} ${project.status === '진행중' ? 'in-progress' : 'completed'}"
-                                                     style="left: ${project.startPx}px; width: ${project.widthPx}px;"
-                                                     title="${tooltipInfo}">
-                                                    <div class="badge-content">
-                                                        <div class="badge-header">
-                                                            <div class="badge-main-title">${name}</div>
-                                                            ${client ? `<div class="badge-client">${client}</div>` : ''}
-                                                        </div>
-                                                        <div class="badge-details-row">
-                                                            <span class="badge-year">${rangeLabel}</span>
-                                                            ${budget > 0 ? `<span class="badge-budget">${budget.toLocaleString()}억</span>` : ''}
-                                                        </div>
-                                                    </div>
-                                                    ${project.status === '진행중' ? '<div class="progress-indicator"></div>' : ''}
-                                                </div>
-                                            `;
-                                        }).join('')}
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div class="scroll-hint"><span>↔️ 좌우 스크롤하여 전체 히스토리 탐색</span></div>
+                const finalHtml = `
+                    <div class="new-timeline-design-container">
+                        <div class="new-timeline-wrapper" style="width: ${timelineWidth}px;">
+                            <div class="new-timeline-axis"></div>
+                            ${currentMarkerHtml}
+                            ${yearMarkersHtml}
+                            ${eventBlocksHtml}
+                        </div>
+                        <div class="new-timeline-footer">
+                            좌우로 스크롤하여 전체 히스토리를 탐색할 수 있습니다.
                         </div>
                     </div>
                 `;
+
+                return finalHtml;
             }
 
             // 프로젝트 리스트 HTML 생성
@@ -4779,6 +5487,22 @@
             `;
 
             console.log('Modal body innerHTML set, length:', modalBody.innerHTML.length);
+
+            // 팝업 오픈 시 현재 시점이 보이도록 스크롤 조정 (가장 오른쪽/현재 시점 근처)
+            setTimeout(() => {
+                try {
+                    const container = modalBody.querySelector('.new-timeline-design-container');
+                    if (container) {
+                        const marker = container.querySelector('#current-time-marker');
+                        if (marker) {
+                            const target = Math.max(0, marker.offsetLeft - container.clientWidth * 0.8);
+                            container.scrollLeft = target;
+                        } else {
+                            container.scrollLeft = container.scrollWidth; // 현재 마커 없으면 맨 오른쪽으로
+                        }
+                    }
+                } catch (e) { console.warn('Scroll to current failed:', e); }
+            }, 50);
 
             // 모달 표시
             modal.style.display = 'flex';
@@ -5057,64 +5781,19 @@
         window.resetAllFilters = resetAllFilters;
         window.goToMyLocation = goToMyLocation;
         window.openEditor = openEditor;
-        // 테스트 함수 추가
-        window.testTimeline = function() {
-            // 테스트용 프로젝트 데이터 생성
-            const testProjects = [
-                {
-                    description: "베트남 교육 컨설팅 프로젝트",
-                    category: "Consulting",
-                    startDate: "'72-10",
-                    endDate: "'73-09"
-                },
-                {
-                    description: "라오스 인프라 개발 프로젝트",
-                    category: "ODA",
-                    period: "'72-10"
-                },
-                {
-                    description: "캄보디아 수자원 개발",
-                    category: "ODA",
-                    period: "'20-25"
-                },
-                {
-                    description: "필리핀 ICT 컨설팅",
-                    category: "Consulting",
-                    startDate: "2021-01-01",
-                    endDate: "2023-06-30"
-                },
-                {
-                    description: "몽골 에너지 프로젝트",
-                    category: "ODA",
-                    period: "2022-2025"
+
+        // 직지 스타일 타임라인용 프로젝트 세부사항 토글 함수
+        window.toggleProjectDetails = function(element) {
+            const detailsDiv = element.querySelector('.event-details');
+            if (detailsDiv) {
+                if (detailsDiv.style.display === 'none') {
+                    detailsDiv.style.display = 'block';
+                    element.style.zIndex = '15';
+                } else {
+                    detailsDiv.style.display = 'none';
+                    element.style.zIndex = '6';
                 }
-            ];
-            
-            // 테스트 타임라인 생성
-            const timelineHTML = generateFullProjectTimeline(testProjects);
-            
-            // 테스트 결과를 콘솔에 출력
-            console.log("Test Projects:", testProjects);
-            testProjects.forEach((p, i) => {
-                const startYear = getProjectStartYear(p);
-                const endYear = getProjectEndYear(p);
-                console.log(`Project ${i+1}: ${p.description}`);
-                console.log(`  Start Year: ${startYear}`);
-                console.log(`  End Year: ${endYear}`);
-            });
-            
-            return timelineHTML;
-        }
-        
-        window.testDateParsing = function() {
-            // 날짜 파싱 테스트
-            const testDates = ["'72-10", "'73-02", "'20-25", "2018-2022", "1998", "2005-06"];
-            
-            console.log("Date Parsing Test Results:");
-            testDates.forEach(date => {
-                const range = parseYearRange(date);
-                console.log(`  ${date} -> Start: ${range.start}, End: ${range.end}`);
-            });
+            }
         };
     </script>
     <!-- 편집 모달 -->
