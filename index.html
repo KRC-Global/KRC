@@ -3209,20 +3209,21 @@
         /* New Timeline Design Styles */
         .new-timeline-design-container {
             background: #FFF8E7;
-            padding: 20px 20px 5px 20px; /* 하단 패딩 최소화 */
-            border-radius: 12px;
-            overflow: auto; /* single scroll region (both axes) */
+            padding: 6px; /* 상하좌우 여백 최소화 */
+            border-radius: 8px;
+            overflow: auto; /* both axes */
             position: relative;
-            max-height: 50vh; /* 팝업 높이의 50%로 제한 */
-            height: auto; /* 자동 높이 */
-            -webkit-overflow-scrolling: touch; /* smooth iOS scrolling */
-            touch-action: pan-y pan-x; /* allow touch scrolling */
-            overscroll-behavior: contain; /* avoid parent scroll chaining */
+            max-height: 50vh;
+            height: auto;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y pan-x; /* allow touch scroll */
+            overscroll-behavior: contain;
+            cursor: grab; /* drag-pan affordance (desktop) */
         }
         .new-timeline-wrapper {
             position: relative;
             width: 3200px;
-            height: 500px;
+            height: 360px; /* 축 높이 축소 */
             display: flex;
             align-items: center;
             font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -3295,10 +3296,12 @@
             background-color: #722F37;
             z-index: -1;
         }
-        .new-event-block.top { bottom: calc(50% + 60px); }
-        .new-event-block.top:before { top: 100%; height: 60px; }
-        .new-event-block.bottom { top: calc(50% + 60px); }
-        .new-event-block.bottom:before { bottom: 100%; height: 60px; }
+        .new-event-block.top { bottom: calc(50% + 40px); }
+        .new-event-block.top:before { top: 100%; height: 40px; }
+        .new-event-block.bottom { top: calc(50% + 40px); }
+        .new-event-block.bottom:before { bottom: 100%; height: 40px; }
+
+        .new-timeline-design-container.dragging { cursor: grabbing; }
         .new-event-block.tech { border: 4px solid #0A3D62; }
         .new-event-block.oda { border: 4px solid #E65100; }
         .new-event-block.proposal { border: 4px solid #000; background: #f1f3f5; }
@@ -5980,6 +5983,24 @@
             }
             setTimeout(initDefaultZoomAndScroll, 30);
 
+            // 드래그-팬(마우스) 활성화: 지형도처럼 부드럽게 이동
+            function enableDragPan() {
+                const container = modalBody.querySelector('.new-timeline-design-container');
+                if (!container) return;
+                let dragging = false; let sx = 0; let sy = 0; let sl = 0; let st = 0;
+                container.addEventListener('mousedown', (e)=>{
+                    dragging = true; sx = e.clientX; sy = e.clientY; sl = container.scrollLeft; st = container.scrollTop; container.classList.add('dragging'); e.preventDefault();
+                });
+                window.addEventListener('mousemove', (e)=>{
+                    if (!dragging) return;
+                    const dx = e.clientX - sx; const dy = e.clientY - sy;
+                    container.scrollLeft = sl - dx;
+                    container.scrollTop  = st - dy;
+                });
+                window.addEventListener('mouseup', ()=>{ if (dragging){ dragging=false; container.classList.remove('dragging'); } });
+            }
+            setTimeout(enableDragPan, 0);
+
             // 확대/축소 컨트롤: 재렌더 유틸
             function rerenderTimelineOnly() {
                 const wrap = modalBody.querySelector('.country-history-container');
@@ -6213,6 +6234,14 @@
                 function end(){ pinchActive = false; pinchStartDist = 0; }
                 container.addEventListener('touchend', end, { passive: true });
                 container.addEventListener('touchcancel', end, { passive: true });
+
+                // Drag-pan on desktop for overview too
+                (function enableOvDragPan(){
+                    let dragging = false, sx=0, sy=0, sl=0, st=0;
+                    container.addEventListener('mousedown', (e)=>{ dragging=true; sx=e.clientX; sy=e.clientY; sl=container.scrollLeft; st=container.scrollTop; container.classList.add('dragging'); e.preventDefault(); });
+                    window.addEventListener('mousemove', (e)=>{ if(!dragging) return; const dx=e.clientX-sx, dy=e.clientY-sy; container.scrollLeft = sl - dx; container.scrollTop = st - dy; });
+                    window.addEventListener('mouseup', ()=>{ if (dragging){ dragging=false; container.classList.remove('dragging'); } });
+                })();
             })();
         }
 
