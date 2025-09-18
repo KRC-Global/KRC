@@ -4647,7 +4647,7 @@
             const bgExtra = code === 'un' ? '' : 'background-size: cover; background-position: center;';
             // short label: 6 chars + ellipsis if longer
             const rawTitle = (project.description || '').trim();
-            const shortTitle = rawTitle.length > 6 ? (rawTitle.slice(0,6) + '…') : rawTitle;
+            const shortTitle = rawTitle.length > 8 ? (rawTitle.slice(0,8) + '…') : rawTitle;
             const titleColor = (project.category === 'Consulting') ? '#0A3D62' : '#E65100';
             const labelFont = selected ? 12 : 11;
             const iconHtml = `
