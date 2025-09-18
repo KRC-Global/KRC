@@ -4531,6 +4531,8 @@
                 if (typeof map !== 'undefined' && map && map.invalidateSize) {
                     setTimeout(() => map.invalidateSize(false), 0);
                 }
+                // re-center axis vertically if modal open
+                try { recenterOpenTimelineAxis(); } catch {}
             }
             function onMove(clientY) {
                 const dy = startY - clientY;
@@ -4561,6 +4563,20 @@
 
             // Initialize heights once
             setTimeout(() => setHeights(panel.getBoundingClientRect().height), 0);
+        }
+
+        // Global helper: center axis vertically in any open timeline modal
+        function recenterOpenTimelineAxis() {
+            const modal = document.getElementById('country-stats-modal');
+            if (!modal || modal.style.display === 'none') return;
+            const container = modal.querySelector('.new-timeline-design-container');
+            const wrapper = modal.querySelector('.new-timeline-wrapper');
+            if (!container || !wrapper) return;
+            const scale = parseFloat(container.dataset.scale || '1') || 1;
+            const vh = container.clientHeight || 1;
+            const contentH = wrapper.clientHeight || 1;
+            const target = Math.max(0, ((contentH * scale) / 2) - (vh / 2));
+            container.scrollTop = target;
         }
         function updateMapMarkers() {
             if (!markersLayer) return;
@@ -5898,9 +5914,11 @@
             // CSS 스케일 기반 인터랙티브 줌 상태
             let viewScale = 1;
             function applyViewScale() {
-                const stage = modalBody.querySelector('.new-timeline-design-container .zoom-stage');
+                const container = modalBody.querySelector('.new-timeline-design-container');
+                const stage = container?.querySelector('.zoom-stage');
                 if (!stage) return;
                 stage.style.transform = `scale(${viewScale})`;
+                if (container) container.dataset.scale = String(viewScale);
             }
 
             // 줌 인디케이터 (퍼센트) 표시 유틸
@@ -5965,7 +5983,7 @@
                     // 수직은 축이 중앙에 오도록
                     const vh = container.clientHeight || 1;
                     const contentH = wrapper.clientHeight || 1;
-                    container.scrollTop = Math.max(0, (contentH / 2) - (vh / viewScale) / 2);
+                    container.scrollTop = Math.max(0, ((contentH * viewScale) / 2) - (vh / 2));
                     // 가로는 현재시점 기준으로 포커스
                     const marker = container.querySelector('#current-time-marker');
                     if (marker) {
@@ -6133,7 +6151,7 @@
                 }
 
                 let overviewScale = 1;
-                function applyScale(){ stage.style.transform = `scale(${overviewScale})`; }
+                function applyScale(){ stage.style.transform = `scale(${overviewScale})`; if (container) container.dataset.scale = String(overviewScale); }
                 function showOvZoom(scale){ showZoomIndicator(container, scale); }
                 function fitAll(){
                     const scaleX = container.clientWidth > 0 ? container.clientWidth / (wrapper.scrollWidth || wrapper.clientWidth || 1) : 1;
@@ -6152,7 +6170,7 @@
                         // 수직 중앙 정렬
                         const vh = container.clientHeight || 1;
                         const contentH = wrapper.clientHeight || 1;
-                        container.scrollTop = Math.max(0, (contentH / 2) - (vh / overviewScale) / 2);
+                        container.scrollTop = Math.max(0, ((contentH * overviewScale) / 2) - (vh / 2));
                         // 가로 현재시점 포커스
                         const marker = container.querySelector('#current-time-marker');
                         if (marker) {
