@@ -56,6 +56,17 @@
         .loc-edit-btn.save { background:#0A3D62; color:#fff; border-color:#0A3D62; }
         .loc-edit-btn.cancel { background:#fff; color:#0A3D62; }
         .loc-edit-btn.export { background:#fff; color:#0A3D62; }
+
+        /* GitHub auth modal */
+        .gh-auth-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1400; display: none; align-items: center; justify-content: center; }
+        .gh-auth-content { background: #fff; width: 520px; max-width: 95vw; border-radius: 12px; border: 2px solid #0A3D62; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+        .gh-auth-header { padding: 12px 14px; border-bottom: 1px solid #cfe0ee; font-weight: 900; color: #0A3D62; display:flex; align-items:center; justify-content: space-between; }
+        .gh-auth-body { padding: 12px 14px; display: grid; gap: 8px; }
+        .gh-auth-body input { padding: 8px; border: 1px solid #cfe0ee; border-radius: 8px; font-size: 13px; }
+        .gh-auth-help { font-size: 12px; color: #5b7a99; }
+        .gh-auth-footer { padding: 12px 14px; border-top: 1px solid #cfe0ee; display:flex; gap:8px; justify-content: flex-end; }
+        .gh-btn { padding: 8px 12px; border: 1px solid #cfe0ee; border-radius: 8px; font-weight: 800; cursor: pointer; }
+        .gh-btn.primary { background:#0A3D62; color: #fff; border-color:#0A3D62; }
         .address-search-group { position: relative; }
         .address-suggestions { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; z-index: 2000; max-height: 240px; overflow-y: auto; }
         .address-suggestion { padding: 8px; cursor: pointer; font-size: 12px; }
@@ -3423,6 +3434,25 @@
             <button class="loc-edit-btn cancel" id="loc-edit-cancel">취소</button>
             <button class="loc-edit-btn save" id="loc-edit-save">저장</button>
             <button class="loc-edit-btn export" id="loc-edit-export">JSON</button>
+            <button class="loc-edit-btn export" id="loc-edit-push">GitHub</button>
+        </div>
+    </div>
+
+    <!-- GitHub token modal -->
+    <div class="gh-auth-modal" id="gh-auth-modal">
+        <div class="gh-auth-content">
+            <div class="gh-auth-header">
+                <span>GitHub 저장 설정</span>
+                <button class="gh-btn" id="gh-auth-close">×</button>
+            </div>
+            <div class="gh-auth-body">
+                <div class="gh-auth-help">GitHub에 직접 저장하려면, 이 레포(KRC-Global/KRC)에 대한 Personal Access Token(PAT)을 입력하세요. 권한: <strong>Contents: Read and write</strong> (Fine-grained 토큰 권장). 토큰은 이 브라우저의 로컬에만 저장됩니다.</div>
+                <input type="password" id="gh-token-input" placeholder="ghp_... 또는 fine-grained 토큰" />
+            </div>
+            <div class="gh-auth-footer">
+                <button class="gh-btn" id="gh-auth-cancel">취소</button>
+                <button class="gh-btn primary" id="gh-auth-save">저장</button>
+            </div>
         </div>
     </div>
 
@@ -4906,6 +4936,76 @@
             if (p) { p.lat = original.lat; p.lng = original.lng; }
             applyFilters();
             endLocationEdit(true);
+        }
+        // ==== GitHub Save: update data/*.json in repo via API ====
+        const GITHUB = { owner: 'KRC-Global', repo: 'KRC', branch: 'main' };
+        function getGithubToken(){ try { return localStorage.getItem('krc_github_token') || ''; } catch{ return ''; } }
+        function setGithubToken(t){ try { localStorage.setItem('krc_github_token', t||''); } catch{} }
+        function openGithubAuthModal(next){
+            const modal = document.getElementById('gh-auth-modal');
+            const input = document.getElementById('gh-token-input');
+            modal.style.display = 'flex';
+            input.value = getGithubToken();
+            const done = () => { modal.style.display = 'none'; if (typeof next==='function') next(); };
+            const saveBtn = document.getElementById('gh-auth-save');
+            const cancelBtn = document.getElementById('gh-auth-cancel');
+            const closeBtn = document.getElementById('gh-auth-close');
+            const onSave = ()=>{ const v = input.value.trim(); if (v.length<20) { alert('토큰이 올바르지 않습니다.'); return; } setGithubToken(v); done(); };
+            const onCancel = ()=>{ modal.style.display = 'none'; };
+            saveBtn.onclick = onSave; cancelBtn.onclick = onCancel; closeBtn.onclick = onCancel;
+        }
+        function b64EncodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
+        async function githubGetFileSha(path){
+            const token = getGithubToken();
+            const url = `https://api.github.com/repos/${GITHUB.owner}/${GITHUB.repo}/contents/${encodeURIComponent(path)}?ref=${GITHUB.branch}`;
+            const res = await fetch(url, { headers: { 'Accept': 'application/vnd.github+json', 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) throw new Error('파일 정보를 가져오지 못했습니다: '+path);
+            const j = await res.json();
+            return j.sha;
+        }
+        async function githubUpdateFile(path, content, message){
+            const token = getGithubToken();
+            if (!token) { openGithubAuthModal(()=>githubUpdateFile(path, content, message)); return; }
+            const sha = await githubGetFileSha(path).catch(()=>null);
+            const body = {
+                message,
+                content: b64EncodeUnicode(content),
+                branch: GITHUB.branch,
+                committer: { name: 'KRC Editor', email: 'noreply@krc.local' }
+            };
+            if (sha) body.sha = sha;
+            const url = `https://api.github.com/repos/${GITHUB.owner}/${GITHUB.repo}/contents/${encodeURIComponent(path)}`;
+            const res = await fetch(url, { method: 'PUT', headers: { 'Accept': 'application/vnd.github+json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(body) });
+            if (!res.ok) {
+                const t = await res.text();
+                throw new Error('GitHub 저장 실패: '+t);
+            }
+            return await res.json();
+        }
+        function splitProjectsForJson(){
+            const oda = allProjects.filter(p=>p.category==='ODA');
+            const con = allProjects.filter(p=>p.category==='Consulting');
+            const normalize = arr => arr.slice().sort((a,b)=>{
+                const ka = (a.name||'')+(a.description||'');
+                const kb = (b.name||'')+(b.description||'');
+                return ka.localeCompare(kb);
+            });
+            return { oda: normalize(oda), con: normalize(con) };
+        }
+        async function pushJsonToGithub(){
+            try {
+                showNotification('GitHub 저장을 시작합니다...', 'info');
+                const { oda, con } = splitProjectsForJson();
+                const odaStr = JSON.stringify(oda, null, 2);
+                const conStr = JSON.stringify(con, null, 2);
+                const t0 = await githubUpdateFile('data/global_oda.json', odaStr, 'chore(data): update global_oda.json via in-app editor');
+                const t1 = await githubUpdateFile('data/global_consulting.json', conStr, 'chore(data): update global_consulting.json via in-app editor');
+                showNotification('GitHub 저장 완료 (2 files).', 'success');
+                console.log('GitHub update results', t0, t1);
+            } catch(e){
+                console.error(e);
+                showNotification('GitHub 저장 실패: '+(e?.message||e), 'error');
+            }
         }
         function openEditor(id) {
             if (!editMode) return;
@@ -6957,6 +7057,7 @@
             document.getElementById('loc-edit-cancel')?.addEventListener('click', cancelLocationEdit);
             document.getElementById('loc-edit-close')?.addEventListener('click', cancelLocationEdit);
             document.getElementById('loc-edit-export')?.addEventListener('click', exportJSON);
+            document.getElementById('loc-edit-push')?.addEventListener('click', pushJsonToGithub);
 
             // Initialize new top-right actions and mobile resizer
             initTopActions();
