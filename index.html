@@ -44,6 +44,18 @@
         .edit-btn { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; }
         .edit-btn.toggle.on { background: #ffe8a1; border-color: #e0c66b; }
         .edit-file { display:none; }
+        /* Location edit minimalist overlay */
+        .loc-edit-panel { position: fixed; right: 14px; bottom: 16px; z-index: 1300; background: #ffffff; border: 2px solid #0A3D62; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); width: 280px; display: none; }
+        .loc-edit-header { padding: 8px 12px; font-weight: 800; color: #0A3D62; border-bottom: 1px solid #cfe0ee; display:flex; align-items:center; justify-content: space-between; }
+        .loc-edit-body { padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center; }
+        .loc-edit-footer { padding: 10px 12px; border-top: 1px solid #cfe0ee; display:flex; gap: 8px; justify-content: flex-end; }
+        .loc-edit-chip { grid-column: 1 / -1; font-size: 12px; color:#153A5B; background:#f0f6fb; border:1px solid #cfe0ee; border-radius: 8px; padding:6px 8px; }
+        .loc-edit-label { font-size: 11px; color:#5b7a99; }
+        .loc-edit-value { font-weight: 800; color:#153A5B; font-size: 12px; word-break: break-all; }
+        .loc-edit-btn { padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; border: 1px solid #cfe0ee; }
+        .loc-edit-btn.save { background:#0A3D62; color:#fff; border-color:#0A3D62; }
+        .loc-edit-btn.cancel { background:#fff; color:#0A3D62; }
+        .loc-edit-btn.export { background:#fff; color:#0A3D62; }
         .address-search-group { position: relative; }
         .address-suggestions { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; z-index: 2000; max-height: 240px; overflow-y: auto; }
         .address-suggestion { padding: 8px; cursor: pointer; font-size: 12px; }
@@ -3393,6 +3405,24 @@
         <button class="fab-icon" id="edit-fab" title="편집">✏️</button>
     </div>
 
+    <!-- Location edit overlay -->
+    <div class="loc-edit-panel" id="loc-edit-panel">
+        <div class="loc-edit-header">
+            <span>위치 편집</span>
+            <button class="loc-edit-btn cancel" id="loc-edit-close" title="닫기">×</button>
+        </div>
+        <div class="loc-edit-body">
+            <div class="loc-edit-chip" id="loc-edit-title">포인트를 선택해 드래그로 이동하세요</div>
+            <div class="loc-edit-label">위도</div><div class="loc-edit-value" id="loc-edit-lat">-</div>
+            <div class="loc-edit-label">경도</div><div class="loc-edit-value" id="loc-edit-lng">-</div>
+        </div>
+        <div class="loc-edit-footer">
+            <button class="loc-edit-btn cancel" id="loc-edit-cancel">취소</button>
+            <button class="loc-edit-btn save" id="loc-edit-save">저장</button>
+            <button class="loc-edit-btn export" id="loc-edit-export">JSON</button>
+        </div>
+    </div>
+
     <!-- Floating search popover -->
     <div class="search-popover" id="search-popover">
         <div class="search-row">
@@ -3520,6 +3550,7 @@
         const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
         let editMode = false;
         let activeEditProjectId = null; // 내부 편집 대상 ID
+        let locationEditState = null; // { id, original: {lat,lng}, ghost: L.Layer }
         let isCreatingNew = false; // 새 지점 생성 중 여부
         // pick marker 제거: 선택된 프로젝트의 마커를 직접 드래그
         
@@ -4590,7 +4621,7 @@
 
             newMarkers.forEach(marker => markersLayer.addLayer(marker));
 
-            if (newMarkers.length > 0) {
+            if (!editMode && newMarkers.length > 0) {
                 const group = new L.featureGroup(newMarkers);
                 const bounds = group.getBounds();
                 map.fitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
@@ -4629,7 +4660,9 @@
                     const ll = marker.getLatLng();
                     setValue('edit-lat', ll.lat.toFixed(6));
                     setValue('edit-lng', ll.lng.toFixed(6));
+                    updateLocOverlay(ll.lat, ll.lng);
                 });
+                marker.on('dragend', () => { try { showNotification('새 좌표가 지정되었습니다. 저장을 눌러 반영하세요.', 'info'); } catch{} });
             }
             const popupClassName = project.category === 'Consulting' ? 'consulting-popup' : 'oda-popup';
             const popup = L.popup({
@@ -4640,6 +4673,13 @@
             }).setContent(createProjectPopup(project));
 
             marker.bindPopup(popup);
+
+            // Edit mode selection: click to start location editing
+            marker.on('click', (e)=>{
+                if (!editMode) return;
+                L.DomEvent.stop(e);
+                startLocationEdit(project.__id);
+            });
 
             // 팝업이 열릴 때 스타일 직접 적용 (강화된 버전)
             marker.on('popupopen', function(e) {
@@ -4771,8 +4811,71 @@
                 activeEditProjectId = null;
                 isCreatingNew = false;
                 removePickingMarker();
+                endLocationEdit(true);
             }
             applyFilters();
+        }
+
+        function startLocationEdit(id) {
+            ensureProjectIds();
+            const p = allProjects.find(x => x.__id === id);
+            if (!p) return;
+            activeEditProjectId = id;
+            // show overlay
+            const panel = document.getElementById('loc-edit-panel');
+            panel.style.display = 'block';
+            document.getElementById('loc-edit-title').textContent = (p.description || '(사업)') + ' 위치 이동';
+            updateLocOverlay(p.lat, p.lng);
+            // ghost of original
+            endLocationEdit(false); // clear previous state only
+            locationEditState = { id, original: { lat: p.lat, lng: p.lng }, ghost: null };
+            try {
+                const ghost = L.circleMarker([p.lat, p.lng], { radius: 8, color: '#ffc107', weight: 3, opacity: 0.9, fillOpacity: 0 });
+                ghost.addTo(map);
+                locationEditState.ghost = ghost;
+            } catch {}
+            // refresh markers to make selected draggable
+            updateMapMarkers();
+            if (typeof p.lat === 'number' && typeof p.lng === 'number') {
+                map.setView([p.lat, p.lng], Math.max(map.getZoom(), 6));
+            }
+        }
+        function endLocationEdit(clearOverlay) {
+            if (locationEditState && locationEditState.ghost) {
+                try { map.removeLayer(locationEditState.ghost); } catch {}
+            }
+            locationEditState = null;
+            if (clearOverlay) {
+                const panel = document.getElementById('loc-edit-panel');
+                if (panel) panel.style.display = 'none';
+            }
+        }
+        function updateLocOverlay(lat, lng) {
+            const la = document.getElementById('loc-edit-lat'); if (la) la.textContent = (lat!=null?Number(lat).toFixed(6):'-');
+            const lo = document.getElementById('loc-edit-lng'); if (lo) lo.textContent = (lng!=null?Number(lng).toFixed(6):'-');
+        }
+        function saveLocationEdit() {
+            if (!locationEditState || !activeEditProjectId) return;
+            const p = allProjects.find(x => x.__id === activeEditProjectId); if (!p) return;
+            // read current marker position
+            let { lat, lng } = p;
+            // if overlay shows values, trust them
+            const la = parseFloat(document.getElementById('loc-edit-lat')?.textContent || p.lat);
+            const lo = parseFloat(document.getElementById('loc-edit-lng')?.textContent || p.lng);
+            if (!isNaN(la) && !isNaN(lo)) { lat = la; lng = lo; }
+            p.lat = lat; p.lng = lng;
+            try { localStorage.setItem('krc_edits_snapshot', JSON.stringify(allProjects)); } catch {}
+            applyFilters();
+            try { showNotification('위치가 저장되었습니다.', 'success'); } catch{}
+            endLocationEdit(true);
+        }
+        function cancelLocationEdit() {
+            if (!locationEditState) { endLocationEdit(true); return; }
+            const { id, original } = locationEditState;
+            const p = allProjects.find(x => x.__id === id);
+            if (p) { p.lat = original.lat; p.lng = original.lng; }
+            applyFilters();
+            endLocationEdit(true);
         }
         function openEditor(id) {
             if (!editMode) return;
@@ -6809,6 +6912,12 @@
             }
             const sug = document.getElementById('address-suggestions'); if (sug) sug.addEventListener('click', handleSuggestionClick);
             attachCountryHubHandlers();
+
+            // Location edit overlay buttons
+            document.getElementById('loc-edit-save')?.addEventListener('click', saveLocationEdit);
+            document.getElementById('loc-edit-cancel')?.addEventListener('click', cancelLocationEdit);
+            document.getElementById('loc-edit-close')?.addEventListener('click', cancelLocationEdit);
+            document.getElementById('loc-edit-export')?.addEventListener('click', exportJSON);
 
             // Initialize new top-right actions and mobile resizer
             initTopActions();
