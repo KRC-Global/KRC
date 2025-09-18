@@ -343,8 +343,8 @@
             left: 50%;
             transform: translateX(-50%);
             display: inline-block;
-            font-size: 7px;
-            padding: 2px 6px;
+            font-size: 9px; /* 1.3x */
+            padding: 3px 8px; /* 1.3x */
             background: #000; color: #fff;
             border-radius: 999px;
             z-index: 8;
@@ -2650,6 +2650,26 @@
         .leaflet-popup-tip {
             display: none !important;
         }
+        /* Hide legacy inline address search group; replaced by top-right actions */
+        .address-search-group { display: none !important; }
+
+        /* Top-right actions (search + edit) */
+        .top-actions { position: fixed; top: 14px; right: 14px; z-index: 1200; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+        .fab-icon { width: 38px; height: 38px; border-radius: 10px; border: 2px solid #0A3D62; background: #fff; color: #0A3D62; cursor: pointer; font-size: 18px; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .fab-icon:hover { background: #0A3D62; color: #fff; }
+        .search-popover { position: fixed; top: 60px; right: 14px; z-index: 1201; display: none; padding: 8px; background: #fff; border: 2px solid #0A3D62; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); width: min(80vw, 320px); }
+        .search-popover .search-row { display:flex; align-items:center; gap:6px; }
+        .search-popover input { flex:1; padding: 8px 30px 8px 10px; border:1px solid #cfe0ee; border-radius:8px; font-size: 13px; }
+        .search-popover .clear-btn { position: absolute; right: 24px; top: 16px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid #cfe0ee; background: #f5f9fc; color:#0A3D62; font-weight: 900; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        .search-suggestions { position: absolute; top: calc(100% + 6px); right: 0; left: 0; background: #fff; border: 1px solid #ddd; border-radius: 8px; max-height: 260px; overflow-y: auto; box-shadow: 0 6px 18px rgba(0,0,0,0.15); display:none; }
+        .search-suggestions .address-suggestion { padding: 8px; font-size: 12px; cursor: pointer; }
+        .search-suggestions .address-suggestion:hover { background: #f1f3f5; }
+
+        /* Mobile: resize handle visible */
+        @media (max-width: 768px) {
+            .hub-resize-zone { display:block; touch-action: none; }
+            .hub-resize-handle { display:block; width: 58px; height: 6px; border-radius: 3px; background: #cfe0ee; margin: 8px auto; }
+        }
         /* 모바일용 팝업 컨테이너 스타일 */
         .popup-container {
             max-width: 100%;
@@ -3352,8 +3372,8 @@
             white-space: nowrap;
             z-index: 7;
         }
-        .badge-ongoing { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
-        .badge-proposal { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: #e53935; color: #fff; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; z-index: 6; }
+        .badge-ongoing { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 800; z-index: 6; }
+        .badge-proposal { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: #e53935; color: #fff; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 800; z-index: 6; }
         .new-event-block.tech.ongoing { background: #E3F2FD; }
         /* ODA 진행중: 원안의 진한 주황(#E65100)과 가독성 보정 */
         .new-event-block.oda.ongoing { background: #FFCC80; border-color: #E65100; }
@@ -3366,6 +3386,21 @@
 </head>
 <body>
     <div id="map"></div>
+
+    <!-- Top-right actions: search + edit -->
+    <div class="top-actions" id="top-actions">
+        <button class="fab-icon" id="search-fab" title="검색">🔍</button>
+        <button class="fab-icon" id="edit-fab" title="편집">✏️</button>
+    </div>
+
+    <!-- Floating search popover -->
+    <div class="search-popover" id="search-popover">
+        <div class="search-row">
+            <input type="text" id="address-input" placeholder="주소 또는 사업명 검색" />
+            <button class="clear-btn" id="search-clear">×</button>
+        </div>
+        <div class="search-suggestions" id="floating-address-suggestions"></div>
+    </div>
     
     <div class="legend" id="legend">
         <div class="legend-item">
@@ -3394,6 +3429,7 @@
     <!-- Country Hub Panel -->
     <div class="country-hub" id="country-hub">
         <div class="country-hub-header">
+            <div class="hub-resize-zone"><div class="hub-resize-handle"></div></div>
             <div class="country-hub-main-toolbar">
                 <div class="address-search-group" id="address-search-group">
                     <div class="system-bar">
@@ -4445,6 +4481,87 @@
                 }
             });
         }
+        
+        // ===== Top-right actions (search popover, edit shortcut) and mobile panel resize =====
+        function initTopActions() {
+            const sfab = document.getElementById('search-fab');
+            const efab = document.getElementById('edit-fab');
+            const pop = document.getElementById('search-popover');
+            const input = document.getElementById('address-input');
+            const clearBtn = document.getElementById('search-clear');
+            const sugg = document.getElementById('floating-address-suggestions');
+            if (sfab && pop && input) {
+                sfab.addEventListener('click', () => {
+                    const visible = pop.style.display === 'block';
+                    pop.style.display = visible ? 'none' : 'block';
+                    if (!visible) {
+                        setTimeout(() => input.focus(), 0);
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { unifiedSearch(); }
+                });
+                input.addEventListener('input', () => {
+                    if (sugg) sugg.style.display = 'none';
+                });
+                clearBtn?.addEventListener('click', () => {
+                    input.value = '';
+                    if (sugg) { sugg.innerHTML = ''; sugg.style.display = 'none'; }
+                    input.focus();
+                });
+                // Suggestion click delegate
+                sugg?.addEventListener('click', handleSuggestionClick);
+            }
+            if (efab && typeof toggleEditMode === 'function') {
+                efab.addEventListener('click', () => toggleEditMode());
+            }
+        }
+
+        function initMobilePanelResizer() {
+            const panel = document.getElementById('country-hub');
+            const handle = panel?.querySelector('.hub-resize-zone');
+            const mapEl = document.getElementById('map');
+            if (!panel || !handle || !mapEl) return;
+            if (window.innerWidth > 768) return; // mobile only
+            let startY = 0, startH = 0, dragging = false;
+            function setHeights(px) {
+                const vh = Math.max(200, Math.min(window.innerHeight * 0.8, px));
+                panel.style.height = vh + 'px';
+                mapEl.style.height = (window.innerHeight - vh) + 'px';
+                if (typeof map !== 'undefined' && map && map.invalidateSize) {
+                    setTimeout(() => map.invalidateSize(false), 0);
+                }
+            }
+            function onMove(clientY) {
+                const dy = startY - clientY;
+                setHeights(startH + dy);
+            }
+            // Touch
+            handle.addEventListener('touchstart', (e)=>{
+                if (!(e.touches && e.touches.length)) return;
+                dragging = true;
+                startY = e.touches[0].clientY;
+                startH = panel.getBoundingClientRect().height;
+                try { e.preventDefault(); } catch{}
+            }, { passive:false });
+            handle.addEventListener('touchmove', (e)=>{
+                if (!dragging) return;
+                if (!(e.touches && e.touches.length)) return;
+                onMove(e.touches[0].clientY);
+                try { e.preventDefault(); } catch{}
+            }, { passive:false });
+            handle.addEventListener('touchend', ()=> dragging=false, { passive:true });
+            handle.addEventListener('touchcancel', ()=> dragging=false, { passive:true });
+            // Mouse
+            handle.addEventListener('mousedown', (e)=>{
+                dragging = true; startY = e.clientY; startH = panel.getBoundingClientRect().height; e.preventDefault();
+            });
+            window.addEventListener('mousemove', (e)=>{ if (dragging) onMove(e.clientY); });
+            window.addEventListener('mouseup', ()=> dragging=false);
+
+            // Initialize heights once
+            setTimeout(() => setHeights(panel.getBoundingClientRect().height), 0);
+        }
         function updateMapMarkers() {
             if (!markersLayer) return;
             markersLayer.clearLayers();
@@ -4776,7 +4893,7 @@
         // ===== 주소 검색 (Nominatim) =====
         async function searchAddress() {
             const input = document.getElementById('address-input');
-            const box = document.getElementById('address-suggestions');
+            const box = document.getElementById('floating-address-suggestions') || document.getElementById('address-suggestions');
             if (!input || !box) return;
             const q = input.value.trim();
             if (!q) { box.style.display='none'; box.innerHTML=''; return; }
@@ -4798,6 +4915,11 @@
                 if (!finalHtml) { box.style.display='none'; box.innerHTML=''; return; }
                 box.innerHTML = finalHtml;
                 box.style.display = 'block';
+                // Position suggestions when floating popover is used
+                if (box.id === 'floating-address-suggestions') {
+                    const pop = document.getElementById('search-popover');
+                    if (pop) { box.style.position = 'relative'; }
+                }
             } catch (e) {
                 console.warn('주소 검색 실패', e);
                 if (projHtml) { box.innerHTML = projHtml; box.style.display='block'; } else { box.style.display='none'; }
@@ -4813,7 +4935,7 @@
             if (match && typeof match.lat === 'number' && typeof match.lng === 'number') {
                 map.setView([match.lat, match.lng], Math.max(map.getZoom(), 12));
                 L.popup().setLatLng([match.lat, match.lng]).setContent(`🔎 ${match.description}`).openOn(map);
-                const box = document.getElementById('address-suggestions'); if (box){ box.style.display='none'; box.innerHTML=''; }
+                const box = document.getElementById('floating-address-suggestions') || document.getElementById('address-suggestions'); if (box){ box.style.display='none'; box.innerHTML=''; }
             } else {
                 searchAddress();
             }
@@ -4825,7 +4947,7 @@
             const lon = parseFloat(t.getAttribute('data-lon'));
             map.setView([lat, lon], 14);
             // 선택 마커 드래그로 조정
-            const box = document.getElementById('address-suggestions');
+            const box = document.getElementById('floating-address-suggestions') || document.getElementById('address-suggestions');
             if (box){ box.style.display='none'; box.innerHTML=''; }
         }
 
@@ -4988,6 +5110,10 @@
 
             applyFilters(); // 마커 업데이트를 위해 필터 적용
             updateCountryHub();
+
+            // Ensure floating search suggestions attach handler (id may be newly created)
+            const sugg = document.getElementById('floating-address-suggestions');
+            sugg?.addEventListener('click', handleSuggestionClick);
         }
 
         function getFilteredCountries() {
@@ -6639,6 +6765,10 @@
             }
             const sug = document.getElementById('address-suggestions'); if (sug) sug.addEventListener('click', handleSuggestionClick);
             attachCountryHubHandlers();
+
+            // Initialize new top-right actions and mobile resizer
+            initTopActions();
+            initMobilePanelResizer();
 
             // 개황 버튼 핸들러
             const obtn = document.getElementById('overview-btn');
