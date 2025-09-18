@@ -3553,6 +3553,16 @@
         const projectColors = { 'ODA': '#FF8C00', 'Consulting': '#4682B4' };
         let editMode = false;
         let activeEditProjectId = null; // 내부 편집 대상 ID
+        // View lock to keep current viewport unless explicitly navigating
+        let viewLock = true;
+        function safeSetView(latlng, zoom, opts = {}, force = false) {
+            if (!map) return;
+            if (force || !viewLock) map.setView(latlng, zoom, opts);
+        }
+        function safeFitBounds(bounds, options = {}, force = false) {
+            if (!map) return;
+            if (force || !viewLock) map.fitBounds(bounds, options);
+        }
         let locationEditState = null; // { id, original: {lat,lng}, ghost: L.Layer }
         let isCreatingNew = false; // 새 지점 생성 중 여부
         // pick marker 제거: 선택된 프로젝트의 마커를 직접 드래그
@@ -4627,9 +4637,7 @@
             if (!editMode && newMarkers.length > 0) {
                 const group = new L.featureGroup(newMarkers);
                 const bounds = group.getBounds();
-                map.fitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
-            } else {
-                map.setView([30, 0], 3);
+                safeFitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
             }
         }
         function createProjectMarker(project) {
@@ -4921,10 +4929,7 @@
             modal.style.display = 'flex';
             // 선택한 프로젝트 마커를 드래그 가능 + 강조 표시하도록 갱신
             updateMapMarkers();
-            // 해당 마커로 화면 이동
-            if (typeof p.lat === 'number' && typeof p.lng === 'number') {
-                map.setView([p.lat, p.lng], Math.max(map.getZoom(), 8));
-            }
+            // 화면 이동하지 않고 현재 뷰 유지
         }
         function closeEditor() { const modal = document.getElementById('edit-modal'); if (modal) modal.style.display = 'none'; }
         function setValue(id, v){ const el = document.getElementById(id); if (el) el.value = v; }
@@ -5074,7 +5079,7 @@
             if (!q) return;
             const match = allProjects.find(p => (p.description||'').toLowerCase().includes(q));
             if (match && typeof match.lat === 'number' && typeof match.lng === 'number') {
-                map.setView([match.lat, match.lng], Math.max(map.getZoom(), 12));
+                safeSetView([match.lat, match.lng], Math.max(map.getZoom(), 12), {}, true);
                 L.popup().setLatLng([match.lat, match.lng]).setContent(`🔎 ${match.description}`).openOn(map);
                 const box = document.getElementById('floating-address-suggestions') || document.getElementById('address-suggestions'); if (box){ box.style.display='none'; box.innerHTML=''; }
             } else {
@@ -5086,7 +5091,7 @@
             if (!t) return;
             const lat = parseFloat(t.getAttribute('data-lat'));
             const lon = parseFloat(t.getAttribute('data-lon'));
-            map.setView([lat, lon], 14);
+            safeSetView([lat, lon], 14, {}, true);
             // 선택 마커 드래그로 조정
             const box = document.getElementById('floating-address-suggestions') || document.getElementById('address-suggestions');
             if (box){ box.style.display='none'; box.innerHTML=''; }
@@ -6834,7 +6839,7 @@
                     (position) => {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
-                        map.setView([lat, lng], 10);
+                        safeSetView([lat, lng], 10, {}, true);
                         const marker = L.marker([lat, lng]).addTo(map).bindPopup('📍 내 위치').openPopup();
                         setTimeout(() => { if(map.hasLayer(marker)) map.removeLayer(marker); }, 5000);
                     },
