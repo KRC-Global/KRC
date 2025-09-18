@@ -2621,6 +2621,9 @@
         .status-progress { background: #d1f2eb; color: #155724; border: 1px solid #c3e6cb; }
         .status-proposal { background: #ff6b35; color: white; border: 1px solid #ff5722; }
         .custom-div-icon { background: transparent !important; border: none !important; }
+        /* Marker label under point */
+        .marker-with-label { position: relative; display:flex; flex-direction: column; align-items: center; }
+        .marker-with-label .m-label { margin-top: 4px; padding: 1px 4px; border-radius: 4px; font-weight: 800; line-height: 1.1; background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 3px rgba(0,0,0,0.1); pointer-events: none; }
         /* 팝업 스타일 개선 (모바일 대응) */
         .leaflet-popup-content-wrapper {
             border-radius: 12px !important;
@@ -4642,9 +4645,17 @@
             const flagUrl = `https://flagcdn.com/w${flagSize}/${code}.png`;
             const bg = code === 'un' ? '#fff' : `url('${flagUrl}')`;
             const bgExtra = code === 'un' ? '' : 'background-size: cover; background-position: center;';
+            // short label: 6 chars + ellipsis if longer
+            const rawTitle = (project.description || '').trim();
+            const shortTitle = rawTitle.length > 6 ? (rawTitle.slice(0,6) + '…') : rawTitle;
+            const titleColor = (project.category === 'Consulting') ? '#0A3D62' : '#E65100';
+            const labelFont = selected ? 12 : 11;
             const iconHtml = `
-                <div style="width: ${size}px; height: ${size}px; border: ${border}px solid ${color}; border-radius: 50%;
-                            background: ${bg}; ${bgExtra} box-shadow: ${glow}; cursor: pointer;"></div>`;
+                <div class="marker-with-label">
+                    <div style="width: ${size}px; height: ${size}px; border: ${border}px solid ${color}; border-radius: 50%;
+                                background: ${bg}; ${bgExtra} box-shadow: ${glow}; cursor: pointer;"></div>
+                    <div class="m-label" style="font-size:${labelFont}px; color:${titleColor}; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${shortTitle}</div>
+                </div>`;
             const customIcon = L.divIcon({
                 html: iconHtml,
                 className: 'custom-div-icon',
@@ -4791,6 +4802,9 @@
             allProjects.forEach(p => { if (!p.__id) { p.__id = `${p.category || 'UNK'}-${i++}-${(p.description||'').slice(0,16)}`; } });
         }
         function toggleEditMode() {
+            // 현재 뷰 유지
+            const keepCenter = map ? map.getCenter() : null;
+            const keepZoom = map ? map.getZoom() : null;
             editMode = !editMode;
             const btn = document.getElementById('toggle-edit-btn');
             const newBtn = document.getElementById('new-point-btn');
@@ -4814,6 +4828,10 @@
                 endLocationEdit(true);
             }
             applyFilters();
+            // 뷰 복원
+            if (map && keepCenter && typeof keepZoom === 'number') {
+                setTimeout(()=>{ map.setView(keepCenter, keepZoom, { animate: false }); }, 0);
+            }
         }
 
         function startLocationEdit(id) {
@@ -4864,9 +4882,13 @@
             const lo = parseFloat(document.getElementById('loc-edit-lng')?.textContent || p.lng);
             if (!isNaN(la) && !isNaN(lo)) { lat = la; lng = lo; }
             p.lat = lat; p.lng = lng;
-            try { localStorage.setItem('krc_edits_snapshot', JSON.stringify(allProjects)); } catch {}
+            try {
+                localStorage.setItem('krc_edits_snapshot', JSON.stringify(allProjects));
+                // 기본적으로 스냅샷을 활성 상태로 전환하여 새로고침 후에도 좌표 유지
+                localStorage.setItem('krc_edits_snapshot_active', '1');
+            } catch {}
             applyFilters();
-            try { showNotification('위치가 저장되었습니다.', 'success'); } catch{}
+            try { showNotification('위치가 저장되었습니다. (스냅샷 활성화)', 'success'); } catch{}
             endLocationEdit(true);
         }
         function cancelLocationEdit() {
