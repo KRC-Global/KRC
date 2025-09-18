@@ -6122,6 +6122,8 @@
                 } catch (e) { console.warn('init default zoom failed:', e); }
             }
             setTimeout(initDefaultZoomAndScroll, 30);
+            // 렌더 완료 후 한 번 더 축 중앙 재정렬 (개황과 동일한 느낌)
+            setTimeout(() => { try { recenterOpenTimelineAxis(); } catch(_){} }, 60);
 
             // 드래그-팬(마우스) 활성화: 지형도처럼 부드럽게 이동
             function enableDragPan() {
@@ -6140,6 +6142,16 @@
                 window.addEventListener('mouseup', ()=>{ if (dragging){ dragging=false; container.classList.remove('dragging'); } });
             }
             setTimeout(enableDragPan, 0);
+            // 줌 변경 후에도 중앙 재정렬 보조 (약간의 지연으로 자연스럽게)
+            const __recenterAfterZoom = () => setTimeout(()=>{ try { recenterOpenTimelineAxis(); } catch(_){} }, 40);
+            // 오버라이드: 저장된 applyViewScale 호출 이후에도 재정렬 시도
+            try {
+                const container = modalBody.querySelector('.new-timeline-design-container');
+                const observer = new MutationObserver((list)=>{
+                    for (const m of list){ if (m.type==='attributes' && m.attributeName==='data-scale'){ __recenterAfterZoom(); break; } }
+                });
+                if (container) observer.observe(container, { attributes:true, attributeFilter:['data-scale'] });
+            } catch{}
 
             // 확대/축소 컨트롤: 재렌더 유틸
             function rerenderTimelineOnly() {
