@@ -6056,7 +6056,7 @@
 
             function formatPeriodYears(p) {
                 let { start, end } = getStartEndYears(p);
-                if (start && end && end < start) { const t = start; start = end; end = t; }
+                // 연도 순서 자동 보정 제거 - 데이터 그대로 사용
                 const yy = (n) => (typeof n === 'number' ? ("'" + String(n % 100).padStart(2,'0')) : '');
                 if (!start && !end) return '';
                 if (!end || end === start) return `${yy(start)}`;
