@@ -5517,7 +5517,80 @@
                 document.querySelectorAll('.flag-chip').forEach(el => el.classList.remove('active'));
                 chip.classList.add('active');
                 showCountryStats(country);
+                focusCountryOnMap(country);
             });
+        }
+        // 지도 이동/줌: 국기 클릭 시 해당 국가 영역으로 포커스
+        function focusCountryOnMap(country) {
+            if (!map) return;
+            try {
+                // 국가별 프로젝트 좌표 수집
+                const pts = allProjects
+                    .filter(p => p && p.name && p.name.trim() === country && isFinite(p.lat) && isFinite(p.lng))
+                    .map(p => [Number(p.lat), Number(p.lng)]);
+
+                // 좌표가 없으면 기본 중심 좌표 사용
+                if (pts.length === 0) {
+                    const d = getDefaultCoordinates(country);
+                    const bounds = boundsFromCenterWithSize([d.lat, d.lng], country);
+                    safeFitBounds(bounds, { padding: [28, 28] }, true);
+                    return;
+                }
+
+                // 좌표가 1개면 국가 크기 힌트로 적절한 bounds 생성
+                if (pts.length === 1) {
+                    const bounds = boundsFromCenterWithSize(pts[0], country);
+                    safeFitBounds(bounds, { padding: [28, 28] }, true);
+                    return;
+                }
+
+                // 여러 개면 점들의 경계로 맞추되, 너무 좁으면 확장
+                let bounds = L.latLngBounds(pts);
+                const latSpan = Math.abs(bounds.getNorth() - bounds.getSouth());
+                const lngSpan = Math.abs(bounds.getEast() - bounds.getWest());
+                const minSpan = 2.0; // 최소 2도 범위는 확보 (국경 라인 식별용)
+                if (latSpan < minSpan || lngSpan < minSpan) {
+                    const center = bounds.getCenter();
+                    const expand = Math.max(minSpan - latSpan, minSpan - lngSpan, 0) / 2;
+                    const south = center.lat - (latSpan/2 + expand);
+                    const north = center.lat + (latSpan/2 + expand);
+                    const west = center.lng - (lngSpan/2 + expand);
+                    const east = center.lng + (lngSpan/2 + expand);
+                    bounds = L.latLngBounds([[south, west], [north, east]]);
+                }
+                // 여백 추가하여 패널 겹침 완화
+                safeFitBounds(bounds.pad(0.15), { padding: [32, 32] }, true);
+            } catch (e) {
+                console.warn('focusCountryOnMap failed:', e);
+            }
+        }
+
+        // 국가 규모 힌트에 따른 중심 기반 bounds 생성
+        function boundsFromCenterWithSize(center, country) {
+            const [clat, clng] = center;
+            const size = getCountrySizeHint(country);
+            const delta = (
+                size === 'huge' ? 18 :
+                size === 'large' ? 10 :
+                size === 'small' ? 2.5 :
+                5 // medium/default
+            );
+            const south = clat - delta;
+            const north = clat + delta;
+            const west = clng - delta;
+            const east = clng + delta;
+            return L.latLngBounds([[south, west], [north, east]]);
+        }
+
+        // 간단한 국가 크기 힌트 매핑 (대략적인 줌 수준 결정 용도)
+        function getCountrySizeHint(country) {
+            const huge = new Set(['러시아', '중국']);
+            const large = new Set(['미국','인도','인도네시아','이란','알제리','아르헨티나','에티오피아','DR콩고','콩고민주공화국','몽골']);
+            const small = new Set(['요르단','엘살바도르','네팔','라오스','캄보디아','브루나이','한국']);
+            if (huge.has(country)) return 'huge';
+            if (large.has(country)) return 'large';
+            if (small.has(country)) return 'small';
+            return 'medium';
         }
         function showCountryStats(country) {
             console.log('showCountryStats called for country:', country);
