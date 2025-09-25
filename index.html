@@ -5460,7 +5460,15 @@
                 btn.classList.add('active', category);
             }
 
-            applyFilters(); // 마커 업데이트를 위해 필터 적용
+            // 카테고리 조합에 따라 발주처 필터 초기화 규칙
+            // - 두 카테고리 동시 활성화 시: 발주처 필터는 비활성(비우기)하여 ODA가 제외되지 않도록 함
+            if (categoryFilters.has('consulting') && categoryFilters.has('oda')) {
+                if (activeFilters.clients.size > 0) {
+                    activeFilters.clients.clear();
+                }
+            }
+
+            applyFilters(); // 마커/국가 목록을 일관되게 업데이트
             updateCountryHub();
 
             // Ensure floating search suggestions attach handler (id may be newly created)
@@ -5489,7 +5497,8 @@
             const clientBar = document.getElementById('client-filter-bar');
             if (!flagsBox) return;
 
-            const countries = getFilteredCountries();
+            // 클라이언트 바 상태 정리 이후에 국가 목록 산출
+            let countries = getFilteredCountries();
             if (countries.length === 0) {
                 // 데이터가 아직 로드되지 않았거나 빈 경우에도 공백 안내만, 이후 로드 시 갱신됨
                 flagsBox.innerHTML = '<div style="font-size:12px; color:#5b7a99; text-align:center; padding:20px;">국가 데이터를 불러오는 중…</div>';
@@ -5546,9 +5555,22 @@
                 } else {
                     clientBar.style.display = 'none';
                     // 발주처 필터 초기화(숨길 때)
-                    activeFilters.clients.clear();
+                    if (activeFilters.clients.size > 0) {
+                        activeFilters.clients.clear();
+                        // 필터 상태가 바뀌었으니 목록/마커 재계산
+                        applyFilters();
+                    }
                 }
             }
+            // 현재 필터(검색/발주처 포함)를 반영한 국가별 카운트 맵 구성
+            const counts = new Map(); // country -> { consulting: n, oda: n }
+            (filteredProjects.length ? filteredProjects : allProjects).forEach(p => {
+                const c = (p.name || '').trim();
+                if (!c) return;
+                if (!counts.has(c)) counts.set(c, { consulting: 0, oda: 0 });
+                if (p.category === 'Consulting') counts.get(c).consulting++;
+                else if (p.category === 'ODA') counts.get(c).oda++;
+            });
             // Group countries by 2x2 quadrants
             const asia = new Set(continentMap['아시아']);
             const africa = new Set(continentMap['아프리카']);
@@ -5565,8 +5587,15 @@
                 const chips = list.map(c => {
                     const code = countryCodeMap[c] || 'un';
                     const url = flagUrlFor(code, 40);
+                    const ct = counts.get(c) || { consulting: 0, oda: 0 };
+                    const left = ct.consulting || 0;
+                    const right = ct.oda || 0;
                     return `<div class="flag-chip" data-country="${c}">` +
-                           `<div class="flag-icon" style="background-image:url('${url}')"></div>` +
+                           `<div style="display:flex; align-items:center; gap:6px;">
+                               <span style="min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:#E3F2FD; border:1px solid #0A3D62; color:#0A3D62; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;">${left}</span>
+                               <div class="flag-icon" style="background-image:url('${url}')"></div>
+                               <span style="min-width:18px; height:18px; padding:0 4px; border-radius:9px; background:#FFF3E0; border:1px solid #E65100; color:#E65100; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;">${right}</span>
+                           </div>` +
                            `<div class="flag-label">${c}</div>` +
                            `</div>`;
                 }).join('');
