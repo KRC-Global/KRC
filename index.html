@@ -4373,6 +4373,9 @@
             window.addEventListener('resize', () => {
                 setTimeout(adjustMapCenter, 100); // 리사이즈 완료 후 조정
             });
+
+            // 줌 변경 시 겹침 기반 클러스터링 재계산
+            map.on('zoomend', () => { try { updateMapMarkers(); } catch {} });
         }
 
         // 패널을 고려한 지도 컨테이너 레이아웃 조정 (누적 없음)
@@ -4657,18 +4660,120 @@
             markersLayer.clearLayers();
 
             const newMarkers = [];
-            filteredProjects.forEach(project => {
-                const m = createProjectMarker(project);
-                if (m) newMarkers.push(m);
-            });
+
+            // 편집 모드에서는 클러스터 비활성화 (정밀 드래그/선택용)
+            const useClustering = !editMode;
+
+            if (useClustering && map) {
+                const zoom = map.getZoom();
+                const clusters = clusterProjects(filteredProjects, zoom);
+                clusters.forEach(c => {
+                    if (c.items.length === 1) {
+                        const m = createProjectMarker(c.items[0]);
+                        if (m) newMarkers.push(m);
+                    } else {
+                        const m = createClusterMarker(c);
+                        if (m) newMarkers.push(m);
+                    }
+                });
+            } else {
+                filteredProjects.forEach(project => {
+                    const m = createProjectMarker(project);
+                    if (m) newMarkers.push(m);
+                });
+            }
 
             newMarkers.forEach(marker => markersLayer.addLayer(marker));
 
+            // 초기 진입 시 자동 뷰 조정 (viewLock이 true면 동작 안 함)
             if (!editMode && newMarkers.length > 0) {
                 const group = new L.featureGroup(newMarkers);
                 const bounds = group.getBounds();
                 safeFitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
             }
+        }
+
+        // ========= Marker Clustering (pixel-overlap aware) =========
+        function clusterProjects(projects, zoom) {
+            const radius = overlapRadiusForZoom(zoom);
+            const clusters = [];
+            const used = new Array(projects.length).fill(false);
+            if (!map) return projects.map(p => ({ center: L.latLng(p.lat, p.lng), items: [p] }));
+
+            // precompute projected points
+            const pts = projects.map((p, idx) => ({
+                idx,
+                p,
+                ll: L.latLng(Number(p.lat)||0, Number(p.lng)||0),
+                pt: map.latLngToContainerPoint([Number(p.lat)||0, Number(p.lng)||0])
+            }));
+
+            for (let i = 0; i < pts.length; i++) {
+                if (used[i]) continue;
+                const base = pts[i];
+                const group = [base];
+                used[i] = true;
+                for (let j = i + 1; j < pts.length; j++) {
+                    if (used[j]) continue;
+                    const dx = pts[j].pt.x - base.pt.x;
+                    const dy = pts[j].pt.y - base.pt.y;
+                    if ((dx*dx + dy*dy) <= radius*radius) {
+                        group.push(pts[j]);
+                        used[j] = true;
+                    }
+                }
+                // compute cluster center (average lat/lng)
+                const lat = group.reduce((s,g)=>s+g.ll.lat,0)/group.length;
+                const lng = group.reduce((s,g)=>s+g.ll.lng,0)/group.length;
+                clusters.push({ center: L.latLng(lat,lng), items: group.map(g=>g.p) });
+            }
+            return clusters;
+        }
+
+        function overlapRadiusForZoom(z) {
+            if (z >= 12) return 52; // 라벨/아이콘 넓게 겹침 방지
+            if (z >= 10) return 44;
+            if (z >= 8) return 34;
+            if (z >= 6) return 26;
+            return 20;
+        }
+
+        function createClusterMarker(cluster) {
+            const n = cluster.items.length;
+            const { country, category } = getClusterMajority(cluster.items);
+            const code = countryCodeMap[country] || 'un';
+            const flagUrl = `https://flagcdn.com/w40/${code}.png`;
+            const borderColor = projectColors[category] || '#495057';
+
+            const html = `
+                <div class="cluster-icon" style="position:relative; display:flex; align-items:center; justify-content:center;">
+                    <div style="width: 28px; height: 28px; border: 2px solid ${borderColor}; border-radius: 50%; background: url('${flagUrl}') center/cover no-repeat; box-shadow: 0 2px 8px rgba(0,0,0,0.4);"></div>
+                    <div style="position:absolute; right:-6px; bottom:-6px; min-width:20px; height:20px; padding:0 6px; background:#000; color:#fff; border-radius:999px; border:2px solid #fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 6px rgba(0,0,0,0.3);">${n}</div>
+                </div>`;
+
+            const icon = L.divIcon({ html, className: 'cluster-div-icon', iconSize: [36,36], iconAnchor: [18,18] });
+            const marker = L.marker(cluster.center, { icon, interactive: true });
+
+            // 클릭 시 조금 더 확대하여 클러스터 해제 유도
+            marker.on('click', () => {
+                const z = map.getZoom();
+                map.setView(cluster.center, Math.min(z + 1, 16));
+            });
+            return marker;
+        }
+
+        function getClusterMajority(items) {
+            const countryCount = new Map();
+            const categoryCount = new Map();
+            items.forEach(p => {
+                const c = (p.name||'').trim();
+                const k = (p.category||'Consulting').trim();
+                countryCount.set(c, (countryCount.get(c)||0)+1);
+                categoryCount.set(k, (categoryCount.get(k)||0)+1);
+            });
+            let country = 'un', maxC = -1; countryCount.forEach((v,k)=>{ if (v>maxC) { maxC=v; country=k; } });
+            let category = 'Consulting', maxK = -1; categoryCount.forEach((v,k)=>{ if (v>maxK) { maxK=v; category=k; } });
+            return { country, category };
         }
         function createProjectMarker(project) {
             const category = project.category || 'Consulting';
