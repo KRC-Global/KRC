@@ -4,7 +4,7 @@ Overview
 
 - Static web app (no build). Mapping via Leaflet + OSM tiles.
 - Data source: JSON files `data/global_oda.json`, `data/global_consulting.json`.
-- Edit Mode: In-browser editing, draggable markers, JSON export/import.
+- Edit Mode: Disabled in production build (toggle/button hidden). Keep `editMode=false`.
 - Address search: Nominatim-based geocoding (online).
 - UI panels:
   - Country Hub (right on desktop, bottom on mobile): continent quadrants + flag grid + stats
@@ -20,12 +20,7 @@ Data Workflow
 
 - Convert Excel → JSON: `python3 scripts/convert_xlsx_to_json.py`
   - Writes: `data/global_oda.json`, `data/global_consulting.json`
-- In-browser edits: toggle “✏️ 편집 모드”
-  - Edit a project in popup → modal → Save
-  - Drag selected marker to adjust coords (updates modal lat/lng)
-  - “➕ 새 지점” to add new project at current map center
-  - Export: “💾 JSON 내보내기” (download both JSONs)
-  - Import: “📥 JSON 불러오기” (preview locally)
+- In-browser edits: currently disabled in UI. To re-enable for development, restore the edit toggle button visibility and original `toggleEditMode()` body in `index.html`.
 
 Troubleshooting
 
@@ -51,7 +46,9 @@ Timeline Specific
   - Default: All clients selected. The ‘전체’ button toggles all on/off. If all off, consulting projects are hidden.
   - WB/IDA unify: WB, World Bank, WB(IDA), IDA map to 'WB'.
   - Governments unify: names with ‘정부’, Government/Ministry, or ‘브루나이’ map to ‘각국정부’.
-  - Country grid reflects active filters: only countries with visible projects are shown.
+ - Country grid reflects active filters: only countries with visible projects are shown.
+- Flags: left/right numeric badges show Consulting/ODA counts (respect current filters). Badge size tuned for mobile (14px, font 9px).
+- Flag click: map focuses (fitBounds) to make country border area visible.
 - Timeline improvements:
   - Compressed axis skipping empty years; future projects appear to the right of the current marker.
   - Future year markers (dot/label) move with their event position.
@@ -67,5 +64,5 @@ Data hygiene
 
 Notes
 
-- Archived pages under `archive/versions/` are historical snapshots (contain old Firebase code). The live app is `KRC/index.html`.
+- Archived pages under `archive/versions/` are historical snapshots (may contain old clustering/ Firebase code). The live app is `KRC/index.html`.
 - No backend/DB used; “admin” is a client-local concept only.
