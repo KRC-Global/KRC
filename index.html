@@ -4754,10 +4754,31 @@
             const icon = L.divIcon({ html, className: 'cluster-div-icon', iconSize: [36,36], iconAnchor: [18,18] });
             const marker = L.marker(cluster.center, { icon, interactive: true });
 
-            // 클릭 시 조금 더 확대하여 클러스터 해제 유도
+            // 클릭 시 클러스터 아이템 경계로 확대하여 자연스럽게 분해
             marker.on('click', () => {
-                const z = map.getZoom();
-                map.setView(cluster.center, Math.min(z + 1, 16));
+                try {
+                    const pts = cluster.items
+                        .map(p => [Number(p.lat)||0, Number(p.lng)||0])
+                        .filter(([a,b]) => isFinite(a) && isFinite(b));
+                    if (pts.length === 0) {
+                        map.setView(cluster.center, Math.min((map.getZoom()||8) + 1, 16));
+                        return;
+                    }
+                    let bounds = L.latLngBounds(pts);
+                    // 너무 좁으면 약간 확장
+                    const latSpan = Math.abs(bounds.getNorth() - bounds.getSouth());
+                    const lngSpan = Math.abs(bounds.getEast() - bounds.getWest());
+                    const minSpan = 0.5; // 최소 반경 확보
+                    if (latSpan < minSpan || lngSpan < minSpan) {
+                        const c = bounds.getCenter();
+                        const half = Math.max(minSpan/2, Math.max(latSpan, lngSpan)/2);
+                        bounds = L.latLngBounds([[c.lat - half, c.lng - half], [c.lat + half, c.lng + half]]);
+                    }
+                    safeFitBounds(bounds.pad(0.12), { padding: [28, 28], maxZoom: 14 }, true);
+                } catch (e) {
+                    console.warn('cluster click zoom failed:', e);
+                    map.setView(cluster.center, Math.min((map.getZoom()||8) + 1, 16));
+                }
             });
             return marker;
         }
