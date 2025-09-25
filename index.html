@@ -3502,7 +3502,7 @@
                     <div style="display: flex; gap: 4px;">
                         <input type="text" id="address-input" placeholder="주소 또는 사업명 검색" style="padding:7px 10px; border:1px solid #ddd; border-radius:6px; width: 160px; font-size:12px;">
                         <button class="filter-bar-button" id="address-search-btn">검색</button>
-                        <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드">✏️ 편집</button>
+                        <button class="edit-btn toggle" id="toggle-edit-btn" title="편집 모드" style="display:none;">✏️ 편집</button>
                     </div>
                     <div class="address-suggestions" id="address-suggestions" style="display:none;"></div>
                 </div>
@@ -4946,36 +4946,22 @@
             allProjects.forEach(p => { if (!p.__id) { p.__id = `${p.category || 'UNK'}-${i++}-${(p.description||'').slice(0,16)}`; } });
         }
         function toggleEditMode() {
-            // 현재 뷰 유지
-            const keepCenter = map ? map.getCenter() : null;
-            const keepZoom = map ? map.getZoom() : null;
-            editMode = !editMode;
+            // 편집 기능 비활성화: 항상 OFF 유지
+            editMode = false;
             const btn = document.getElementById('toggle-edit-btn');
             const newBtn = document.getElementById('new-point-btn');
             const exp = document.getElementById('export-json-btn');
             const imp = document.getElementById('import-json-label');
-            if (editMode) {
-                btn.classList.add('on');
-                btn.title = '편집 모드 ON';
-                if (newBtn) newBtn.style.display = 'inline-block';
-                if (exp) exp.style.display = 'inline-block';
-                if (imp) imp.style.display = 'inline-block';
-            } else {
-                btn.classList.remove('on');
-                btn.title = '편집 모드';
-                if (newBtn) newBtn.style.display = 'none';
-                if (exp) exp.style.display = 'none';
-                if (imp) imp.style.display = 'none';
-                activeEditProjectId = null;
-                isCreatingNew = false;
-                removePickingMarker();
-                endLocationEdit(true);
-            }
+            if (btn) { btn.classList.remove('on'); btn.title = '편집 모드'; btn.style.display = 'none'; }
+            if (newBtn) newBtn.style.display = 'none';
+            if (exp) exp.style.display = 'none';
+            if (imp) imp.style.display = 'none';
+            activeEditProjectId = null;
+            isCreatingNew = false;
+            try { removePickingMarker(); } catch {}
+            try { endLocationEdit(true); } catch {}
+            try { showNotification('편집 기능이 비활성화되었습니다.', 'info'); } catch {}
             applyFilters();
-            // 뷰 복원
-            if (map && keepCenter && typeof keepZoom === 'number') {
-                setTimeout(()=>{ map.setView(keepCenter, keepZoom, { animate: false }); }, 0);
-            }
         }
 
         function startLocationEdit(id) {
