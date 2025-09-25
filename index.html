@@ -4359,15 +4359,12 @@
                 center: [30, 0], // 기본 중심점
                 zoom: 3,
                 zoomControl: false,
-                worldCopyJump: false,    // 세계 지도 복사 점프 비활성화
-                maxBounds: [[-90, -180], [90, 180]], // 지도 경계 제한
-                maxBoundsViscosity: 1.0  // 경계에서 완전히 멈춤
+                worldCopyJump: false // 부드러운 수평 랩(점프 없음)
             });
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                noWrap: true,  // 타일 무한 반복 방지
-                bounds: [[-90, -180], [90, 180]]  // 타일 표시 범위 제한
+                attribution: '© OpenStreetMap contributors'
+                // noWrap: false (기본값) → 수평 반복 허용
             }).addTo(map);
 
             markersLayer = L.layerGroup().addTo(map);
@@ -4384,6 +4381,14 @@
 
             // 줌 변경 시 겹침 기반 클러스터링 재계산
             map.on('zoomend', () => { try { updateMapMarkers(); } catch {} });
+            // 패닝 종료 시 현재 뷰에 맞춰 복제 마커 재계산 (디바운스)
+            let moveTimer = null;
+            map.on('moveend', () => {
+                try {
+                    if (moveTimer) clearTimeout(moveTimer);
+                    moveTimer = setTimeout(() => { updateMapMarkers(); }, 80);
+                } catch {}
+            });
         }
 
         // 패널을 고려한 지도 컨테이너 레이아웃 조정 (누적 없음)
@@ -4671,9 +4676,14 @@
             // 편집 모드에서는 클러스터 비활성화 (정밀 드래그/선택용)
             const useClustering = !editMode;
 
+            // 현재 뷰에 맞춰 지점 복제(수평 무한 랩):
+            // 화면에 보이는 경계 내에 들어오는 ±360n 이동본을 함께 생성
+            const source = Array.isArray(filteredProjects) ? filteredProjects : [];
+            const projectsForView = duplicateProjectsForWrap(source);
+
             if (useClustering && map) {
                 const zoom = map.getZoom();
-                const clusters = clusterProjects(filteredProjects, zoom);
+                const clusters = clusterProjects(projectsForView, zoom);
                 clusters.forEach(c => {
                     if (c.items.length === 1) {
                         const m = createProjectMarker(c.items[0]);
@@ -4684,7 +4694,7 @@
                     }
                 });
             } else {
-                filteredProjects.forEach(project => {
+                projectsForView.forEach(project => {
                     const m = createProjectMarker(project);
                     if (m) newMarkers.push(m);
                 });
@@ -4692,11 +4702,43 @@
 
             newMarkers.forEach(marker => markersLayer.addLayer(marker));
 
-            if (!editMode && newMarkers.length > 0) {
-                const group = new L.featureGroup(newMarkers);
-                const bounds = group.getBounds();
-                safeFitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
+            // 초기 자동 뷰 조정: 원본 좌표만 기반으로 계산(복제본 제외)
+            if (!editMode && source.length > 0) {
+                try {
+                    const pts = source
+                        .map(p => L.latLng(Number(p.lat)||0, Number(p.lng)||0))
+                        .filter(ll => isFinite(ll.lat) && isFinite(ll.lng));
+                    if (pts.length) {
+                        const b = L.latLngBounds(pts);
+                        safeFitBounds(b, { padding: [20, 20], maxZoom: 8 });
+                    }
+                } catch {}
             }
+        }
+
+        // 수평 랩을 고려하여 현재 뷰포트에 들어오는 지점 복제 생성
+        function duplicateProjectsForWrap(list) {
+            if (!map || !list || !list.length) return [];
+            const bounds = map.getBounds();
+            const west = bounds.getWest();
+            const east = bounds.getEast();
+            const span = Math.max(1, east - west);
+            const margin = Math.max(30, span * 0.6); // 넉넉한 버퍼로 팝인 최소화
+            const out = [];
+            for (const p of list) {
+                const lat = Number(p.lat) || 0;
+                const lng = Number(p.lng) || 0;
+                // k 범위 계산: 현재 화면에 들어오는 모든 360*k 이동본
+                const kMin = Math.floor((west - lng) / 360) - 1;
+                const kMax = Math.ceil((east - lng) / 360) + 1;
+                for (let k = kMin; k <= kMax; k++) {
+                    const adjLng = lng + 360 * k;
+                    if (adjLng < west - margin || adjLng > east + margin) continue; // 충분한 여유
+                    // 얕은 복제에 좌표만 덮어쓰기
+                    out.push({ ...p, lat, lng: adjLng });
+                }
+            }
+            return out;
         }
 
         // ========= Marker Clustering (pixel-overlap aware) =========
